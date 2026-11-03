@@ -152,4 +152,4 @@ function Pipeline() {
 
 ---
 
-> 官方原文：[src/oss/langgraph/frontend/overview.md](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/frontend/overview.md) · 译文由 AI 生成，以英文原文为准。
+> 官方原文：[src/oss/langgraph/frontend/overview.md](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/frontend/overview.md) · 非官方翻译，译文由 AI 生成，以英文原文为准。
