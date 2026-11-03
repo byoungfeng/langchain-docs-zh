@@ -2,6 +2,8 @@
 
 [LangChain 官方文档](https://docs.langchain.com)的简体中文翻译，使用 [Mintlify](https://mintlify.com) 构建。
 
+在线站点：<https://langchain-docs-zh.mintlify.site>
+
 - 上游仓库：<https://github.com/langchain-ai/docs>
 - 收录范围：`src/oss/**` 与 `src/snippets/**`
 - 不包含 LangSmith（独立产品，站内链接指向官方英文文档）
