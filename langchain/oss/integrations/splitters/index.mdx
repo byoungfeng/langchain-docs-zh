@@ -1,0 +1,155 @@
+---
+title: "文本分割器集成"
+sidebarTitle: "文本分割器"
+description: "使用 LangChain 与文本分割器集成。"
+---
+
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+:::python
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-text-splitters
+    ```
+
+    ```bash uv
+    uv add langchain-text-splitters
+    ```
+</CodeGroup>
+:::
+
+:::js
+    <CodeGroup>
+
+    ```bash npm
+    npm install @langchain/textsplitters @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash pnpm
+    pnpm add @langchain/textsplitters @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash yarn
+    yarn add @langchain/textsplitters @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash bun
+    bun add @langchain/textsplitters @langchain/core
+    # Requires Node.js 22+
+    ```
+    </CodeGroup>
+:::
+
+**文本分割器**将大型文档分割成更小的片段，这些片段可以单独检索，并且适合模型上下文窗口限制。
+
+有多种分割文档的策略，每种策略都有其自身的优势。
+
+:::python
+<PythonIntegrationComponentMap active="splitters" />
+:::
+
+<Tip>
+    对于大多数用例，应从[`RecursiveCharacterTextSplitter`](/langchain/oss/integrations/splitters/recursive_text_splitter)开始。它提供了在保持上下文完整性和管理片段大小之间取得良好平衡。这种默认策略开箱即用效果良好，只有当您需要针对特定应用程序微调性能时，才应考虑调整它。
+</Tip>
+
+## 基于文本结构的分割
+
+文本自然地组织成层次结构单元，如段落、句子和单词。我们可以利用这种固有的结构来指导我们的分割策略，创建保持自然语言流畅性、在分割内保持语义连贯性，并适应不同级别的文本粒度的分割。LangChain的`RecursiveCharacterTextSplitter`实现了这一概念：
+
+- [`RecursiveCharacterTextSplitter`](/langchain/oss/integrations/splitters/recursive_text_splitter)尝试保持较大的单元（例如，段落）完整。
+- 如果一个单元超过片段大小，它会移动到下一级（例如，句子）。
+- 如果有必要，此过程会继续到单词级别。
+
+示例用法：
+
+:::python
+```python
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=0)
+texts = text_splitter.split_text(document)
+```
+:::
+:::js
+```ts
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+
+const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 100, chunkOverlap: 0 })
+const texts = splitter.splitText(document)
+```
+:::
+
+**可用的文本分割器**：
+- [递归分割文本](/langchain/oss/integrations/splitters/recursive_text_splitter)
+
+## 基于长度的分割
+
+一种直观的策略是根据文档的长度进行分割。这种简单而有效的方法确保每个片段都不会超过指定的尺寸限制。基于长度的分割的关键优势：
+
+- 简单实现
+- 一致的片段大小
+- 容易适应不同的模型需求
+
+基于长度的分割类型：
+
+- Token-based：基于Token数量分割文本，这在处理语言模型时很有用。
+- Character-based：基于字符数量分割文本，这可以在不同类型的文本中保持更一致的分割。
+
+使用LangChain的`CharacterTextSplitter`进行基于Token的分割的示例实现：
+
+:::python
+```python
+from langchain_text_splitters import CharacterTextSplitter
+
+text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+    encoding_name="cl100k_base", chunk_size=100, chunk_overlap=0
+)
+texts = text_splitter.split_text(document)
+```
+:::
+:::js
+```ts
+import { TokenTextSplitter } from "@langchain/textsplitters";
+
+const splitter = new TokenTextSplitter({ encodingName: "cl100k_base", chunkSize: 100, chunkOverlap: 0 })
+const texts = splitter.splitText(document)
+```
+:::
+
+**可用的文本分割器**：
+- [按Token分割](/langchain/oss/integrations/splitters/split_by_token)
+- [按字符分割](/langchain/oss/integrations/splitters/character_text_splitter)
+
+## 基于文档结构的分割
+
+某些文档具有固有的结构，如HTML、Markdown或JSON文件。在这些情况下，根据文档结构进行分割是有益的，因为它通常自然地将语义相关的文本分组在一起。基于结构的分割的关键优势：
+
+- 保留文档的逻辑组织
+- 在每个片段内保持上下文
+- 对于检索或摘要等下游任务可能更有效
+
+:::python
+基于结构的分割示例：
+
+- Markdown：基于标题（例如，`#`、`##`、`###`）进行分割
+- HTML：使用标签进行分割
+- JSON：按对象或数组元素进行分割
+- 代码：按函数、类或逻辑块进行分割
+
+**可用的文本分割器**：
+- [分割Markdown](/langchain/oss/python/integrations/splitters/markdown_header_metadata_splitter)
+- [分割JSON](/langchain/oss/python/integrations/splitters/recursive_json_splitter)
+- [分割代码](/langchain/oss/integrations/splitters/code_splitter)
+- [分割HTML](/langchain/oss/python/integrations/splitters/split_html)
+:::
+:::js
+**可用的文本分割器**：
+- [分割代码](/langchain/oss/integrations/splitters/code_splitter)
+:::
+
+---
+
+> 官方原文：[src/oss/integrations/splitters/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/integrations/splitters/index.mdx) · 译文由 AI 生成，以英文原文为准。

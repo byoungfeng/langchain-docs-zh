@@ -1,0 +1,166 @@
+---
+title: "LocalFileStore集成"
+description: "使用 LangChain JavaScript 集成 LocalFileStore 存储。"
+integration:
+  name: LocalFileStore
+---
+
+
+<Tip>
+**兼容性**: 仅适用于 Node.js。
+</Tip>
+
+这将帮助您开始使用 [`LocalFileStore`](/langchain/oss/python/integrations/stores)。有关所有 `LocalFileStore` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain/storage/file_system/LocalFileStore)。
+
+## 概述
+
+`LocalFileStore` 是一个围绕 `fs` 模块存储数据作为键值对的包装器。
+每个键值对都在传递给 `.fromPath` 方法的目录中的自己的文件内。
+文件名是键，里面包含键的值。
+
+<Info>
+**传递给 `.fromPath` 的路径必须是目录，而不是文件。**
+</Info>
+
+<Warning>
+**此文件存储可以更改提供的目录和任何子文件夹中的任何文本文件。**
+
+确保在初始化存储时指定的路径不包含其他文件。
+
+</Warning>
+
+### 集成细节
+
+| 类 | 包 | 本地 | [PY 支持](/langchain/oss/python/integrations/stores/file_system) | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: |  :---: | :---: |
+| [`LocalFileStore`](https://reference.langchain.com/javascript/langchain/storage/file_system/LocalFileStore) | [langchain](https://www.npmjs.com/package/langchain) | ✅ | ✅ | ![NPM - 下载量](https://img.shields.io/npm/dm/langchain?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/langchain?style=flat-square&label=%20&) |
+
+## 设置
+
+### 安装
+
+LangChain `LocalFileStore` 集成位于 `langchain` 包中：
+
+<CodeGroup>
+```bash npm
+npm install langchain @langchain/core
+```
+```bash yarn
+yarn add langchain @langchain/core
+```
+```bash pnpm
+pnpm add langchain @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的字节存储：
+
+```typescript
+import { LocalFileStore } from "@langchain/classic/storage/file_system"
+
+const kvStore = await LocalFileStore.fromPath("./messages");
+```
+
+定义一个编码器和解码器，用于将数据转换为 `Uint8Array` 并转换回来：
+
+```typescript
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+```
+
+## 使用
+
+您可以使用 `mset` 方法像这样在键下设置数据：
+
+```typescript
+await kvStore.mset(
+  [
+    ["key1", encoder.encode("value1")],
+    ["key2", encoder.encode("value2")],
+  ]
+)
+
+const results = await kvStore.mget(
+  [
+    "key1",
+    "key2",
+  ]
+)
+console.log(results.map((v) => decoder.decode(v)));
+```
+
+```python
+[ 'value1', 'value2' ]
+```
+
+并且您可以使用 `mdelete` 方法删除数据：
+
+```typescript
+await kvStore.mdelete(
+  [
+    "key1",
+    "key2",
+  ]
+)
+
+await kvStore.mget(
+  [
+    "key1",
+    "key2",
+  ]
+)
+```
+
+```text
+[ undefined, undefined ]
+```
+
+## 获取值
+
+如果您想获取所有键，可以调用 `yieldKeys` 方法。可选地，您可以传递一个键前缀，以仅获取与该前缀匹配的键。
+
+```typescript
+import { LocalFileStore } from "@langchain/classic/storage/file_system"
+
+const kvStoreForYield = await LocalFileStore.fromPath("./messages");
+
+const encoderForYield = new TextEncoder();
+
+// Add some data to the store
+await kvStoreForYield.mset(
+  [
+    ["message:id:key1", encoderForYield.encode("value1")],
+    ["message:id:key2", encoderForYield.encode("value2")],
+  ]
+)
+
+const yieldedKeys = [];
+for await (const key of kvStoreForYield.yieldKeys("message:id:")) {
+  yieldedKeys.push(key);
+}
+
+console.log(yieldedKeys);
+```
+
+```python
+[ 'message:id:key1', 'message:id:key2' ]
+```
+
+```typescript
+import fs from "fs";
+
+// Cleanup
+await fs.promises.rm("./messages", { recursive: true, force: true });
+```
+
+---
+
+## API 参考
+
+有关所有 `LocalFileStore` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain/storage/file_system/LocalFileStore)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/stores/file_system.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/stores/file_system.mdx) · 译文由 AI 生成，以英文原文为准。

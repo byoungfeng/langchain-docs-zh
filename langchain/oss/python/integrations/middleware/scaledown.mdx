@@ -1,0 +1,301 @@
+---
+title: "ScaleDown 中间件集成"
+description: "使用 LangChain Python 集成 ScaleDown 中间件。"
+integration:
+  name: ScaleDown middleware
+  pypi: langchain-scaledown
+  available: Conversation summarization, context and tool result compression, and structured extraction
+  source: "[`scaledown-team/langchain-scaledown`](https://github.com/scaledown-team/langchain-scaledown/tree/main/libs/scaledown)"
+---
+
+[ScaleDown](https://scaledown.ai) 限制解码模型的中件层集成。ScaleDown 限制解码模型每个都针对狭窄任务进行训练，因此它们在智能体周围的高量级步骤（如压缩历史记录或读取长工具结果）的处理速度更快、成本更低，比对通用模型的第二次调用更高效。智能体保留自己的模型用于规划和生成。了解更多关于 [中件层](/langchain/oss/langchain/middleware/overview)。]
+
+所有ScaleDown中间件均遵循开放失败策略。如果ScaleDown不可用、信用不足或拒绝请求，智能体会像没有该中间件一样运行，并会记录警告信息。
+
+| Middleware | Description |
+|------------|-------------|
+| [Summarization](#摘要) | Replace older messages with a summary once the context fills up |
+| [Context compression](#上下文压缩) | Compress a large system prompt relative to the user's question |
+| [Tool result compression](#工具结果压缩) | Let the model request only the relevant part of a tool's output |
+| [Extraction](#提取) | Pull structured fields out of the user's messages into agent state |
+
+## 设置
+
+要使用 ScaleDown 中间件，请创建 ScaleDown 账号，从 [ScaleDown dashboard](https://scaledown.ai/dashboard) 获取 API key 并安装 `langchain-scaledown` 包。新账号包含 50 亿免费 Token。
+
+
+### 凭证
+
+```python Set API key
+import getpass
+import os
+
+if "SCALEDOWN_API_KEY" not in os.environ:
+    os.environ["SCALEDOWN_API_KEY"] = getpass.getpass("Enter your ScaleDown API key: ")
+```
+
+每个中间件都会读取 `SCALEDOWN_API_KEY`。若需指向不同的 API 主机，请设置 `SCALEDOWN_BASE_URL`。若需在中间件之间共享一个连接，请创建 `ScaledownClient` 并将其作为 `client=`传递给每个中间件。
+
+它也有助于（但不是必需的）设置 LangSmith 用于可观察性和<Tooltip tip="Log each step of a model's execution to debug and improve it">跟踪</Tooltip>。要启用自动跟踪，请设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python Enable tracing
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+ScaleDown 中间件位于 `langchain-scaledown` 包中：
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-scaledown
+    ```
+    ```bash uv
+    uv add langchain-scaledown
+    ```
+</CodeGroup>
+
+## 摘要
+
+长时间运行的智能体会耗尽上下文。每次历史记录填满时，通过调用通用模型来总结旧历史记录会增加成本和延迟。`ScaledownSummarizer` 使用 ScaleDown 来写入摘要，并通过其 `summarizer` 参数接入内置的 [`SummarizationMiddleware`](/langchain/oss/langchain/middleware/built-in#摘要)。内置的中间件仍然决定何时总结以及保留哪些最近消息。
+
+默认摘要与LangChain的提示词模板包含相同的部分：会话意图、摘要、附件和后续步骤。
+
+<Note>
+    ScaleDown 总结输出限制在 200 个 Token，因此 `max_tokens` 超过该值的输出会被 API 限制。
+</Note>
+
+```python Summarizer with SummarizationMiddleware
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_scaledown import ScaledownSummarizer
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[read_file, write_file, run_tests],
+    middleware=[
+        SummarizationMiddleware(
+            model="claude-sonnet-4-6",  # Used for its context window and token counting
+            trigger=("fraction", 0.8),
+            keep=("fraction", 0.1),
+            trim_tokens_to_summarize=None,  # Send all older history to ScaleDown
+            summarizer=ScaledownSummarizer(),  # [!code highlight]
+        ),
+    ],
+)
+```
+
+`ScaledownSummarizationMiddleware` 是相同设置的快捷方式，只有一个区别：如果 ScaleDown 调用失败，它会保留历史记录不变，并正常调用模型。
+
+```python ScaledownSummarizationMiddleware
+from langchain.agents import create_agent
+from langchain_scaledown import ScaledownSummarizationMiddleware
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[read_file, write_file, run_tests],
+    middleware=[
+        ScaledownSummarizationMiddleware(  # [!code highlight]
+            "claude-sonnet-4-6",
+            trigger=("fraction", 0.8),
+            keep=("fraction", 0.1),
+        ),
+    ],
+)
+```
+
+深度智能体摘要中间件接受相同的 `summarizer` 参数。它还将被驱逐的历史记录保存到一个智能体可以读取的文件中。
+
+<Accordion title="Configuration options">
+
+<ParamField body="instructions" type="string | None">
+    规则附加到 ScaleDown 的基本摘要指令上。默认为会话意图、摘要、工件和下一步骤部分。传递 `None` 以仅使用 ScaleDown 的默认行为。
+</ParamField>
+
+<ParamField body="max_tokens" type="number" default="2048">
+    生成摘要的最大长度。API 会将其限制在其输出限制范围内。
+</ParamField>
+
+
+
+<ParamField body="client" type="ScaledownClient">
+    预配置客户端。如果省略，则从 `api_key`、`base_url` 或环境变量创建一个。
+</ParamField>
+
+</Accordion>
+
+## 上下文压缩
+
+`ScaledownCompressionMiddleware` 在每次模型调用前，会压缩相对于用户最新问题的较大系统提示词。系统消息是会被压缩的上下文，而最后一个用户消息则是决定要保留内容的查询。用户消息和对话历史会保持不变。
+
+用于“大海捞针”类工作负载，例如检索增强生成（RAG），其中一大块检索到的文档包含少量相关事实。不要用于短提示词或创意生成，因为压缩可能会丢失模型所需的指令、语气或细节。在使用 Deep Agents 时，系统消息也包含 harness 自身的指令，压缩也会将这些内容压缩。
+
+```python Context compression
+from langchain.agents import create_agent
+from langchain_scaledown import ScaledownCompressionMiddleware
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    system_prompt=f"Answer using these documents:\n\n{retrieved_docs}",
+    middleware=[ScaledownCompressionMiddleware(min_context_chars=2000)],  # [!code highlight]
+)
+```
+
+当系统消息短于 `min_context_chars`、没有用户消息或 ScaleDown 调用失败时，请求将保持不变。
+
+<Accordion title="Configuration options">
+
+<ParamField body="min_context_chars" type="number" default="2000">
+仅压缩超过此长度的上下文。
+</ParamField>
+<ParamField body="rate" type="string | number" default="auto">
+    传递给 ScaleDown 的压缩率。
+</ParamField>
+
+
+
+<ParamField body="context_extractor" type="Callable">
+    接收模型请求并返回 `(context, prompt)` 元组的函数，或返回 `None` 以跳过压缩。压缩后的上下文始终替换系统消息。默认情况下，系统消息作为上下文，最后一个用户消息作为提示词。
+</ParamField>
+
+</Accordion>
+
+## 工具结果压缩
+
+向支持智能体咨询欧盟订单的退款政策，它可以将商店的整个政策页面引入上下文。后续的每一步都会再次为这些 Token 支付费用。`ScaledownToolCompressionMiddleware`为您的工具添加了一个可选的`compression_query`参数。当模型只需要部分结果时，它会填写`compression_query`，例如`"refund policy for EU orders"`。中间件在工具运行前移除该参数，然后在模型看到之前将输出压缩为相关部分。
+
+```python Tool result compression
+from langchain.agents import create_agent
+from langchain_scaledown import ScaledownToolCompressionMiddleware
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[search_docs, fetch_url],
+    middleware=[ScaledownToolCompressionMiddleware(tools=["fetch_url"])],  # [!code highlight]
+)
+```
+
+您的工具不会改变，因此这适用于任何工具，包括 MCP 工具。压缩结果以注释开头，以便模型在需要完整输出时无需 `compression_query` 就能再次调用工具：
+
+```text Compression note
+[Compressed by ScaleDown for "refund policy for EU orders": 18,402 -> 3,110 chars. Call this tool again without `compression_query` for the full output.]
+```
+
+当模型省略`compression_query`、输出短于`min_result_chars`、结果为错误或包含非文本内容，或ScaleDown调用失败时，结果保持不变。
+
+<Accordion title="Configuration options">
+
+<ParamField body="tools" type="list">
+要添加参数的工具，或工具名称。默认为智能体拥有的所有工具。
+
+</ParamField>
+<ParamField body="param_name" type="string" default="compression_query">
+    添加的参数的名称。如果目标工具已经有一个具有此名称的参数，则引发 `ValueError`。
+</ParamField>
+<ParamField body="param_description" type="string">
+    对添加的参数的描述，展示给模型。
+</ParamField>
+
+<ParamField body="min_result_chars" type="number" default="4000">
+    仅压缩长度超过此值的工具输出。
+</ParamField>
+
+
+
+<ParamField body="rate" type="string | number" default="auto">
+    ScaleDown 传递的压缩率。
+</ParamField>
+
+</Accordion>
+
+## 提取
+
+
+智能体通常需要从用户处获取少量事实信息才能执行操作，例如订单号、遇到的错误或邮箱地址。`ScaledownExtractionMiddleware`通过ScaleDown替代在每轮对话中向代理模型询问，而是在每次运行前（首次模型调用前）将用户消息和你的架构发送给ScaleDown，并将结果存储在代理状态下的`scaledown_extraction`中。工具可以在运行期间读取这些信息，最终输出包含在`agent.invoke()`中。
+
+仅使用用户消息，永不使用代理自身的回复，因此每个提取值都是用户所述内容。请用平白语言描述每个字段：
+
+```python Extraction
+from langchain.agents import create_agent
+from langchain.tools import ToolRuntime, tool
+from langchain_scaledown import ScaledownExtractionMiddleware
+
+ticket = ScaledownExtractionMiddleware(
+    entities={
+        "order_id": "Order number the customer mentions",
+        "error_message": "Exact error message or code the customer saw",
+        "steps_tried": "What the customer says they already tried",
+        "customer_email": "Customer's email address",
+    },
+    context_chars=0,  # Skip evidence snippets to keep state small
+)
+
+
+@tool
+def file_ticket(runtime: ToolRuntime) -> str:
+    """File a support ticket with the details gathered so far."""
+    fields = runtime.state.get("scaledown_extraction", {}).get("fields", {})
+    return crm.create_ticket(**fields)  # Your ticketing system
+
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[file_ticket],
+    middleware=[ticket],  # [!code highlight]
+)
+```
+
+记录按字段逐条记录。未找到的字段显示为`None`：
+
+```python Extraction result
+result["scaledown_extraction"]["fields"]
+# {
+#   "order_id": "A-1042",
+#   "error_message": "ERR_PAYMENT_DECLINED",
+#   "steps_tried": "tried a different card",
+#   "customer_email": None,
+# }
+```
+
+配合[检查点器](/langchain/oss/langgraph/persistence)时，提取会在每轮对话重新运行完整对话，用户补充细节时记录逐步完善。提取值为用户文本。若设置`inject_into_prompt=True`使模型可见字段，该文本会被添加到系统提示中，需确保仅对可接受字段启用此功能。
+
+<Accordion title="Configuration options">
+
+<ParamField body="entities" type="dict" required>
+要提取的字段架构。每个键映射为描述字符串、包含`description`、`threshold`、`top_n`的对象，或嵌套架构。
+</ParamField>
+
+<ParamField body="instruction" type="string">
+作用于所有字段的通用指令。
+</ParamField>
+
+<ParamField body="threshold" type="number">
+全局置信阈值。默认为API默认值。
+</ParamField>
+
+<ParamField body="top_n" type="number">
+每字段最大结果数。默认返回所有匹配。
+</ParamField>
+
+<ParamField body="context_chars" type="number">
+每匹配返回的上下文字符数。设为`0`可缩小代理状态体积。
+</ParamField>
+
+<ParamField body="text_builder" type="Callable">
+根据对话消息构建提取文本的函数。默认仅使用用户消息文本。
+</ParamField>
+
+<ParamField body="inject_into_prompt" type="boolean" default="False">
+每模型调用后追加提取字段至系统消息。
+</ParamField>
+
+</Accordion>
+
+## API参考
+
+获取所有ScaleDown类源码和完整参数文档，请参考[`langchain-scaledown`仓库](https://github.com/scaledown-team/langchain-scaledown/tree/main/libs/scaledown)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/middleware/scaledown.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/middleware/scaledown.mdx) · 译文由 AI 生成，以英文原文为准。

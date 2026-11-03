@@ -1,0 +1,43 @@
+---
+title: "后端集成"
+sidebarTitle: "后端"
+description: "深度智能体的文件系统后端。"
+---
+
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+浏览可用的文件系统后端，用于 Deep 智能体，或为生态系统贡献您自己的后端。了解更多关于后端工作原理的信息，请参阅[后端文档](/langchain/oss/deepagents/backends)。
+
+:::python
+<PythonIntegrationComponentMap active="backends" />
+:::
+
+## 分享您的后端
+
+自定义后端将 Deep 智能体连接到数据库、对象存储和虚拟文件系统等存储系统。将您的后端分享给社区：
+
+<CardGroup cols={2}>
+    <Card title="Implement a custom backend" icon="database" href="/langchain/oss/deepagents/backends#自定义后端">
+        按照自定义后端指南构建您自己的后端。
+    </Card>
+    <Card title="Share a community backend" icon="users" href="https://github.com/langchain-ai/docs">
+        向文档仓库打开一个 PR，将您的后端添加到下表。
+    </Card>
+</CardGroup>
+
+## 所有后端
+
+| 后端 | 描述 | 包 | 源 |
+|---------|-------------|---------|--------|
+| [Azure Blob Backend](https://github.com/langchain-ai/langchain-azure/tree/main/libs/azure-storage) | Deep 智能体 `BackendProtocol` 的 Azure Blob 存储 实现。将智能体工作区文件、记忆和工件保存在 blob 容器中。 | `langchain-azure-storage` | [`langchain-ai/langchain-azure`](https://github.com/langchain-ai/langchain-azure/tree/main/libs/azure-storage) |
+| [MongoDB VFS Adapter](https://github.com/langchain-ai/langchain-mongodb/tree/main/libs/langchain-mongodb-deepagents-vfs) | 基于 MongoDB Atlas 的虚拟文件系统后端。将智能体文件（包括记忆、工件和对话历史）保存在 MongoDB 集合中。 | `langchain-mongodb-deepagents-vfs` | [`langchain-ai/langchain-mongodb`](https://github.com/langchain-ai/langchain-mongodb/tree/main/libs/langchain-mongodb-deepagents-vfs) |
+
+有后端要分享？[打开一个 PR](https://github.com/langchain-ai/docs) 将其添加到这里。
+
+<Info>
+    如果您想贡献集成，请参阅[贡献集成](/langchain/oss/contributing/overview#build-a-new-integration)。
+</Info>
+
+---
+
+> 官方原文：[src/oss/integrations/backends/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/integrations/backends/index.mdx) · 译文由 AI 生成，以英文原文为准。

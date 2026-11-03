@@ -1,0 +1,46 @@
+---
+title: "Sourcey 集成"
+sidebarTitle: "概述"
+description: "使用 LangChain JavaScript 从已发布的 Sourcey 文档站点检索。"
+---
+
+[Sourcey](https://sourcey.com) 构建静态文档站点。
+
+使用 `langchain-sourcey` 从已发布的 Sourcey 文档站点中检索。它
+读取 `search-index.json`，在存在时使用 `llms-full.txt`，并返回
+规范页面 URL 以供引用。
+
+## 安装和设置
+
+安装 `langchain-sourcey`：
+
+<CodeGroup>
+```bash npm
+npm install langchain-sourcey @langchain/core
+```
+```bash yarn
+yarn add langchain-sourcey @langchain/core
+```
+```bash pnpm
+pnpm add langchain-sourcey @langchain/core
+```
+</CodeGroup>
+
+不需要 API 密钥。
+
+将检索器指向已发布的 Sourcey 文档构建的根目录。它读取
+`search-index.json` 以获取候选页面，并在存在该文件时读取 `llms-full.txt` 以获取完整页面内容。
+
+## 检索器
+
+您可以在标准检索管道中使用 [`SourceyRetriever`](/langchain/oss/javascript/integrations/retrievers/sourcey)。
+
+```typescript
+import { SourceyRetriever } from "langchain-sourcey";
+```
+
+查看 [使用示例](/langchain/oss/javascript/integrations/retrievers/sourcey) 或 [Sourcey 指南](https://sourcey.com/docs/guides/guide-langchain-retriever)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/sourcey.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/sourcey.mdx) · 译文由 AI 生成，以英文原文为准。

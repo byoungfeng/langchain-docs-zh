@@ -1,0 +1,218 @@
+---
+title: "Falkordb集成"
+description: "使用 LangChain 和 FalkorDB 的超快图数据库，通过 Cypher 对知识图谱进行自然语言查询。"
+sidebar_label: FalkorDB
+integration:
+  name: Falkordb
+  npm: '@falkordb/langchain-ts'
+---
+
+
+import LangchainCommunityUnmaintainedJs from '/langchain/snippets/oss/langchain-community-unmaintained-js.mdx';
+
+# FalkorDB LangChain JS/TS 集成
+
+The [@falkordb/langchain-ts](https://www.npmjs.com/package/@falkordb/langchain-ts) 包使开发者能够将 FalkorDB 的超快图数据库与 LangChain 应用程序结合使用。具体来说，您的应用程序现在可以接受自然语言问题，自动生成对应的 Cypher 查询，从图数据库中提取相关上下文，并以普通语言返回响应。整个翻译层已为您处理完毕。
+
+该包可无缝集成现有 LangChain 工作流，如果您已使用该框架实现其他 AI 功能，这将成为您的技术栈中的另一个工具。FalkorDB 的低延迟特性与 LangChain 的语言模型结合，可提供快速响应。
+
+### 关于 FalkorDB
+
+An ultra-fast, multi-tenant **graph database** 为 Generative AI、Agent Memory、Cloud Security 和 Fraud Detection 提供支持。[FalkorDB](https://falkordb.com) 是首个支持通过稀疏矩阵表示图邻接矩阵、利用线性代数进行查询的可查询属性图数据库。
+
+## 安装
+
+```bash npm2yarn
+npm install @falkordb/langchain-ts falkordb
+```
+
+您还需要 LangChain 和一个语言模型：
+
+```bash npm2yarn
+npm install langchain @langchain/openai
+```
+
+## 快速开始
+
+### 1. 启动 FalkorDB
+
+通过 Docker 最便捷的方式运行 FalkorDB：
+
+```bash
+docker run -p 6379:6379 -it --rm falkordb/falkordb:latest
+```
+
+### 2. 基础用法
+
+<LangchainCommunityUnmaintainedJs />
+
+```typescript
+import { FalkorDBGraph } from "@falkordb/langchain-ts";
+import { ChatOpenAI } from "@langchain/openai";
+import { GraphCypherQAChain } from "@langchain/community/chains/graph_qa/cypher";
+
+// Initialize FalkorDB connection
+const graph = await FalkorDBGraph.initialize({
+  host: "localhost",
+  port: 6379,
+  graph: "movies" // Your graph name
+});
+
+// Set up the language model
+const model = new ChatOpenAI({ temperature: 0 });
+
+// Create and populate the graph with some data
+await graph.query(
+  "CREATE (a:Actor {name:'Bruce Willis'})" +
+  "-[:ACTED_IN]->(:Movie {title: 'Pulp Fiction'})"
+);
+
+// Refresh the graph schema
+await graph.refreshSchema();
+
+// Create a graph QA chain
+const chain = GraphCypherQAChain.fromLLM({
+  llm: model,
+  graph: graph as any, // Type assertion for LangChain compatibility
+});
+
+// Ask questions about your graph
+const response = await chain.run("Who played in Pulp Fiction?");
+console.log(response);
+// Output: Bruce Willis played in Pulp Fiction.
+
+// Clean up
+await graph.close();
+```
+
+## API 参考
+
+### FalkorDBGraph
+
+#### `initialize(config: FalkorDBGraphConfig): Promise<FalkorDBGraph>`
+
+创建并初始化新的 FalkorDB 连接。
+
+**配置选项：**
+
+- `host` (string, 可选): 数据库主机。默认 `"localhost"`
+- `port` (number, 可选): 数据库端口。默认 `6379`
+- `graph` (string, 可选): 要使用的图名称
+- `url` (string, 可选): 替代连接 URL 格式
+- `enhancedSchema` (boolean, 可选): 启用增强的 schema 细节。默认 `false`
+
+**示例：**
+```typescript
+const graph = await FalkorDBGraph.initialize({
+  host: "localhost",
+  port: 6379,
+  graph: "myGraph",
+  enhancedSchema: true
+});
+```
+
+#### `query(query: string): Promise<any>`
+
+在图中执行 Cypher 查询。
+
+```typescript
+const result = await graph.query(
+  "MATCH (n:Person) RETURN n.name LIMIT 10"
+);
+```
+
+#### `refreshSchema(): Promise<void>`
+
+更新图 schema 信息。
+
+```typescript
+await graph.refreshSchema();
+console.log(graph.getSchema());
+```
+
+#### `getSchema(): string`
+
+将当前图 schema 格式化为字符串。
+
+#### `getStructuredSchema(): StructuredSchema`
+
+返回包含节点属性、关系属性和关系的结构化 schema 对象。
+
+#### `close(): Promise<void>`
+
+关闭数据库连接。
+
+```typescript
+await graph.close();
+```
+
+## 高级用法
+
+### 自定义 Cypher 查询
+
+```typescript
+const graph = await FalkorDBGraph.initialize({
+  host: "localhost",
+  port: 6379,
+  graph: "movies"
+});
+
+// Complex query
+const result = await graph.query(`
+  MATCH (a:Actor)-[:ACTED_IN]->(m:Movie)
+  WHERE m.year > 2000
+  RETURN a.name, m.title, m.year
+  ORDER BY m.year DESC
+  LIMIT 10
+`);
+
+console.log(result.data);
+```
+
+### 多个查询
+
+```typescript
+await graph.executeQueries([
+  "CREATE (p:Person {name: 'Alice'})",
+  "CREATE (p:Person {name: 'Bob'})",
+  "MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) CREATE (a)-[:KNOWS]->(b)"
+]);
+```
+
+### 与 schema 交互
+
+```typescript
+await graph.refreshSchema();
+
+// Get formatted schema
+const schema = graph.getSchema();
+console.log(schema);
+
+// Get structured schema
+const structuredSchema = graph.getStructuredSchema();
+console.log(structuredSchema.nodeProps);
+console.log(structuredSchema.relationships);
+```
+
+## 要求
+
+- Node.js 18 或更高版本
+- 运行 FalkorDB 服务器（兼容 Redis）
+- LangChain 0.1.0 或更高版本
+
+## 示例
+
+更多示例请参考 GitHub 仓库 [@falkordb/langchain-ts](https://github.com/FalkorDB/FalkorDB-Langchain-js)。
+
+## 授权协议
+
+MIT
+
+## 支持
+
+- [GitHub Issues](https://github.com/FalkorDB/FalkorDB-Langchain-js/issues)
+- 官网：https://www.falkordb.com/
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/tools/falkordb.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/tools/falkordb.mdx) · 译文由 AI 生成，以英文原文为准。

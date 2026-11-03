@@ -1,0 +1,591 @@
+---
+title: "Microsoft Foundry 工具集成"
+description: "使用 LangChain Python 集成 Microsoft Foundry 模型工具。"
+integration:
+  name: Microsoft Foundry tools
+  pypi: langchain-azure-ai
+---
+
+
+本页面涵盖了从 `langchain_azure_ai.tools` 开始的 Microsoft Foundry 项目工具。另请参阅作为 [Microsoft Foundry 工具（原 Azure AI 服务）](/langchain/oss/python/integrations/tools/azure_ai_services) 的一部分提供的工具。
+
+当您希望智能体调用 Microsoft Foundry 项目提供的工具中的功能时，请使用这些工具。
+
+## 概述
+
+| 工具 | 描述 |
+|------------|-------------|
+| [`AzureOpenAIModelImageGenTool`](#azureopenaimodelimagegentool) | 通过兼容 OpenAI 的 `/images/generations` 端点生成图像。 |
+| [`AzureOpenAITranscriptionsTool`](#azureopenaitranscriptionstool) | 通过兼容 OpenAI 的 `/audio/transcriptions` 端点将音频文件转录为文本。 |
+| [`CodeInterpreterTool`](#codeinterpretertool) | 在沙盒容器中服务器端运行 Python 代码。 |
+| [`WebSearchTool`](#websearchtool) | 在互联网上搜索当前信息和来源。 |
+| [`FileSearchTool`](#filesearchtool) | 在向量存储中搜索相关文档内容。 |
+| [`ImageGenerationTool`](#imagegenerationtool) | 使用 GPT 图像模型生成或编辑图像。 |
+| [`McpTool`](#mcptool) | 访问外部模型上下文协议 (MCP) 服务器。 |
+| [`AzureAIProjectToolbox`](#azureaiprojecttoolbox) | 从 Azure AI Foundry 工具箱加载工具，并通过模型上下文协议 (MCP) 使用它们。 |
+
+## 设置
+
+安装依赖项、创建工具使用的资源，并提供凭证。
+
+### 安装
+
+安装集成包：
+
+<CodeGroup>
+    ```bash pip
+    pip install -U "langchain-azure-ai[tools]"
+    ```
+    ```bash uv
+    uv add "langchain-azure-ai[tools]"
+    ```
+</CodeGroup>
+
+### 凭证
+
+通过 `credential` 参数传递 `DefaultAzureCredential()` 或 API 密钥字符串（`AzureAIProjectToolbox` 不支持密钥除外）。
+
+```python Initialize credential icon="shield-lock"
+from azure.identity import DefaultAzureCredential
+
+credential = DefaultAzureCredential()
+```
+
+使用 Microsoft Entra ID 需要在模型部署的资源上具有 `Azure AI User` 角色。
+
+### 配置端点
+
+工具支持两种端点样式：
+
+- 通过 `project_endpoint` 或 `AZURE_AI_PROJECT_ENDPOINT`（或 `FOUNDRY_PROJECT_ENDPOINT`）的 Azure AI Foundry 项目端点。
+- 通过 `endpoint` 或 `OPENAI_BASE_URL` 的直接兼容 OpenAI 的端点，例如 `https://<resource>.services.ai.azure.com/openai/v1`。
+
+如果两者都可用，请优先选择 `project_endpoint`，因为它会自动解析 Foundry 基于工作流的支撑服务端点。
+
+```bash Configure endpoint icon="key"
+    export AZURE_AI_PROJECT_ENDPOINT="https://<resource>.services.ai.azure.com/api/projects/<project>"
+```
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureOpenAIModelImageGenTool
+
+tool = AzureOpenAIModelImageGenTool(
+    endpoint="https://<resource>.services.ai.azure.com/openai/v1",
+    credential=DefaultAzureCredential(),
+    model="my-gpt-image-1-deployment",
+)
+
+result = tool.invoke(
+    {
+        "prompt": "A futuristic cityscape at sunset with flying cars",
+        "n": 1,
+        "size": "1024x1024",
+    }
+)
+print(result)
+```
+
+## 工具
+
+### AzureOpenAIModelImageGenTool
+
+`AzureOpenAIModelImageGenTool`（来自 `langchain_azure_ai.tools`）使用 Microsoft Foundry 模型或 Azure OpenAI 暴露的兼容 OpenAI 的图像生成端点生成图像。您可以使用包括 `gpt-image-1.5` 或 `MAI-Image-2` 的模型。
+
+当您希望在智能体流程中显式调用图像生成工具时，请使用此工具。该工具调用 OpenAI 客户端 `images.generate` API，并在 `output_directory` 配置时返回 base64 PNG 输出或保存的文件路径。
+
+您必须首先部署图像生成模型，然后在 `model` 中传递部署名称。
+
+<Accordion title="Configuration options">
+    <ParamField body="project_endpoint" type="str">
+        图像模型部署的 Foundry 项目。使用此参数需要使用 Microsoft Entra ID。
+    </ParamField>
+
+    <ParamField body="endpoint" type="str">
+        存在路由 `/images/generations` 的兼容 OpenAI 的端点。
+    </ParamField>
+
+    <ParamField body="credential" type="str | TokenCredential">
+        要使用的凭证，可以是密钥或令牌凭证。
+    </ParamField>
+
+    <ParamField body="prompt" type="str">
+        描述要生成图像的文本提示。
+    </ParamField>
+
+    <ParamField body="n" type="int" default="1">
+        要生成的图像数量。
+    </ParamField>
+
+    <ParamField body="size" type="str | None" default="1024x1024">
+        输出图像大小（例如 `1024x1024`、`1024x1792` 或 `1792x1024`，模型相关）。
+    </ParamField>
+
+    <ParamField body="quality" type="str | None">
+        传递给图像生成模型的可选质量参数（例如 `hd`，模型相关）。
+    </ParamField>
+
+    <ParamField body="style" type="str | None">
+        可选样式参数，如 `vivid` 或 `natural`（模型相关）。
+    </ParamField>
+
+    <ParamField body="model" type="str">
+        要使用的图像生成模型的必需部署名称。在使用工具之前，在 Microsoft Foundry 中创建此部署。可以使用任何兼容 OpenAI 的模型（例如，MAI-Image-2）。
+    </ParamField>
+
+    <ParamField body="output_directory" type="str | None">
+        如果设置，生成的图像将保存为 PNG 文件，并且工具返回保存的文件路径。如果省略，工具返回 base64 PNG 数据。
+    </ParamField>
+</Accordion>
+
+### AzureOpenAITranscriptionsTool
+
+`AzureOpenAITranscriptionsTool`（来自 `langchain_azure_ai.tools`）使用 Microsoft Foundry 模型或 Azure OpenAI（如 Whisper）暴露的兼容 OpenAI 的语音转文本端点将音频转录为文本。
+
+当您希望在智能体流程中将音频文件或远程音频 URL 转换为文本转录时，请使用此工具。该工具自动处理本地文件和远程 URL，支持多种音频格式（MP3、MP4、MPEG、MPGA、M4A、OGG、FLAC、WAV）。
+
+您必须首先部署语音转文本模型，然后在 `model` 中传递部署名称。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureOpenAITranscriptionsTool
+
+tool = AzureOpenAITranscriptionsTool(
+    endpoint="https://<resource>.services.ai.azure.com/openai/v1",
+    credential=DefaultAzureCredential(),
+    model="my-whisper-deployment",
+)
+
+result = tool.invoke(
+    {
+        "audio_path": "/path/to/audio.wav",
+        "language": "en",
+    }
+)
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="project_endpoint" type="str">
+        语音转文本模型部署的 Foundry 项目。使用此参数需要使用 Microsoft Entra ID。
+    </ParamField>
+
+    <ParamField body="endpoint" type="str">
+        存在路由 `/audio/transcriptions` 的兼容 OpenAI 的端点。
+    </ParamField>
+
+    <ParamField body="credential" type="str | TokenCredential">
+        要使用的凭证，可以是密钥或令牌凭证。
+    </ParamField>
+
+    <ParamField body="audio_path" type="str">
+        本地音频文件路径或指向音频文件的 URL。
+    </ParamField>
+
+    <ParamField body="language" type="str | None">
+        ISO-639-1 格式的可选语言代码（例如，`"en"`、`"es"`、`"fr"`）。如果未指定，模型将自动检测语言。
+    </ParamField>
+
+    <ParamField body="model" type="str">
+        要使用的语音转文本模型的必需部署名称。在使用工具之前，在 Microsoft Foundry 中创建此部署。
+    </ParamField>
+</Accordion>
+
+### CodeInterpreterTool
+
+`CodeInterpreterTool` 允许模型在沙盒容器中编写和执行 Python 代码，并将结果包含在其响应中。这对于数据分析、数学计算、可视化和一般问题解决很有用。
+
+<Warning>
+`langchain_azure_ai.tools.builtin` 命名空间中的工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。它们在模型的推理请求中解析，并且不适用于在 Azure AI Foundry 外运行的模型。
+</Warning>
+
+```python
+from langchain_azure_ai.tools.builtin import CodeInterpreterTool
+
+tool = CodeInterpreterTool(
+    memory_limit="4g",
+)
+
+model_with_code = model.bind_tools([tool])
+response = model_with_code.invoke("Plot a sine wave using Python and explain it")
+print(response)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="file_ids" type="list[str] | None">
+        可选的上传文件 ID 列表，以便在容器内提供给代码处理。
+    </ParamField>
+
+    <ParamField body="memory_limit" type="str | None">
+        容器的内存限制。接受的值为 `"1g"`、`"4g"`、`"16g"` 和 `"64g"`。
+    </ParamField>
+
+    <ParamField body="network_policy" type="dict | None">
+        容器的可选网络访问策略。
+    </ParamField>
+</Accordion>
+
+### WebSearchTool
+
+`WebSearchTool` 允许模型搜索与其查询相关的互联网上的当前信息和来源。这对于提供最新信息、研究、事实核查和访问实时数据很有用。
+
+<Warning>
+    命名空间 `langchain_azure_ai.tools.builtin` 中的工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。它们在模型的推理请求中解析，并且对于在 Azure AI Foundry 外运行的模型不可用。
+</Warning>
+
+```python
+from langchain_azure_ai.tools.builtin import WebSearchTool
+
+tool = WebSearchTool(
+    search_context_size="high",
+)
+
+model_with_search = model.bind_tools([tool])
+response = model_with_search.invoke(
+    "What are the latest developments in quantum computing?"
+)
+print(response)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="search_context_size" type="'low' | 'medium' | 'high' | None">
+        搜索结果使用的上下文窗口空间的数量的高级指导。默认值为 `"medium"`。
+    </ParamField>
+
+    <ParamField body="user_location" type="dict | None">
+        用户的大致位置。可以包括可选键：`city`, `country`（ISO-3166 两位字母代码）、`region`, `timezone`（IANA）和 `type="approximate"`。
+    </ParamField>
+
+    <ParamField body="filters" type="dict | None">
+        搜索过滤器。可以包括可选的 `allowed_domains` 列表，以将结果限制为特定域。
+    </ParamField>
+</Accordion>
+
+### FileSearchTool
+
+`FileSearchTool` 搜索上传的向量存储中的相关内容。这对于从大型文档集合、知识库和已索引到向量存储的自定义数据源中检索信息很有用。
+
+<Warning>
+    命名空间 `langchain_azure_ai.tools.builtin` 中的工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。它们在模型的推理请求中解析，并且对于在 Azure AI Foundry 外运行的模型不可用。
+</Warning>
+
+```python
+from langchain_azure_ai.tools.builtin import FileSearchTool
+
+tool = FileSearchTool(
+    vector_store_ids=["vs_abc123", "vs_def456"],
+    max_num_results=5,
+)
+
+model_with_search = model.bind_tools([tool])
+response = model_with_search.invoke(
+    "Find information about company policies on remote work"
+)
+print(response)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="vector_store_ids" type="list[str]" required>
+        要搜索的向量存储的 ID。至少必须提供一个 ID。
+    </ParamField>
+
+    <ParamField body="max_num_results" type="int | None">
+        返回的最大结果数量（1-50）。默认值为一个合理的数字。
+    </ParamField>
+
+    <ParamField body="filters" type="dict | None">
+        可选的元数据过滤器，用于使用比较或复合过滤器缩小结果。
+    </ParamField>
+
+    <ParamField body="ranking_options" type="dict | None">
+        排序选项。可以包括可选键 `ranker` 和 `score_threshold` 来控制结果排序。
+    </ParamField>
+</Accordion>
+
+### ImageGenerationTool
+
+`ImageGenerationTool` 允许模型使用 GPT 图像模型生成或编辑图像。这对于创建视觉效果、编辑图像以及根据文本描述生成艺术作品很有用。此工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。如果您使用其他模型，请使用 [`AzureOpenAIModelImageGenTool`](#azureopenaimodelimagegentool) 代替。
+
+<Warning>
+    命名空间 `langchain_azure_ai.tools.builtin` 中的工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。它们在模型的推理请求中解析，并且对于在 Azure AI Foundry 外运行的模型不可用。
+</Warning>
+
+```python
+from langchain_azure_ai.tools.builtin import ImageGenerationTool
+
+tool = ImageGenerationTool(
+    quality="high",
+    size="1024x1024",
+    model_deployment="my-gpt-image-1-deployment",
+)
+
+model_with_images = model.bind_tools([tool])
+response = model_with_images.invoke(
+    "Generate an image of a futuristic city with flying cars"
+)
+print(response)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="model_deployment" type="str | None">
+        Azure AI Foundry 中图像生成模型的部署名称。设置后，该工具会自动注入 `x-ms-oai-image-generation-deployment` HTTP 请求头。
+    </ParamField>
+
+    <ParamField body="model" type="'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-1.5' | None">
+        要使用的图像生成模型。
+    </ParamField>
+
+    <ParamField body="action" type="'generate' | 'edit' | 'auto' | None">
+        是否生成新图像或编辑现有图像。默认值为 `"auto"`。
+    </ParamField>
+
+    <ParamField body="quality" type="'low' | 'medium' | 'high' | 'auto' | None">
+        图像质量。默认值为 `"auto"`。
+    </ParamField>
+
+    <ParamField body="size" type="'1024x1024' | '1024x1536' | '1536x1024' | 'auto' | None">
+        图像大小。默认值为 `"auto"`。
+    </ParamField>
+
+    <ParamField body="output_format" type="'png' | 'webp' | 'jpeg' | None">
+        输出格式。默认值为 `"png"`。
+    </ParamField>
+
+    <ParamField body="background" type="'transparent' | 'opaque' | 'auto' | None">
+        图像生成的背景类型。
+    </ParamField>
+
+    <ParamField body="input_fidelity" type="str | None">
+        输出应如何与输入图像的风格和面部特征相匹配。一个为 `"high"` 或 `"low"`。
+    </ParamField>
+
+    <ParamField body="input_image_mask" type="dict | None">
+        涂抹操作的掩码。
+    </ParamField>
+
+    <ParamField body="moderation" type="'auto' | 'low' | None">
+        适度级别。默认值为 `"auto"`。
+    </ParamField>
+
+    <ParamField body="output_compression" type="int | None">
+        压缩级别（0-100，默认 100）。
+    </ParamField>
+
+    <ParamField body="partial_images" type="int | None">
+        要流式传输的部分图像数量（0-3）。
+    </ParamField>
+</Accordion>
+
+### McpTool
+
+`McpTool` 使模型能够访问外部模型上下文协议 (MCP) 服务器。这允许模型在单个对话回合中调用远程 MCP 服务器暴露的工具，从而实现与自定义服务和外部系统的集成。
+
+<Warning>
+    命名空间 `langchain_azure_ai.tools.builtin` 中的工具必须与部署在 Microsoft Foundry 项目中的 OpenAI 模型一起使用。它们在模型的推理请求中解析，并且对于在 Azure AI Foundry 外运行的模型不可用。
+</Warning>
+
+```python
+from langchain_azure_ai.tools.builtin import McpTool
+
+tool = McpTool(
+    server_label="my_mcp_server",
+    server_url="https://my-mcp-server.example.com",
+    allowed_tools=["tool_1", "tool_2"],
+)
+
+model_with_mcp = model.bind_tools([tool])
+response = model_with_mcp.invoke(
+    "Use the MCP server to retrieve user profile information"
+)
+print(response)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="server_label" type="str" required>
+        此 MCP 服务器的标签，用于在工具调用中识别它。
+    </ParamField>
+
+    <ParamField body="server_url" type="str | None">
+        MCP 服务器的 URL。必须提供 `server_url` 或 `connector_id` 中的一个。
+    </ParamField>
+
+    <ParamField body="connector_id" type="str | None">
+        内置服务连接器的标识符（例如，`"connector_gmail"`）。必须提供 `server_url` 或 `connector_id` 中的一个。
+    </ParamField>
+
+    <ParamField body="allowed_tools" type="list[str] | dict | None">
+        模型被允许在此服务器上调用的工具名称列表，或工具过滤器字典。
+    </ParamField>
+
+    <ParamField body="headers" type="dict[str, str] | None">
+        可选的 HTTP 头部，与每个请求一起发送到 MCP 服务器（例如，用于身份验证）。
+    </ParamField>
+
+    <ParamField body="require_approval" type="'always' | 'never' | dict | None">
+        工具调用是否需要在执行前获得人工批准。
+    </ParamField>
+
+    <ParamField body="server_description" type="str | None">
+        可选的 MCP 服务器的模型描述。
+    </ParamField>
+
+    <ParamField body="authorization" type="str | None">
+        MCP 服务器的 OAuth 访问令牌。
+    </ParamField>
+</Accordion>
+
+## 工具箱
+
+### 设置
+
+安装所需的依赖项：
+
+<CodeGroup>
+    ```bash pip
+    pip install -U "langchain-azure-ai[tools]" langchain-mcp-adapters httpx
+    ```
+    ```bash uv
+    uv add "langchain-azure-ai[tools]" langchain-mcp-adapters httpx
+    ```
+</CodeGroup>
+
+### AzureAIProjectToolbox
+
+`AzureAIProjectToolbox`（来自 `langchain_azure_ai.tools`）从 Azure AI Foundry 工具箱加载工具，并通过模型上下文协议 (MCP) 提供它们。
+
+Azure AI Foundry 工具箱是一个管理的多 MCP 服务器，它将多个配置的工具聚合在单个 MCP 端点后面。当您希望在智能体中动态加载和使用来自 Azure AI Foundry 项目的工具集合时，请使用此工具箱。
+
+工具箱自动处理：
+
+- Azure 身份验证 Bearer-token 身份验证
+- 优雅的 OAuth 同意错误处理：返回带有同意 URL 的备用工具，而不是引发错误
+- 自动工具模式清理，用于发出不完整 JSON 模式的 MCP 服务器
+
+在您的 Microsoft Foundry 项目中创建一个工具箱。有关文档，请参阅 [Foundry 中的工具箱](https://learn.microsoft.com/azure/foundry/agents/how-to/tools/toolbox)。
+
+<Accordion title="Configuration parameters">
+    <ParamField body="project_endpoint" type="str">
+        Azure AI Foundry 项目端点，例如 `https://<resource>.services.ai.azure.com/api/projects/<project>`。回退到 `AZURE_AI_PROJECT_ENDPOINT` 或 `FOUNDRY_PROJECT_ENDPOINT` 环境变量。
+    </ParamField>
+
+    <ParamField body="toolbox_name" type="str">
+        Azure AI Foundry 中配置的工具箱的名称。此参数是必需的。
+    </ParamField>
+
+    <ParamField body="api_version" type="str" default="v1">
+        添加到 MCP URL 的工具箱 API 版本。
+    </ParamField>
+
+<ParamField body="credential" type="str | TokenCredential">
+        用于 Bearer-token 认证的 Azure 凭证。接受一个字符串（静态 Bearer token）或任何 `TokenCredential` 类型的值，如 `DefaultAzureCredential`。默认值为 `DefaultAzureCredential()`。
+    </ParamField>
+
+    <ParamField body="extra_headers" type="dict[str, str]">
+        需要添加到 MCP 请求中的额外 HTTP 头部。`Foundry-Features` 头部会自动添加默认值，除非已存在。
+    </ParamField>
+</Accordion>
+
+#### 基本用法
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIProjectToolbox
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain.messages import HumanMessage
+
+async def main():
+    toolbox = AzureAIProjectToolbox(
+        project_endpoint="https://<resource>.services.ai.azure.com/api/projects/<project>",
+        toolbox_name="my-toolbox",
+    )
+    tools = await toolbox.get_tools()
+
+    model = init_chat_model("azure_ai:gpt-5-mini", credential=DefaultAzureCredential())
+    agent = create_agent(
+        model=model,
+        tools=tools,
+    )
+
+    result = await agent.ainvoke({
+        "messages": [HumanMessage("What can you do with the available tools?")]
+    })
+    return result
+```
+
+或使用环境变量：
+
+```bash
+export AZURE_AI_PROJECT_ENDPOINT="https://<resource>.services.ai.azure.com/api/projects/<project>"
+```
+
+然后无需参数实例化（或仅使用 `toolbox_name`）：
+
+```python
+from langchain_azure_ai.tools import AzureAIProjectToolbox
+
+toolbox = AzureAIProjectToolbox(toolbox_name="my-toolbox")
+tools = await toolbox.get_tools()
+```
+
+#### 使用异步上下文管理器
+
+`async with` 支持以更优雅的方式兼容：
+
+```python
+async with AzureAIProjectToolbox(toolbox_name="my-toolbox") as toolbox:
+    tools = await toolbox.get_tools()
+```
+
+#### 与智能体集成
+
+`get_tools()` 方法返回一组 `BaseTool` 实例，可用于任何 LangChain 智能体模式：
+
+```python Agent with AzureAIProjectToolbox icon="robot"
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIProjectToolbox
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+
+async def main():
+    credential = DefaultAzureCredential()
+    toolbox = AzureAIProjectToolbox(
+        toolbox_name="my-toolbox",
+        credential=credential,
+    )
+
+    tools = await toolbox.get_tools()
+
+    model = init_chat_model("azure_ai:gpt-5-mini", credential=credential)
+    agent = create_agent(
+        model=model,
+        tools=tools,
+        system_prompt=(
+            "You are a helpful assistant with access to a set of tools from "
+            "Azure AI Foundry. Use them to help the user with their requests."
+        ),
+    )
+
+    return agent
+```
+
+## API 参考
+
+```python
+from langchain_azure_ai.tools import (
+    AzureAIProjectToolbox,
+    AzureOpenAIModelImageGenTool,
+    AzureOpenAITranscriptionsTool,
+)
+from langchain_azure_ai.tools.builtin import (
+    CodeInterpreterTool,
+    FileSearchTool,
+    ImageGenerationTool,
+    McpTool,
+    WebSearchTool,
+)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/azure_ai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/azure_ai.mdx) · 译文由 AI 生成，以英文原文为准。

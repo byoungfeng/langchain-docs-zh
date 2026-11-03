@@ -1,0 +1,157 @@
+---
+title: "Tavily 地图集成"
+description: "集成 Tavily 地图工具，使用 LangChain Python。"
+integration:
+  name: Tavily map
+  pypi: langchain-tavily
+---
+  
+[Tavily](https://tavily.com) 是专为 AI 智能体（大语言模型 LLMs）设计的搜索引擎，可实时、准确且基于事实地提供高速搜索结果。Tavily 提供 [Map](https://docs.tavily.com/documentation/api-reference/endpoint/map) 接口，通过遍历网站返回发现 URL 列表（不提取页面内容），适用于分析网站架构或定位大型网站中的特定页面。
+
+## 概述
+
+### 集成细节
+
+| 类别                          | 包名                          | 可序列化 | [JavaScript 支持](/langchain/oss/javascript/integrations/tools/tavily_map) | 版本 |
+|:-------------------------------|:-------------------------------| :---: | :---: | :---: |
+| @[`TavilyMap`]                        | @[`langchain-tavily`]                        | ✅       | ✅      | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-tavily?style=flat-square&label=%20) |
+
+### 工具特性
+
+| [返回 artifact](/langchain/oss/langchain/tools) | 原生异步 |                       返回数据                        | 定价       |
+| :---: | :---: |:--------------------------------------------------------:| :---: |
+| ❌ | ✅ | 列表中的发现 URL | 每月 1,000 个免费信用 |
+
+## 部署
+
+集成包位于 `langchain-tavily`。
+
+```python
+pip install -qU langchain-tavily
+```
+  
+### 凭据
+还需设置 Tavily API 密钥。您可通过访问 [此网站](https://app.tavily.com/sign-in) 并创建账户获取 API 密钥。
+
+```python
+import getpass
+import os
+
+if not os.environ.get("TAVILY_API_KEY"):
+    os.environ["TAVILY_API_KEY"] = getpass.getpass("Tavily API key:\n")
+```
+  
+## 实例化
+
+工具在实例化时可接受以下参数：
+
+- `max_depth`（可选，整数）：从起始 URL 的最大遍历层级数。默认为 1。
+- `max_breadth`（可选，整数）：每层级返回的最大 URL 数。默认为 20。
+- `limit`（可选，整数）：总共返回的最大 URL 数。默认为 50。
+- `instructions`（可选，字符串）：指导地图遍历的自然语言指令。
+- `select_paths`（可选，字符串列表）：仅包含路径匹配这些正则表达式的 URL。
+- `select_domains`（可选，字符串列表）：仅包含域名匹配这些正则表达式的 URL。
+- `exclude_paths`（可选，字符串列表）：跳过路径包含这些正则表达式的 URL。
+- `exclude_domains`（可选，字符串列表）：跳过域名匹配这些正则表达式的 URL。
+- `allow_external`（可选，布尔值）：允许地图遍历外部链接。
+
+完整参数说明请参考 [Tavily 地图 API 文档](https://docs.tavily.com/documentation/api-reference/endpoint/map)。
+
+```python
+from langchain_tavily import TavilyMap
+
+tool = TavilyMap(
+    max_depth=1,
+    max_breadth=20,
+    limit=50,
+    # allow_external=False,
+)
+```
+  
+## 调用
+
+### [直接通过参数调用](/langchain/oss/langchain/tools)
+
+工具在调用时可接受以下参数：
+
+- `url`（必需）：起始遍历的基础 URL。
+- 其他可设置参数：`instructions`、`select_paths`、`select_domains`、`exclude_paths`、`exclude_domains`、`allow_external`。
+
+注：可选参数允许智能体动态设置。若实例化时设置参数，但调用时传入不同值，工具将使用调用时的值。
+
+```python
+tool.invoke({"url": "https://docs.tavily.com"})
+```
+  
+```json
+{
+  "base_url": "https://docs.tavily.com",
+  "results": [
+    "https://docs.tavily.com/",
+    "https://docs.tavily.com/changelog",
+    "https://docs.tavily.com/welcome",
+    "https://docs.tavily.com/documentation/mcp",
+    "https://docs.tavily.com/documentation/about",
+  ],
+  "response_time": 0.37
+}
+```
+  
+### [通过 ToolCall 调用](/langchain/oss/langchain/tools)
+
+也可通过模型生成的 ToolCall 调用工具，此时将返回 ToolMessage：
+
+```python
+model_generated_tool_call = {
+    "args": {"url": "https://docs.tavily.com", "instructions": "Find API reference pages"},
+    "id": "1",
+    "name": "tavily_map",
+    "type": "tool_call",
+}
+tool_msg = tool.invoke(model_generated_tool_call)
+
+print(tool_msg.content[:400])
+```
+  
+## 在智能体中集成
+
+将工具绑定到模型后，智能体可动态设置指令和过滤条件以发现所需 URL。
+
+<ChatModelTabs customVarName="llm" />
+
+```python
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = getpass.getpass("OPENAI_API_KEY:\n")
+```
+  
+```python
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model(model="gpt-5.5", model_provider="openai", temperature=0)
+```
+  
+```python
+from langchain_tavily import TavilyMap
+from langchain.agents import create_agent
+
+
+tavily_map_tool = TavilyMap(max_depth=2, max_breadth=20, limit=30)
+
+agent = create_agent(model, [tavily_map_tool])
+
+user_input = "Map https://docs.tavily.com and list URLs that look like API reference pages."
+
+stream = agent.stream_events({"messages": user_input}, version="v3")
+for snapshot in stream.values:
+    snapshot["messages"][-1].pretty_print()
+```
+  
+---
+
+## API 参考文档
+
+详细 API 功能和配置文档请访问：[docs.tavily.com/documentation/api-reference/endpoint/map](https://docs.tavily.com/documentation/api-reference/endpoint/map)
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/tavily_map.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/tavily_map.mdx) · 译文由 AI 生成，以英文原文为准。

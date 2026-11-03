@@ -1,0 +1,46 @@
+---
+title: "Yandexgpt 集成"
+description: "使用 LangChain JavaScript 集成 Yandexgpt LLM。"
+integration:
+  name: Yandexgpt
+  npm: '@langchain/yandex'
+---
+
+LangChain.js 支持 [YandexGPT](https://cloud.yandex.com/en/services/yandexgpt) 大型语言模型的调用。
+
+## 安装
+
+首先，您应该 [创建服务账户](https://cloud.yandex.com/en/docs/iam/operations/sa/create) 并赋予 `ai.languageModels.user` 角色。
+
+接下来，您有两种认证方式：
+
+- [IAM 令牌](https://cloud.yandex.com/en/docs/iam/operations/iam-token/create-for-sa)。
+  您可以在构造函数参数 `iam_token` 或环境变量 `YC_IAM_TOKEN` 中指定令牌。
+- [API 密钥](https://cloud.yandex.com/en/docs/iam/operations/api-key/create)
+  您可以在构造函数参数 `api_key` 或环境变量 `YC_API_KEY` 中指定密钥。
+
+## 使用
+
+<Tip>
+请参考 [LangChain 包安装的通用说明](/langchain/oss/langchain/install) 部分。
+</Tip>
+
+```bash npm
+npm install @langchain/yandex @langchain/core
+```
+
+```typescript
+import { YandexGPT } from "@langchain/yandex/llms";
+
+const model = new YandexGPT();
+const res = await model.invoke(['Translate "I love programming" into French.']);
+console.log({ res });
+```
+
+## 相关
+
+- [模型指南](/langchain/oss/langchain/models)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/llms/yandex.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/llms/yandex.mdx) · 译文由 AI 生成，以英文原文为准。

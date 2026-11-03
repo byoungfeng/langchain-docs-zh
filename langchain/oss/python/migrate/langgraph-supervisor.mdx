@@ -1,0 +1,188 @@
+---
+title: "从 langgraph-supervisor 迁移"
+sidebarTitle: langgraph-supervisor
+description: "从 langgraph-supervisor 包迁移到使用 create_agent 和工具封装的子智能体的子智能体模式。"
+---
+
+import MigrateLanggraphSupervisorBasicPy from '/langchain/snippets/code-samples/migrate-langgraph-supervisor-basic-py.mdx';
+import MigrateLanggraphSupervisorInterruptPy from '/langchain/snippets/code-samples/migrate-langgraph-supervisor-interrupt-py.mdx';
+import MigrateLanggraphSupervisorNestedPy from '/langchain/snippets/code-samples/migrate-langgraph-supervisor-nested-py.mdx';
+
+[`langgraph-supervisor`](https://github.com/langchain-ai/langgraph-supervisor-py) 包不再积极维护。相反，请使用 [子智能体](/langchain/oss/langchain/multi-agent/subagents) 模式：主智能体通过作为 [工具](/langchain/oss/langchain/tools) 调用它们来协调专业工作者。
+
+本指南涵盖了从 `create_supervisor` 迁移到 @[`create_agent`] 的方法，包括使用 @[`interrupt`] 和外部 API 回调的设置。
+
+<Prompt
+    description="从 langgraph-supervisor 迁移到 create_agent 子智能体"
+    icon="arrow-right"
+    actions={["copy"]}
+>
+将此代码库从 `langgraph-supervisor` 包迁移到使用 `create_agent` 和工具包装工作者的 LangChain 子智能体模式。
+
+## 第 1 步：阅读指南
+
+获取并遵循 https://docs.langchain.com/oss/python/migrate/langgraph-supervisor.md 作为判断前后模式、中断传播规则、嵌套监督器和消息历史选项的权威来源。对于目标模式，还需要获取 https://docs.langchain.com/oss/python/langchain/multi-agent/subagents.md 以及需要时链接的页面。如果代码库仍然使用 `create_react_agent`，还需要获取 https://docs.langchain.com/oss/python/migrate/langgraph-v1.md。
+
+## 第 2 步：更新依赖项
+
+使用项目中已使用的包管理器（`uv` 或 `pip`）移除 `langgraph-supervisor`。确保项目中的 LangChain 和 LangGraph 版本支持 `create_agent`、`@tool` 和 `interrupt`，如指南所示。如果项目已经固定版本，则优先固定当前稳定版本。
+
+## 第 3 步：应用迁移
+
+识别所有从 `langgraph_supervisor` 导入或使用 `create_supervisor`、`create_handoff_tool` 或监督器嵌套的调用位置，然后应用指南中的映射，包括：
+
+- 将 `create_supervisor` 替换为主 `create_agent`，其工具包装每个工作智能体。
+- 将手交路由（`create_handoff_tool`）替换为调用 `subagent.invoke(...)` 的自定义 `@tool` 函数。
+- 在每个工具包装器内部重新创建 `output_mode` 行为（`full_history` 与 `last_message`），而不是作为监督器构造函数参数。
+- 通过将嵌套监督器展平为一个监督器（每个叶智能体一个工具），或通过嵌套工具包装的中层智能体（当需要中间协调时）来迁移嵌套监督器。
+
+## 第 4 步：保留中断和恢复流程
+
+如果工作者使用 `interrupt` 或使用 `Command(resume=...)` 的外部回调恢复，请保留该行为并遵循指南的中断传播规则：仅编译最外层图并使用检查点器，保留子智能体不使用自己的检查点器，并在外部 `invoke` 或 `stream_events` 调用中通过 `configurable` 传递 `thread_id`。
+
+## 第 5 步：明确处理差距
+
+如果代码库需要静态子图发现、每个层级的检查点命名空间、不同层级之间的共享状态键，或指南说明属于自定义 `StateGraph` 的确定性步骤和智能体步骤的混合，请停止并询问用户如何继续。除非指南涵盖，否则不要发明自定义图布局。
+
+## 规则
+
+- 仅限于此迁移范围。不要重写无关的智能体代码。
+- 优先使用指南中的子智能体模式，而不是保留 `langgraph-supervisor`。
+- 当调用位置或模式未在指南中涵盖时，请询问而不是猜测。
+
+</Prompt>
+
+## 变更摘要
+
+| langgraph-supervisor | 推荐的替换 |
+|--------------------|-------------------------|
+| 使用工作智能体作为图节点的 `create_supervisor` | @[`create_agent`] 使用作为 @[`@tool`] 函数包装的子智能体 |
+| 用于消息历史记录的 `output_mode` | 在工具包装器中格式化子智能体输出（参见 [子智能体输出](/langchain/oss/langchain/multi-agent/subagents#子智能体输出)） |
+| 用于自定义路由的 `create_handoff_tool` | 调用 `subagent.invoke(...)` 的自定义 @[`@tool`] |
+| 嵌套监督器（`create_supervisor` 个监督器） | 作为 @[`@tool`] 包装的子智能体，调用其他子智能体 |
+
+## 基本迁移
+
+使用 `langgraph-supervisor` 时，工作智能体是图节点，监督器使用手交工具在它们之间路由：
+
+```python
+from langgraph_supervisor import create_supervisor
+from langgraph.prebuilt import create_react_agent
+
+research_agent = create_react_agent(
+    model=model,
+    tools=[web_search],
+    name="research_expert",
+    prompt="You are a research expert.",
+)
+
+math_agent = create_react_agent(
+    model=model,
+    tools=[add, multiply],
+    name="math_expert",
+    prompt="You are a math expert.",
+)
+
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    model=model,
+    prompt="Route research questions to research_expert and math to math_expert.",
+)
+app = workflow.compile(checkpointer=checkpointer)
+```
+
+通过将每个工作者包装为主智能体上的工具，迁移到子智能体模式：
+
+<MigrateLanggraphSupervisorBasicPy />
+
+有关完整演练，请参阅 [使用子智能体构建个人助理](/langchain/oss/langchain/multi-agent/subagents-personal-assistant)。
+
+## 迁移中断和恢复流程
+
+常见的 `langgraph-supervisor` 设置使用 @[`interrupt`] 在工作智能体的工具内部，以暂停执行，直到外部服务完成：
+
+```python
+# Before: create_supervisor with a subgraph node
+#
+# Supervisor (create_supervisor)
+#   └── ResearchAgent (subgraph node)
+#         └── preview_tool
+#               ├── fire_external_api()      # kicks off async job
+#               ├── result = interrupt(...)  # pauses graph, waits for callback
+#               └── render_results(result)   # runs after resume
+```
+
+使用子智能体模式，相同的流程可以工作。@[`interrupt`] 在子智能体工具内部通过工具包装的 @[`create_agent`] 层级向上传播到最外层图。您的外部回调仍然可以使用 `Command(resume=result)` 恢复。
+
+<MigrateLanggraphSupervisorInterruptPy />
+
+```python
+from langgraph.types import Command
+
+# Invoke — preview_tool calls interrupt() and the graph pauses
+response = supervisor.invoke(
+    {"messages": [{"role": "user", "content": "Preview enrichment for doc-123"}]},
+    config=config,
+)
+# response contains __interrupt__
+
+# External service completes and calls back into your app
+supervisor.invoke(Command(resume=external_result), config=config)
+```
+
+### 中断传播的要求
+
+为了使 @[`interrupt`] 能够通过嵌套的 @[`create_agent`] 层级冒泡，请遵循以下规则：
+
+1. **仅编译最外层图并使用检查点器。** 保留子智能体不使用 `checkpointer=...`，以便它们使用 [每次调用持久化](/langchain/oss/langgraph/use-subgraphs#按调用-默认) 并在运行时继承父智能体的检查点器。
+2. **在 `configurable` 中传递 `thread_id`。** 外部 `invoke()` 或 `stream_events()` 调用必须包含一个 `thread_id`，以便图可以检查点和恢复。
+
+这些规则适用于任意嵌套设置。例如，一个自定义 @[`StateGraph`] 外层，一个中间 @[`create_agent`] 监督器，和一个内部 @[`create_agent`] 子智能体都遵循相同的机制：
+
+```txt
+Custom StateGraph (outer, with checkpointer)
+  └── prospecting_agent (create_agent, no checkpointer)
+        └── call_powerup_agent tool → powerup_agent.invoke(...)
+              └── powerup_agent (create_agent, no checkpointer)
+                    └── preview_tool → interrupt(...)
+```
+
+当 `preview_tool` 调用 @[`interrupt`] 时，异常会通过两个 @[`create_agent`] 层级冒泡，并在最外层 @[`StateGraph`] 的调用结果中作为 `__interrupt__` 显示。您现有的 `Command(resume=result)` 回调路径仍然可以正常工作。
+
+有关中断如何通过子图传播的更多信息，请参阅 [子图持久化：中断](/langchain/oss/langgraph/use-subgraphs#按调用-默认) 和 [检查点和状态检查](/langchain/oss/langchain/multi-agent/subagents#检查点和状态检查)。
+
+## 何时使用自定义 StateGraph
+
+当您需要混合确定性步骤和智能体步骤时，使用自定义 @[`StateGraph`]。例如，固定路由、验证或与 @[`create_agent`] 节点一起的外部 API 调用。
+
+## 迁移嵌套监督器
+
+`langgraph-supervisor` 通过编译监督器并将它们传递给另一个 `create_supervisor` 调用来支持多级层次结构。使用子智能体模式时，您有两个选项：
+
+1. **将所有智能体扁平化为单个监督者**，每个叶节点智能体对应一个工具。当每个工作智能体独立时，这是最简单的方法。
+2. **在需要中间协调时嵌套工具调用**。将一个中间层智能体（它本身是一个 @[`create_agent`]，拥有自己的子节点工具）作为顶层监督者的一个工具进行包装。
+
+<MigrateLanggraphSupervisorNestedPy />
+
+如果需要静态子图发现、按层级检查点命名空间或跨层级的共享状态键，请使用自定义 @[`StateGraph`] 和 [子图节点](/langchain/oss/langgraph/use-subgraphs#将子图作为节点添加)。
+
+## 迁移消息历史选项
+
+`create_supervisor` 暴露 `output_mode` 来控制工作智能体的消息如何在对话历史中显示：
+
+- `full_history`：包含工作智能体的所有消息。
+- `last_message`：仅包含工作智能体的最终响应。
+
+使用子节点模式时，在工具包装器中控制此行为。对于 `last_message` 行为，仅返回最终消息；对于 `full_history` 行为，返回格式化的完整对话摘要。参见 [子节点输出](/langchain/oss/langchain/multi-agent/subagents#子智能体输出) 了解将额外状态传递回监督者的模式。
+
+## 参见
+
+- [子节点](/langchain/oss/langchain/multi-agent/subagents)：模式概述和设计决策
+- [使用子节点构建个人助理](/langchain/oss/langchain/multi-agent/subagents-personal-assistant)：分步监督者教程
+- [使用子图](/langchain/oss/langgraph/use-subgraphs)：子图持久化、中断和状态检查
+- [中断](/langchain/oss/langgraph/interrupts)：暂停和恢复图执行
+- [LangGraph v1 迁移指南](/langchain/oss/python/migrate/langgraph-v1)：从 `create_react_agent` 迁移到 `create_agent`
+
+---
+
+> 官方原文：[src/oss/python/migrate/langgraph-supervisor.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/migrate/langgraph-supervisor.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,103 @@
+---
+title: "Tavily 集成"
+description: "使用 LangChain JavaScript 与 Tavily 集成。"
+---
+
+[Tavily](https://tavily.com/) 是专为 AI 智能体设计的搜索引擎，提供搜索、提取、爬取和映射 API，使开发者能够将其应用程序连接到实时在线信息。Tavily 的主要使命是从可信来源提供事实性和可靠的信息，提高 AI 生成内容和推理的准确性和可靠性。
+
+`@langchain/tavily` 包含包将 Tavily 搜索、提取、爬取、映射和研究端点作为 LangChain 工具公开。
+
+## 安装和设置
+
+为 LangChain JavaScript 安装 Tavily 集成包：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/tavily @langchain/core
+```
+```bash yarn
+yarn add @langchain/tavily @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/tavily @langchain/core
+```
+</CodeGroup>
+
+[设置 Tavily API 密钥](https://app.tavily.com) 并将其设置为名为 `TAVILY_API_KEY` 的环境变量：
+
+```bash
+export TAVILY_API_KEY="your-api-key"
+```
+
+## 工具
+
+### TavilySearch
+
+一个返回 Tavily 搜索 API 的实时、LLM 准备结果的搜索工具。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/tavily_search)。
+
+```typescript
+import { TavilySearch } from "@langchain/tavily";
+```
+
+### TavilyExtract
+
+一个返回一个或多个 URL 的清理、解析内容的工具。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/tavily_extract)。
+
+```typescript
+import { TavilyExtract } from "@langchain/tavily";
+```
+
+### TavilyCrawl
+
+一个从基本 URL 执行结构化网页遍历的工具，可带可选的自然语言指令和路径/域过滤器。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/tavily_crawl)。
+
+```typescript
+import { TavilyCrawl } from "@langchain/tavily";
+```
+
+### TavilyMap
+
+一个在不提取页面内容的情况下发现网站 URL 结构的工具。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/tavily_map)。
+
+```typescript
+import { TavilyMap } from "@langchain/tavily";
+```
+
+### TavilyResearch
+
+一个运行结构化研究任务并返回合成结果（可选流式输出）的工具。
+
+```typescript
+import { TavilyResearch } from "@langchain/tavily";
+```
+
+### TavilyGetResearch
+
+一个通过 `request_id` 从先前的 `TavilyResearch` 调用中检索研究输出的工具。
+
+```typescript
+import { TavilyGetResearch } from "@langchain/tavily";
+```
+
+## 组件参考
+
+| 类 | 抽象 | 导入路径 | 描述 |
+|-------|-------------|-------------|-------------|
+| `TavilySearch` | 工具 | `import { TavilySearch } from "@langchain/tavily"` | 从 Tavily 搜索 API 返回搜索结果。 |
+| `TavilyExtract` | 工具 | `import { TavilyExtract } from "@langchain/tavily"` | 从一个或多个 URL 提取清理内容。 |
+| `TavilyCrawl` | 工具 | `import { TavilyCrawl } from "@langchain/tavily"` | 从基本 URL 开始进行爬取，具有深度和广度控制。 |
+| `TavilyMap` | 工具 | `import { TavilyMap } from "@langchain/tavily"` | 在不提取页面内容的情况下发现网站的 URL 结构。 |
+| `TavilyResearch` | 工具 | `import { TavilyResearch } from "@langchain/tavily"` | 对 Tavily 研究API运行结构化研究任务。 |
+| `TavilyGetResearch` | 工具 | `import { TavilyGetResearch } from "@langchain/tavily"` | 通过 `request_id` 获取研究结果。 |
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/tavily.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/tavily.mdx) · 译文由 AI 生成，以英文原文为准。

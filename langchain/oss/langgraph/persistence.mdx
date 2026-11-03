@@ -1,0 +1,129 @@
+---
+title: "持久化"
+description: "{/ 锚点占位符，用于向后兼容的深度链接 /}"
+---
+
+{/* 锚点占位符，用于向后兼容的深度链接 */}
+<a id="checkpoints" />
+<a id="threads" />
+<a id="memory-store" />
+<a id="checkpointer-libraries" />
+<a id="pending-writes" />
+<a id="durability-modes" />
+
+持久化功能使 LangGraph 应用程序能够在单个图运行之外保留有用信息。当智能体需要继续对话、在中断后恢复、从故障中恢复或跨交互记忆信息时，这一点非常重要。
+
+LangGraph 提供了两种互补的持久化系统：
+
+- **[检查点器](/langchain/oss/langgraph/checkpointers)** 将线程的图状态作为检查点进行持久化。使用它们进行短期、线程范围的内存，包括对话连续性、人机协作工作流、时间旅行和容错。
+- **[存储](/langchain/oss/langgraph/stores)** 将应用程序定义的数据持久化到图状态之外。使用它们进行长期、跨线程的内存，包括用户偏好、事实和共享知识。
+
+大多数应用程序都可以同时使用两者：一个 [检查点器](/langchain/oss/langgraph/checkpointers) 跟踪当前线程，一个 [存储](/langchain/oss/langgraph/stores) 跨线程跟踪持久化信息。
+
+## 快速入门
+
+使用检查点器、存储或两者编译您的图：
+
+:::python
+```python
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.store.memory import InMemoryStore
+
+checkpointer = InMemorySaver()
+store = InMemoryStore()
+
+graph = builder.compile(checkpointer=checkpointer, store=store)
+
+result = graph.invoke(
+    {"messages": [{"role": "user", "content": "Hi, my name is Bob."}]},
+    {"configurable": {"thread_id": "thread-1"}},
+)
+```
+:::
+
+:::js
+```typescript
+import { MemorySaver, InMemoryStore } from "@langchain/langgraph";
+
+const checkpointer = new MemorySaver();
+const store = new InMemoryStore();
+
+const graph = builder.compile({ checkpointer, store });
+
+const result = await graph.invoke(
+  { messages: [{ role: "user", content: "Hi, my name is Bob." }] },
+  { configurable: { thread_id: "thread-1" } }
+);
+```
+:::
+
+<Info>
+**智能体服务器自动处理持久化**
+在使用 [智能体服务器](https://docs.langchain.com/langsmith/agent-server) 时，您无需手动实现或配置检查点器或存储。服务器在后台处理持久化基础设施。
+</Info>
+
+## 检查点器与存储的比较
+
+| | 检查点器 | 存储 |
+| ---- | ---- | ---- |
+| 持久化 | 图状态快照 | 应用程序定义的键值数据 |
+| 范围 | 单个线程 | 跨线程 |
+| 内存类型 | 短期、线程范围内存 | 长期、跨线程内存 |
+| 用于 | 对话连续性、人机协作、时间旅行和容错 | 用户偏好、事实和共享知识 |
+| 访问模式 | 在图配置中传递一个 `thread_id` | 从节点或应用程序代码中读取和写入项 |
+| 完整指南 | [检查点器](/langchain/oss/langgraph/checkpointers) | [存储](/langchain/oss/langgraph/stores) |
+
+## 常见问题排查
+
+### PostgresSaver: `thread_id` 过长
+
+在使用 `PostgresSaver`（或 `AsyncPostgresSaver`）时，`thread_id` 存储在一个长度受限的列中。如果您的 `thread_id` 超出列大小，您将看到数据库错误。
+
+**解决方法：** 保持 `thread_id` 值在 255 个字符以下。如果您需要确定性 ID，请使用 UUID 或哈希：
+
+:::python
+```python
+from langchain_core.utils.uuid import uuid7
+config = {"configurable": {"thread_id": str(uuid7())[:255]}}
+```
+:::
+
+### `MemorySaver` 在重启之间不持久化
+
+`MemorySaver` 和 `InMemorySaver` 将检查点存储在 RAM 中。当进程重启时，所有检查点都会丢失。
+
+**解决方法：** 使用持久化检查点器进行生产：
+
+- `PostgresSaver`: 带异步支持的 PostgreSQL
+- `SqliteSaver`: 开发中的本地文件存储
+
+### 检查点无限制增长
+
+在长时间的对话中，检查点会累积。这会增加延迟和存储成本。
+
+**解决方法：** 定期修剪旧检查点或设置保留策略：
+
+:::python
+```python
+from langgraph.checkpoint.postgres import PostgresSaver
+
+checkpointer = PostgresSaver.from_conn_string("postgresql://...")
+checkpointer.setup()  # Creates tables with indexes
+# Consider adding a cron job to delete checkpoints older than N days
+```
+:::
+
+### 从父图到子图的状态访问
+
+当子图更新状态时，父图可能无法立即看到这些更改。这是因为每个子图管理自己的检查点命名空间。
+
+**解决方法：** 使用 [通过存储共享状态](/langchain/oss/langgraph/stores) 来跨图边界传递数据，或配置您的子图将写入父检查点。
+
+## 下一步
+
+- [使用检查点器](/langchain/oss/langgraph/checkpointers) 来持久化和检查线程状态。
+- [使用存储](/langchain/oss/langgraph/stores) 来跨线程持久化持久化数据。
+
+---
+
+> 官方原文：[src/oss/langgraph/persistence.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/persistence.mdx) · 译文由 AI 生成，以英文原文为准。

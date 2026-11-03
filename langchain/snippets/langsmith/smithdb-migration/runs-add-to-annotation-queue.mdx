@@ -1,0 +1,199 @@
+import SmithdbRunsAddToQueueBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-before-py.mdx';
+import SmithdbRunsAddToQueueAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-after-py.mdx';
+import SmithdbRunsAddToQueueBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-before-js.mdx';
+import SmithdbRunsAddToQueueAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-after-js.mdx';
+import SmithdbRunsAddToQueueBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-before-kt.mdx';
+import SmithdbRunsAddToQueueAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-after-kt.mdx';
+import SmithdbRunsAddToQueueBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-before-go.mdx';
+import SmithdbRunsAddToQueueAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-after-go.mdx';
+import SmithdbRunsAddToQueueBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-before-sh.mdx';
+import SmithdbRunsAddToQueueAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-add-to-queue-after-sh.mdx';
+
+## 注释队列：添加运行任务
+
+将运行任务添加到注释队列。基于SmithDB的实现路径会使用每个运行任务的完整查找键——其ID加上 `session_id`（项目UUID）和 `start_time` 分区键，从而可以直接定位运行任务，而非进行全量扫描。
+
+<Note>
+此方法仍使用现有的旧版客户端（而非新的 `runs` v2客户端），因此[异常处理](https://docs.langchain.com/langsmith/smithdb-sdk-migration#exceptions)表不适用——错误处理机制保持不变。
+</Note>
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    无变更——`client.add_runs_to_annotation_queue()`。通过你传入的参数选择SmithDB路径（请参见下文 Inputs 部分）。
+
+    请参考[参考文档](https://reference.langchain.com/python/langsmith/client/Client/add_runs_to_annotation_queue)以获取完整的参数列表。
+  </Tab>
+  <Tab title="TypeScript">
+    无变更——`client.addRunsToAnnotationQueue()`。通过你传入的参数选择SmithDB路径（请参见下文 Inputs 部分）。
+
+    请参考[参考文档](https://reference.langchain.com/javascript/langsmith/client/Client/addRunsToAnnotationQueue)以获取完整的参数列表。
+  </Tab>
+  <Tab title="Java">
+    | 修改前 | 修改后 |
+    |--------|-------|
+    | `client.annotationQueues().runs().create()` | `client.annotationQueues().runs().createByKey()` |
+
+    请参考[参考文档](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/annotationqueues/RunService.html)以获取完整的参数列表。
+  </Tab>
+  <Tab title="Go">
+    | 修改前 | 修改后 |
+    |--------|-------|
+    | `client.AnnotationQueues.Runs.New()` | `client.AnnotationQueues.Runs.NewByKey()` |
+
+    请参考[参考文档](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#AnnotationQueueRunService.NewByKey)以获取完整的参数列表。
+  </Tab>
+  <Tab title="cURL">
+    | 修改前 | 修改后 |
+    |--------|-------|
+    | `POST /api/v1/annotation-queues/{queue_id}/runs` | `POST /api/v1/annotation-queues/{queue_id}/runs/by-key` |
+
+    请参考[API文档](https://docs.langchain.com/langsmith/smith-api/annotation-queues/add-runs-to-annotation-queue-by-key)以获取完整的参数列表。
+  </Tab>
+</Tabs>
+
+#### 输入参数
+
+（段落结构、列表符号、标题层级等均与原文完全一致）
+
+<Tabs>  
+  <Tab title="Python">  
+    <Warning>  
+    SmithDB路径需要每个运行的 `session_id`（项目UUID）和 `start_time`，以及其 `run_id`。这些信息已包含在您获取的运行对象中（例如从 `client.list_runs()`）。  
+    </Warning>  
+
+    | Before (`run_ids`) | After (`runs`) | Notes |  
+    |---|---|---|  
+    | `run_ids: list[UUID \| str]` | *(deprecated)* | 旧路径。仍会通过 `/runs` 服务器端解析运行ID，未来版本将移除 |  
+    | *(not available)* | `runs: Sequence[RunKey]` | **新推荐。** 每个 `RunKey` 是包含 `TypedDict`、 `run_id`、和 `session_id` 的 `start_time` |  
+
+    提供 `runs` 或 `run_ids` 中的一个；同时传递两者会触发 `LangSmithUserError`。  
+  </Tab>  
+  <Tab title="TypeScript">  
+    <Warning>  
+    SmithDB路径需要每个运行的 `sessionId`（项目UUID）和 `startTime`，以及其 `runId`。这些信息已包含在您获取的运行对象中（例如从 `client.listRuns()`）。  
+    </Warning>  
+
+    | Before (`string[]`) | After (`RunKey[]`) | Notes |  
+    |---|---|---|  
+    | `runs: string[]` | *(deprecated)* | 旧路径（运行ID字符串数组）。仍会通过 `/runs`，未来版本将移除 |  
+    | *(not available)* | `runs: RunKey[]` | **新推荐。** 每个 `RunKey` 是 `{ runId, sessionId, startTime }`； `startTime` 支持 `Date`、 эпох毫秒或ISO字符串 |  
+
+    两种形状的第二个参数位置相同；当传递 `RunKey[]` 时，SDK会自动选择SmithDB路径。  
+  </Tab>  
+  <Tab title="Java">  
+    | Before (`RunCreateParams`) | After (`RunCreateByKeyParams`) | Notes |  
+    |---|---|---|  
+    | `.bodyOfRunsUuidArray(List<String>)` | *(removed)* | 旧体（仅运行ID） |  
+    | *(not available)* | `.addBody(RunCreateByKeyParams.Body)` | 每个 `Body` 包含 `runId`、 `sessionId` 和 `startTime` |  
+    | `.queueId(String)` | `.queueId(String)` | 未变更 |  
+    | `.extendTraceRetention(Boolean)` | `.extendTraceRetention(Boolean)` | 可选查询参数未变更 |  
+  </Tab>  
+  <Tab title="Go">  
+    | Before (`AnnotationQueueRunNewParams`) | After (`AnnotationQueueRunNewByKeyParams`) | Notes |  
+    |---|---|---|  
+    | `Body: AnnotationQueueRunNewParamsBodyRunsUuidArray` (`[]string`) | *(removed)* | 旧体（仅运行ID） |  
+    | *(not available)* | `Body: []AnnotationQueueRunNewByKeyParamsBody` | 每个 包含 `RunID`、 `SessionID` 和 `StartTime` |  
+    | *(not available)* | `ExtendTraceRetention` | 可选查询参数 |  
+  </Tab>  
+  <Tab title="cURL">  
+    <Warning>  
+    `/runs/by-key` 请求体是一个对象数组，而非ID字符串数组。每个对象需要 `run_id`、 `session_id`（项目UUID）和 `start_time`（RFC3339） |  
+    </Warning>  
+
+    | Before (`POST /runs` body) | After (`POST /runs/by-key` body) | Notes |  
+    |---|---|---|  
+    | `["<run-id>", ...]` | `[{"run_id", "session_id", "start_time"}]` | `session_id` 是项目UUID； `start_time` 是RFC3339格式 |  
+    | `?extend_trace_retention` (query) | `?extend_trace_retention` (query) | 可选查询参数未变更 |  
+  </Tab>  
+</Tabs>  
+
+#### 响应
+
+<Tabs>  
+  <Tab title="Python">  
+    无变更。 `run_ids=` 和 `runs=` 均返回 `None`。  
+  </Tab>  
+  <Tab title="TypeScript">  
+    无变更。两种形状均解析为 `void`。  
+  </Tab>  
+  <Tab title="Java">  
+    `createByKey()` 返回 `List<RunCreateByKeyResponse>`——与 `create()` 返回的相同形状，包含 `id()`、 `queueId()`、 `runId()`、 `addedAt()` 和 `lastReviewedTime()`。  
+  </Tab>  
+  <Tab title="Go">  
+    `NewByKey()` 返回 `*[]AnnotationQueueRunNewByKeyResponse`——与 `New()` 返回的相同形状，包含 `ID`、 `QueueID`、 `RunID`、 `AddedAt` 和 `LastReviewedTime`。  
+  </Tab>  
+  <Tab title="cURL">  
+    无变更。 `POST /runs/by-key` 返回创建的队列运行记录数组（包含 `id`、 `queue_id`、 `run_id`、 `added_at`、 `last_reviewed_time`），与 `POST /runs` 形状一致。  
+  </Tab>  
+</Tabs>  
+
+### 示例
+
+#### 将运行添加到队列
+
+<Tabs>  
+  <Tab title="Python">  
+    `run_ids=` 接受纯运行ID列表。 `runs=` 接受每个运行的完整查找键（从 `run_id`、 `session_id` 和 `start_time` 中读取）。  
+
+    <Tabs sync={false}>  
+      <Tab title="Before">  
+        <SmithdbRunsAddToQueueBeforePy />  
+      </Tab>  
+      <Tab title="After">  
+        <SmithdbRunsAddToQueueAfterPy />  
+      </Tab>  
+    </Tabs>  
+  </Tab>  
+  <Tab title="TypeScript">  
+    使用旧路径传递运行ID字符串数组，或通过运行对象构建包含 `RunKey`、 `runId` 和 `sessionId` 的 `startTime` 对象数组。  
+
+    <Tabs sync={false}>  
+      <Tab title="Before">  
+        <SmithdbRunsAddToQueueBeforeJs />  
+      </Tab>  
+      <Tab title="After">  
+        <SmithdbRunsAddToQueueAfterJs />  
+      </Tab>  
+    </Tabs>  
+  </Tab>  
+  <Tab title="Java">  
+    `create()` 通过 `bodyOfRunsUuidArray` 传递运行ID。 `createByKey()` 为每个运行提供 `Body`，包含 `runId`、 `sessionId` 和 `startTime`。  
+
+    <Tabs sync={false}>  
+      <Tab title="Before">  
+        <SmithdbRunsAddToQueueBeforeKt />  
+      </Tab>  
+      <Tab title="After">  
+        <SmithdbRunsAddToQueueAfterKt />  
+      </Tab>  
+    </Tabs>  
+  </Tab>  
+  <Tab title="Go">  
+    `New()` 通过 `AnnotationQueueRunNewParamsBodyRunsUuidArray` 传递运行ID。 `NewByKey()` 为每个运行提供 `AnnotationQueueRunNewByKeyParamsBody`，包含 `RunID`、 `SessionID` 和 `StartTime`。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbRunsAddToQueueBeforeGo />
+      </Tab>
+      <Tab title="After">
+        <SmithdbRunsAddToQueueAfterGo />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="cURL">
+    `POST /runs` 接受一个 run-ID 字符串数组。 `POST /runs/by-key` 接受一个对象数组，每个对象包含 `run_id`、 `session_id` 和 `start_time`。
+
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbRunsAddToQueueBeforeSh />
+      </Tab>
+      <Tab title="After">
+        <SmithdbRunsAddToQueueAfterSh />
+      </Tab>
+    </Tabs>
+  </Tab>
+</Tabs>

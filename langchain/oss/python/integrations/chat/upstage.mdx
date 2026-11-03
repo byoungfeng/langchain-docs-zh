@@ -1,0 +1,69 @@
+---
+title: "ChatUpstage 集成"
+description: "与ChatUpstage对话模型通过LangChain Python集成"
+integration:
+  name: ChatUpstage
+  pypi: langchain-upstage
+---
+
+本笔记本介绍了如何使用 Upstage 对话模型入门。
+
+## 安装
+
+安装 `langchain-upstage` 包。
+
+```bash
+pip install -U langchain-upstage
+```
+
+## 环境配置
+
+请确保设置以下环境变量：
+
+- `UPSTAGE_API_KEY`: 从 [Upstage 控制台](https://console.upstage.ai/) 获取您的 Upstage API 密钥。
+
+## 使用方法
+
+```python
+import os
+
+os.environ["UPSTAGE_API_KEY"] = "YOUR_API_KEY"
+```
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_upstage import ChatUpstage
+
+chat = ChatUpstage()
+```
+
+```python
+# using chat invoke
+chat.invoke("Hello, how are you?")
+```
+
+```python
+# using chat stream
+stream = chat.stream_events("Hello, how are you?", version="v3")
+for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+## 链式调用
+
+```python
+# using chain
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", "You are a helpful assistant that translates English to French."),
+        ("human", "Translate this sentence from English to French. {english_text}."),
+    ]
+)
+chain = prompt | chat
+
+chain.invoke({"english_text": "Hello, how are you?"})
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/upstage.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/upstage.mdx) · 译文由 AI 生成，以英文原文为准。

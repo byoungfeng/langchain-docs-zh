@@ -1,0 +1,242 @@
+---
+title: "Pinecone 集成"
+description: "使用 LangChain Python 集成 Pinecone 向量存储。"
+integration:
+  name: PineconeVectorStore
+  pypi: langchain-pinecone
+  featured: true
+  delete_by_id: true
+  filtering: true
+  search_by_vector: true
+  search_with_score: false
+  async_api: true
+  passes_standard_tests: false
+  multi_tenancy: false
+  ids_in_add_documents: true
+---
+
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>[Pinecone](https://docs.pinecone.io/docs/overview) 是一个功能全面的向量数据库。
+
+本笔记本展示了如何使用与 `Pinecone` 向量数据库相关的功能。
+
+## 设置
+
+要使用 `PineconeVectorStore`，您首先需要安装相关联包以及本笔记本中用到的其他包。
+
+```python
+pip install -qU langchain langchain-pinecone langchain-openai
+```
+
+迁移说明：如果您是从 `langchain_community.vectorstores` Pinecone 实现迁移而来，安装 `langchain-pinecone`（依赖 `pinecone-client` v6）前可能需要移除您的 `pinecone-client` v2 依赖。
+
+### 凭证
+
+创建新的 Pinecone 账户或登录现有账户，并为本笔记本创建 API 密钥。
+
+```python
+import getpass
+import os
+
+from pinecone import Pinecone
+
+if not os.getenv("PINECONE_API_KEY"):
+    os.environ["PINECONE_API_KEY"] = getpass.getpass("Enter your Pinecone API key: ")
+
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+
+pc = Pinecone(api_key=pinecone_api_key)
+```
+
+如果您想获取模型调用自动追踪功能，可以设置 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥（取消注释下方代码）：
+
+```python
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+## 初始化
+
+在初始化向量存储前，让我们连接到一个 Pinecone 索引。如果不存在名为 `index_name` 的索引，将自动创建。
+
+```python
+from pinecone import ServerlessSpec
+
+index_name = "langchain-test-index"  # change if desired
+
+if not pc.has_index(index_name):
+    pc.create_index(
+        name=index_name,
+        dimension=1536,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+    )
+
+index = pc.Index(index_name)
+```
+
+```python
+from langchain_openai import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+```
+
+```python
+from langchain_pinecone import PineconeVectorStore
+
+vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+```
+
+## 管理向量存储
+
+创建好向量存储后，可以通过添加和删除不同项目与之交互。
+
+### 向向量存储添加项目
+
+我们通过使用 `add_documents` 函数向向量存储添加项目。
+
+```python
+from uuid import uuid4
+
+from langchain_core.documents import Document
+
+document_1 = Document(
+    page_content="I had chocolate chip pancakes and scrambled eggs for breakfast this morning.",
+    metadata={"source": "tweet"},
+)
+
+document_2 = Document(
+    page_content="The weather forecast for tomorrow is cloudy and overcast, with a high of 62 degrees.",
+    metadata={"source": "news"},
+)
+
+document_3 = Document(
+    page_content="Building an exciting new project with LangChain - come check it out!",
+    metadata={"source": "tweet"},
+)
+
+document_4 = Document(
+    page_content="Robbers broke into the city bank and stole $1 million in cash.",
+    metadata={"source": "news"},
+)
+
+document_5 = Document(
+    page_content="Wow! That was an amazing movie. I can't wait to see it again.",
+    metadata={"source": "tweet"},
+)
+
+document_6 = Document(
+    page_content="Is the new iPhone worth the price? Read this review to find out.",
+    metadata={"source": "website"},
+)
+
+document_7 = Document(
+    page_content="The top 10 soccer players in the world right now.",
+    metadata={"source": "website"},
+)
+
+document_8 = Document(
+    page_content="LangGraph is the best framework for building stateful, agentic applications!",
+    metadata={"source": "tweet"},
+)
+
+document_9 = Document(
+    page_content="The stock market is down 500 points today due to fears of a recession.",
+    metadata={"source": "news"},
+)
+
+document_10 = Document(
+    page_content="I have a bad feeling I am going to get deleted :(",
+    metadata={"source": "tweet"},
+)
+
+documents = [
+    document_1,
+    document_2,
+    document_3,
+    document_4,
+    document_5,
+    document_6,
+    document_7,
+    document_8,
+    document_9,
+    document_10,
+]
+uuids = [str(uuid4()) for _ in range(len(documents))]
+vector_store.add_documents(documents=documents, ids=uuids)
+```
+
+### 从向量存储中删除项目
+
+```python
+vector_store.delete(ids=[uuids[-1]])
+```
+
+## 查询向量存储
+
+创建好向量存储并添加相关文档后，您可能在运行链或智能体时需要查询它。
+
+### 直接查询
+
+执行简单的相似度搜索如下所示：
+
+```python
+results = vector_store.similarity_search(
+    "LangChain provides abstractions to make working with LLMs easy",
+    k=2,
+    filter={"source": "tweet"},
+)
+for res in results:
+    print(f"* {res.page_content} [{res.metadata}]")
+```
+
+#### 基于分数的相似性搜索
+
+您也可以带分数进行搜索：
+
+```python
+results = vector_store.similarity_search_with_score(
+    "Will it be hot tomorrow?", k=1, filter={"source": "news"}
+)
+for res, score in results:
+    print(f"* [SIM={score:3f}] {res.page_content} [{res.metadata}]")
+```
+
+#### 其他搜索方法
+
+还有其他搜索方法（如 MMR）未在本笔记本中列出，要查看完整列表请查阅 @[API reference][PineconeVectorStore]。
+
+### 通过转换为检索器进行查询
+
+您也可以将向量存储转换为检索器，以便更轻松地在链中使用。
+
+```python
+retriever = vector_store.as_retriever(
+    search_type="similarity_score_threshold",
+    search_kwargs={"k": 1, "score_threshold": 0.4},
+)
+retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+```
+
+## 检索增强生成的使用方法
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺失的id：[]；意外的额外id：['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']。请再次翻译全文，并确保每个六边形括号加数字的占位符都保留在原始位置，且只出现一次。
+
+关于如何使用此向量存储进行检索增强生成（RAG），请参考以下章节：
+
+- [Retrieval docs](/langchain/oss/deepagents/retrieval)
+- [Build a RAG app with LangChain](/langchain/oss/deepagents/rag)
+- [Agentic RAG](/langchain/oss/langgraph/agentic-rag)
+
+---
+
+## API 参考
+
+要查看所有功能和使用配置的详细文档，请访问 @[API reference][PineconeVectorStore]。
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/pinecone.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/pinecone.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,84 @@
+---
+title: "Hugging Face 集成"
+description: "使用 LangChain Python 集成 Hugging Face。"
+sidebarTitle: "Hugging Face"
+---
+
+本页面涵盖了LangChain与[Hugging Face Hub](https://huggingface.co/)的集成，以及[transformers](https://huggingface.co/docs/transformers/index)、[sentence transformers](https://sbert.net/)和[datasets](https://huggingface.co/docs/datasets/index)等库的集成。
+
+{/* ## 安装与配置
+
+<CodeGroup>
+    ```bash pip
+    pip install langchain-huggingface
+    ```
+
+    ```bash uv
+    uv add langchain-huggingface
+    ```
+</CodeGroup> */}
+
+## 对话模型
+
+### ChatHuggingFace
+可以使用`Hugging Face`大语言模型（LLM）类，或直接使用`ChatHuggingFace`类。
+
+查看一个[使用示例](/langchain/oss/python/integrations/chat/huggingface)。
+
+```python
+from langchain_huggingface import ChatHuggingFace
+```
+
+## 大语言模型（LLM）
+
+### HuggingFaceEndpoint
+可以通过无服务器[推理服务](https://huggingface.co/docs/inference-providers)或专用[推理端点](https://huggingface.co/inference-endpoints/dedicated)使用`HuggingFaceEndpoint`类运行开源模型。
+
+查看一个[使用示例](/langchain/oss/python/integrations/llms/huggingface_endpoint)。
+
+```python
+from langchain_huggingface import HuggingFaceEndpoint
+```
+
+### HuggingFacePipeline
+可以通过`HuggingFacePipeline`类在本地运行开源模型。
+
+查看一个[使用示例](/langchain/oss/python/integrations/llms/huggingface_pipelines)。
+
+```python
+from langchain_huggingface import HuggingFacePipeline
+```
+
+## 嵌入模型
+
+### HuggingFaceEmbeddings
+可以通过`HuggingFaceEmbeddings`类在本地运行开源嵌入模型。
+
+查看一个[使用示例](/langchain/oss/python/integrations/embeddings/huggingfacehub)。
+
+```python
+from langchain_huggingface import HuggingFaceEmbeddings
+```
+
+### HuggingFaceEndpointEmbeddings
+可以通过专用[推理端点](https://huggingface.co/inference-endpoints/dedicated)使用`HuggingFaceEndpointEmbeddings`类运行开源嵌入模型。
+
+查看一个[使用示例](/langchain/oss/python/integrations/embeddings/huggingfacehub)。
+
+```python
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
+```
+
+### 文本嵌入推理（TEI）
+
+对于Sentence Transformers模型的自托管生产服务，Hugging Face发布了[文本嵌入推理](https://github.com/huggingface/text-embeddings-inference)专用推理服务器，支持批处理和GPU加速。TEI提供OpenAI兼容的API，可通过`OpenAIEmbeddings`指向TEI部署。请参考专用[TEI集成指南](/langchain/oss/python/integrations/embeddings/text_embeddings_inference)。
+
+### BGE嵌入模型
+
+>[Hugging Face上的BGE模型](https://huggingface.co/BAAI)是来自[北京人工智能研究院（BAAI）](https://en.wikipedia.org/wiki/Beijing_Academy_of_Artificial_Intelligence)的开源嵌入模型家族。
+
+BGE模型属于Sentence Transformers模型，请使用`HuggingFaceEmbeddings`与`encode_kwargs={"normalize_embeddings": True}`。查看一个[使用示例](/langchain/oss/python/integrations/embeddings/bge_huggingface)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/huggingface.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/huggingface.mdx) · 译文由 AI 生成，以英文原文为准。

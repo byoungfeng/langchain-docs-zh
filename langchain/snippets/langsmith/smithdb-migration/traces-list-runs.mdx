@@ -1,0 +1,245 @@
+import SmithdbTracesListRunsBasicBeforePy from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-before-py.mdx';
+import SmithdbTracesListRunsBasicAfterPy from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-after-py.mdx';
+import SmithdbTracesListRunsBasicBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-before-js.mdx';
+import SmithdbTracesListRunsBasicAfterJs from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-after-js.mdx';
+import SmithdbTracesListRunsBasicBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-before-go.mdx';
+import SmithdbTracesListRunsBasicAfterGo from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-after-go.mdx';
+import SmithdbTracesListRunsBasicBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-before-kt.mdx';
+import SmithdbTracesListRunsBasicAfterKt from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-after-kt.mdx';
+import SmithdbTracesListRunsBasicBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-before-sh.mdx';
+import SmithdbTracesListRunsBasicAfterSh from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-basic-after-sh.mdx';
+import SmithdbTracesListRunsFilterBeforePy from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-before-py.mdx';
+import SmithdbTracesListRunsFilterAfterPy from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-after-py.mdx';
+import SmithdbTracesListRunsFilterBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-before-js.mdx';
+import SmithdbTracesListRunsFilterAfterJs from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-after-js.mdx';
+import SmithdbTracesListRunsFilterBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-before-go.mdx';
+import SmithdbTracesListRunsFilterAfterGo from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-after-go.mdx';
+import SmithdbTracesListRunsFilterBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-before-kt.mdx';
+import SmithdbTracesListRunsFilterAfterKt from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-after-kt.mdx';
+import SmithdbTracesListRunsFilterBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-before-sh.mdx';
+import SmithdbTracesListRunsFilterAfterSh from '/langchain/snippets/code-samples/smithdb-migration/traces-list-runs-filter-after-sh.mdx';
+
+## 跟踪：列出运行
+
+为 trace ID 范围内的运行返回结果。可选 `filter`；重复 `selects` 以选择返回的字段。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | 之前版本 | 新版本 |
+    |----------|--------|
+    | `client.list_runs(trace_id=...)` (通用) | `client.traces.list_runs()` |
+
+    <Note>
+    `client.traces.list_runs()` 现在为异步操作。需使用 `await` 调用。
+    </Note>
+
+    参见 [参考文档](https://reference.langchain.com/python/langsmith/_openapi_client/resources/traces/TracesResource/list_runs) 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="TypeScript">
+    | 之前版本 | 新版本 |
+    |----------|--------|
+    | `client.listRuns({ traceId })` (通用) | `client.traces.listRuns()` |
+
+    参见 [参考文档](https://reference.langchain.com/javascript/langsmith/_openapi_client/Langsmith/Traces/listRuns) 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="Java">
+    | 之前版本 | 新版本 |
+    |----------|--------|
+    | `client.runs().query()` (通用, `.trace(traceId)`) | `client.traces().listRuns()` |
+
+    参见 [参考文档](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/TraceService.html) 获取完整参数列表。
+  </Tab>
+  <Tab title="Go">
+    | 之前版本 | 新版本 |
+    |----------|--------|
+    | `client.Runs.Query()` (通用, `Trace: traceID`) | `client.Traces.ListRuns()` |
+
+    参见 [参考文档](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#TraceService.ListRuns) 获取完整参数列表。
+  </Tab>
+  <Tab title="cURL">
+    | 之前版本 | 新版本 |
+    |----------|--------|
+    | `POST /api/v1/runs/query` (`trace` 字段) | `GET /api/v2/traces/{trace_id}/runs` |
+  </Tab>
+</Tabs>
+
+#### 查询参数
+
+<Tabs>
+  <Tab title="Python">
+    - `trace_id`/`trace` 从查询参数移至路径参数。
+    - `project_id` 新增且 **必需**（SmithDB 分区键）；`list_runs(trace_id=...)` 旧版本无需。
+    - `filter` 保持不变。
+    - `min_start_time`/`max_start_time` 新增。不同于 `traces.query`，两者均无默认值：省略则不按时间过滤运行。需同时传递任一参数。
+    - `select` 更名为 `selects`，使用与 `traces.query` 相同的 44 值枚举。
+  </Tab>
+  <Tab title="TypeScript">
+    - `traceId`/`trace` 从查询参数移至路径参数。
+    - `project_id` 新增且 **必需**（SmithDB 分区键）；`listRuns({ traceId })` 旧版本无需。
+    - `filter` 保持不变。
+    - `min_start_time`/`max_start_time` 新增。不同于 `traces.query`，两者均无默认值：省略则不按时间过滤运行。需同时传递任一参数。
+    - `select` 更名为 `selects`，使用与 `traces.query` 相同的 44 值枚举。
+  </Tab>
+  <Tab title="Java">
+    - `traceId` 从查询参数（`.trace(traceId)`）移至路径参数。
+    - `projectId` 新增且 **必需**（SmithDB 分区键）；通用版 `runs().query()` 无需。
+    - `filter` 保持不变。
+    - `minStartTime`/`maxStartTime` 新增。不同于 `traces().query()`，两者均无默认值：省略则不按时间过滤运行。需同时传递任一参数。
+    - `select` 更名为 `selects`（44 值枚举）。
+  </Tab>
+  <Tab title="Go">
+    - `traceID` 从查询参数（`Trace: traceID`）移至路径参数。
+    - `ProjectID` 新增且 **必需**（SmithDB 分区键）；通用版 `Runs.Query()` 无需。
+    - `Filter` 保持不变。
+    - `MinStartTime`/`MaxStartTime` 新增。不同于 `Traces.Query()`，两者均无默认值：省略则不按时间过滤运行。需同时传递任一参数。
+    - `Select` 更名为 `Selects`。
+  </Tab>
+  <Tab title="cURL">
+    - `trace` 从请求体字段移至路径片段（`{trace_id}`）。
+    - `project_id` 新增且 **必需**（SmithDB 分区键）；旧版本 `POST /api/v1/runs/query` 无需。
+    - `filter` 保持不变。
+    - `min_start_time`/`max_start_time` 新增。不同于 `traces.query`，两者均无默认值：省略则不按时间过滤运行。需同时传递任一参数。
+    - `select` 更名为 `selects`。
+  </Tab>
+</Tabs>
+
+#### 响应字段
+
+
+<Tabs>  
+  <Tab title="Python">  
+    响应包含单个 `items` 字段：按 `start_time` 顺序排列的 `Run` 对象列表，与 [Runs: query](https://docs.langchain.com/langsmith/smithdb-sdk-migration-query-runs) 响应形状相同。  
+  </Tab>  
+  <Tab title="TypeScript">  
+    响应包含单个 `items` 字段：按 `start_time` 顺序排列的 `Run` 对象数组，与 [Runs: query](https://docs.langchain.com/langsmith/smithdb-sdk-migration-query-runs) 响应形状相同。  
+  </Tab>  
+  <Tab title="Java">  
+    响应包含单个 `items()` 方法，返回 `Optional<List<Run>>`：按 `start_time` 顺序排列的轨迹 runs，与 [Runs: query](https://docs.langchain.com/langsmith/smithdb-sdk-migration-query-runs) 响应形状相同。  
+  </Tab>  
+  <Tab title="Go">  
+    响应包含单个 `Items` 字段，类型 `[]Run`：按 `start_time` 顺序排列的轨迹 runs，与 [Runs: query](https://docs.langchain.com/langsmith/smithdb-sdk-migration-query-runs) 响应形状相同。  
+  </Tab>  
+  <Tab title="cURL">  
+    JSON 响应包含单个 `items` 数组字段：按 `start_time` 顺序排列的轨迹 runs，与 [Runs: query](https://docs.langchain.com/langsmith/smithdb-sdk-migration-query-runs) 响应形状相同。  
+  </Tab>  
+</Tabs>  
+
+### 示例
+
+#### 列出轨迹中的所有运行
+
+根据轨迹 ID 获取属于该轨迹的所有运行。
+
+<Tabs>  
+  <Tab title="Python">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsBasicBeforePy />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsBasicAfterPy />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="TypeScript">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsBasicBeforeJs />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsBasicAfterJs />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="Java">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsBasicBeforeKt />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsBasicAfterKt />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="Go">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsBasicBeforeGo />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsBasicAfterGo />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="cURL">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsBasicBeforeSh />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsBasicAfterSh />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+</Tabs>  
+
+#### 获取轨迹中的 LLM 调用
+
+将轨迹的运行缩小到特定类型（例如仅 LLM 调用）。
+
+<Tabs>  
+  <Tab title="Python">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsFilterBeforePy />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsFilterAfterPy />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="TypeScript">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsFilterBeforeJs />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsFilterAfterJs />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="Java">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsFilterBeforeKt />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsFilterAfterKt />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="Go">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsFilterBeforeGo />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsFilterAfterGo />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+  <Tab title="cURL">  
+<Tabs sync={false}>  
+  <Tab title="Before">  
+    <SmithdbTracesListRunsFilterBeforeSh />  
+  </Tab>  
+  <Tab title="After">  
+    <SmithdbTracesListRunsFilterAfterSh />  
+  </Tab>  
+</Tabs>  
+  </Tab>  
+</Tabs>

@@ -1,0 +1,95 @@
+---
+title: "Mixedbread AI集成"
+description: "使用 LangChain JavaScript 集成 Mixedbread AI 嵌入模型。"
+integration:
+  name: Mixedbread AI
+  npm: '@langchain/mixedbread-ai'
+---
+
+`MixedbreadAIEmbeddings` 类使用 [Mixedbread AI](https://mixedbread.ai/) API 生成文本嵌入。本指南将引导你设置和使用 `MixedbreadAIEmbeddings` 类，帮助你有效地将其集成到你的项目中。
+
+## 安装
+
+要安装 `@langchain/mixedbread-ai` 包，请使用以下命令：
+
+<Tip>
+参见 [有关安装 LangChain 包的通用说明部分](/langchain/oss/langchain/install)。
+</Tip>
+
+```bash npm
+npm install @langchain/mixedbread-ai @langchain/core
+```
+## 初始化
+
+首先，在 Mixedbread AI 网站上注册并获取你的 [来自 Mixedbread AI 的 API 密钥](https://mixedbread.ai/)。然后，你可以使用此密钥来初始化 `MixedbreadAIEmbeddings` 类。
+
+你可以将 API 密钥直接传递给构造函数或将其设置为环境变量（`MXBAI_API_KEY`）。
+
+### 基本用法
+
+以下是创建 `MixedbreadAIEmbeddings` 实例的方法：
+
+```typescript
+import { MixedbreadAIEmbeddings } from "@langchain/mixedbread-ai";
+
+const embeddings = new MixedbreadAIEmbeddings({
+  apiKey: "YOUR_API_KEY",
+  // Optionally specify model
+  // model: "mixedbread-ai/mxbai-embed-large-v1",
+});
+```
+如果未提供 `apiKey`，它将读取 `MXBAI_API_KEY` 环境变量。
+
+## 生成嵌入
+
+### 单个查询的嵌入
+
+要为单个文本查询生成嵌入，请使用 `embedQuery` 方法：
+
+```typescript
+const embedding = await embeddings.embedQuery(
+  "Represent this sentence for searching relevant passages: Is baking fun?"
+);
+console.log(embedding);
+```
+### 多个文档的嵌入
+
+要为多个文档生成嵌入，请使用 `embedDocuments` 方法。此方法根据 `batchSize` 参数自动处理批处理：
+
+```typescript
+const documents = ["Baking bread is fun", "I love baking"];
+
+const embeddingsArray = await embeddings.embedDocuments(documents);
+console.log(embeddingsArray);
+```
+## 自定义请求
+
+你可以通过传递附加参数来自定义 SDK。
+
+```typescript
+const customEmbeddings = new MixedbreadAIEmbeddings({
+  apiKey: "YOUR_API_KEY",
+  baseUrl: "...",
+  maxRetries: 6,
+});
+```
+## 错误处理
+
+如果未提供 API 密钥且无法在环境变量中找到，将抛出错误：
+
+```typescript
+try {
+  const embeddings = new MixedbreadAIEmbeddings();
+} catch (error) {
+  console.error(error);
+}
+```
+
+## 相关
+
+- 嵌入模型 [概念指南](/langchain/oss/python/integrations/embeddings)
+- 嵌入模型 [操作指南](/langchain/oss/python/integrations/embeddings)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/embeddings/mixedbread_ai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/embeddings/mixedbread_ai.mdx) · 译文由 AI 生成，以英文原文为准。

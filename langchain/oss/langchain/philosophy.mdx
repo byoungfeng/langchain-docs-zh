@@ -1,0 +1,144 @@
+---
+title: "理念"
+description: "LangChain旨在成为使用大语言模型的 easiest 入口，同时保持灵活性和生产就绪特性。"
+mode: wide
+---
+
+LangChain 由几个核心信念驱动：
+
+- 大型语言模型（LLMs）是伟大而强大的新技术。
+- 当你将 LLMs 与外部数据源结合时，它们会变得更好。
+- LLMs 将改变未来应用程序的样子。具体来说，未来的应用程序将越来越像智能体。
+- 在这场变革中，我们仍处于非常早期的阶段。
+- 虽然构建这些智能体应用程序的原型很容易，但要构建可靠到可以投入生产的智能体仍然非常困难。
+
+今天，开发者可以选择如何构建智能体：使用 [LangChain](/langchain/oss/langchain/overview) 以获得最大的灵活性和控制力，或者使用 [Deep Agents](/langchain/oss/langchain/overview)，它允许类似的灵活性和控制力，但带有内置的计划、文件系统工具、子智能体和上下文管理。两者都基于 [LangGraph](/langchain/oss/langgraph/overview)。
+
+使用 LangChain，我们有两个核心重点：
+
+<Steps>
+    <Step title="We want to enable developers to build with the best models.">
+        不同的提供者暴露不同的 API，具有不同的模型参数和不同的消息格式。
+        标准化这些模型输入和输出是一个核心重点，使开发者可以轻松切换到最新的最先进模型，避免锁定。
+    </Step>
+    <Step title="We want to make it easy to use models to orchestrate more complex flows that interact with other data and computation.">
+        模型应该用于不仅仅是 *文本生成* - 它们还应该用于协调更复杂的流程，这些流程与其他数据交互。LangChain 使定义 LLMs 可以动态使用的 [工具](/langchain/oss/langchain/tools)变得容易，并帮助解析和访问非结构化数据。
+    </Step>
+</Steps>
+
+## 历史
+
+鉴于该领域的不断变化，LangChain 也在不断发展。以下是 LangChain 多年来如何变化的简要时间线，以及构建 LLMs 的含义如何演变：
+
+<Update label="2022-10-24" description="v0.0.1">
+    在 ChatGPT 发布前一个月，**LangChain 作为 Python 包发布**。它由两个主要组件组成：
+
+    - LLM 抽象
+    - "链"，即预定义的计算步骤，用于常见用例。例如 - RAG：运行检索步骤，然后运行生成步骤。
+
+    LangChain 的名称来自 "语言"（如语言模型）和 "链"。
+
+</Update>
+
+<Update label="2022-12">
+    LangChain 添加了第一个通用智能体。
+
+    这些通用智能体基于 [ReAct 论文](https://arxiv.org/abs/2210.03629)（ReAct 代表推理和行动）。它们使用 LLMs 生成表示工具调用的 JSON，然后解析该 JSON 以确定要调用哪些工具。
+</Update>
+
+<Update label="2023-01">
+    OpenAI 发布了 'Chat Completion' API。
+
+    以前，模型接收字符串并返回字符串。在 ChatCompletions API 中，它们演变为接收消息列表并返回消息。其他模型提供者也紧随其后，LangChain 更新以支持消息列表。
+</Update>
+
+<Update label="2023-01">
+    LangChain 发布了 JavaScript 版本。
+
+    LLMs 和智能体将改变应用程序的构建方式，而 JavaScript 是应用程序开发者的语言。
+</Update>
+
+<Update label="2023-02">
+    **围绕开源 LangChain 项目成立了 LangChain Inc. 公司**。
+
+    主要目标是 "使智能体无处不在"。团队认识到，虽然 LangChain 是关键部分（LangChain 使开始使用 LLMs 变得简单），但还需要其他组件。
+</Update>
+
+<Update label="2023-03">
+    OpenAI 在其 API 中发布了 'function calling'。
+
+    这允许 API 明确生成表示工具调用的有效负载。其他模型提供者也紧随其后，LangChain 更新为使用此方法作为首选的工具调用方式（而不是解析 JSON）。
+</Update>
+
+<Update label="2023-06">
+    **LangSmith 作为 LangChain Inc. 的闭源平台发布，提供可观察性和评估**。
+
+    构建智能体的主要问题是使它们变得可靠，而 LangSmith（提供可观察性和评估）是为了解决这一需求而构建的。LangChain 更新为与 LangSmith 无缝集成。
+</Update>
+
+<Update label="2024-01" description="v0.1.0">
+    **LangChain 发布了 0.1.0，这是其第一个非 0.0.x 版本**。
+
+    行业从原型发展到生产，因此 LangChain 增加了其对稳定性的关注。
+</Update>
+
+<Update label="2024-02">
+    **LangGraph 作为开源库发布**。
+
+    最初的 LangChain 有两个重点：LLM 抽象，以及用于开始常见应用程序的高级接口；然而，它缺少一个允许开发者控制其智能体精确流程的低级编排层。这就是 LangGraph 的由来。
+
+    在构建 LangGraph 时，我们从构建 LangChain 的经验中学习，并添加了我们发现的需要的功能：流式输出、持久执行、短期记忆、人工参与等。
+</Update>
+
+<Update label="2024-06">
+    **LangChain 拥有超过 700 个集成**。
+
+    :::python
+    集成从核心 LangChain 包中分离出来，要么移入自己的独立包（用于核心集成），要么 `langchain-community`。
+    :::
+    :::js
+    集成从核心 LangChain 包中分离出来，要么移入自己的独立包（用于核心集成），要么 `@langchain/community`。
+    :::
+</Update>
+
+<Update label="2024-10">
+    LangGraph 成为构建任何超过单个 LLM 调用的 AI 应用程序的首选方式。
+
+    当开发者试图提高其应用程序的可靠性时，他们需要比高级接口提供的更多控制权。LangGraph 提供了这种低级灵活性。LangChain 中大多数链和智能体都被标记为已弃用，并提供了迁移到 LangGraph 的指南。LangGraph 中仍然有一个高级抽象：智能体抽象。它基于低级 LangGraph，并具有与 LangChain 中的 ReAct 智能体相同的接口。
+</Update>
+
+<Update label="2025-04">
+    模型 API 变得更加多模态。
+
+:::python
+    模型开始接受文件、图像、视频等更多内容。我们相应地更新了 `langchain-core` 消息格式，允许开发人员以标准方式指定这些多模态输入。
+    :::
+    :::js
+    模型开始接受文件、图像、视频等更多内容。我们相应地更新了 `@langchain/core` 消息格式，允许开发人员以标准方式指定这些多模态输入。
+    :::
+</Update>
+
+<Update label="2025-10-20" description="v1.0.0">
+    **LangChain 发布 1.0 版本**，包含两个主要变更：
+
+    1. 完全重构 `langchain` 中的所有链和智能体。所有链和智能体现在只使用一个高级抽象：基于 LangGraph 构建的智能体抽象。这是最初在 LangGraph 中创建的高级抽象，但现在移至 LangChain。
+
+        :::python
+        对于仍然使用旧 LangChain 链/智能体且不想升级的用户（注意：我们建议您升级），您可以通过安装 `langchain-classic` 包继续使用旧 LangChain。
+        :::
+        :::js
+        对于仍然使用旧 LangChain 链/智能体且不想升级的用户（注意：我们建议您升级），您可以通过安装 `@langchain/classic` 包继续使用旧 LangChain。
+        :::
+
+    2. 标准化的消息内容格式：模型 API 从返回简单内容字符串的消息演变为更复杂的输出类型——推理块、引用、服务器端工具调用等。LangChain 发展了其消息格式，以在提供商之间标准化这些内容。
+</Update>
+
+<Update label="2026-03-15" description="v0.5.3">
+    **Deep Agents 发布**，作为基于 LangGraph 的开源智能体框架。
+
+    虽然 LangChain 提供了灵活的构建块用于自定义智能体架构，但 [Deep Agents](/langchain/oss/langchain/overview) 为复杂、长时间运行的任务（如研究和编码）提供了开箱即用的选项。它添加了内置的规划工具、可插拔后端的虚拟文件系统（内存、磁盘、LangGraph 存储、沙盒），以及用于上下文隔离的子智能体生成。使用 Deep Agents 创建具有预定义工具的更自主的智能体；使用 LangChain 完全控制您的智能体架构。
+</Update>
+
+---
+
+> 官方原文：[src/oss/langchain/philosophy.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/philosophy.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,342 @@
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-before-py.mdx' 导入 SmithdbRunsQueryListRootAsTracesBeforePy;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-after-py.mdx' 导入 SmithdbRunsQueryListRootAsTracesAfterPy;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-before-js.mdx' 导入 SmithdbRunsQueryListRootAsTracesBeforeJs;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-after-js.mdx' 导入 SmithdbRunsQueryListRootAsTracesAfterJs;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-before-go.mdx' 导入 SmithdbRunsQueryListRootAsTracesBeforeGo;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-after-go.mdx' 导入 SmithdbRunsQueryListRootAsTracesAfterGo;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-before-kt.mdx' 导入 SmithdbRunsQueryListRootAsTracesBeforeKt;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-after-kt.mdx' 导入 SmithdbRunsQueryListRootAsTracesAfterKt;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-before-sh.mdx' 导入 SmithdbRunsQueryListRootAsTracesBeforeSh;
+从 '/snippets/code-samples/smithdb-migration/runs-query-list-root-as-traces-after-sh.mdx' 导入 SmithdbRunsQueryListRootAsTracesAfterSh;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-before-py.mdx' 导入 SmithdbTracesQueryTotalsBeforePy;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-after-py.mdx' 导入 SmithdbTracesQueryTotalsAfterPy;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-before-js.mdx' 导入 SmithdbTracesQueryTotalsBeforeJs;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-after-js.mdx' 导入 SmithdbTracesQueryTotalsAfterJs;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-before-go.mdx' 导入 SmithdbTracesQueryTotalsBeforeGo;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-after-go.mdx' 导入 SmithdbTracesQueryTotalsAfterGo;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-before-kt.mdx' 导入 SmithdbTracesQueryTotalsBeforeKt;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-after-kt.mdx' 导入 SmithdbTracesQueryTotalsAfterKt;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-before-sh.mdx' 导入 SmithdbTracesQueryTotalsBeforeSh;
+从 '/snippets/code-samples/smithdb-migration/traces-query-totals-after-sh.mdx' 导入 SmithdbTracesQueryTotalsAfterSh;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-before-py.mdx' 导入 SmithdbTracesQueryFiltersBeforePy;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-after-py.mdx' 导入 SmithdbTracesQueryFiltersAfterPy;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-before-js.mdx' 导入 SmithdbTracesQueryFiltersBeforeJs;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-after-js.mdx' 导入 SmithdbTracesQueryFiltersAfterJs;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-before-go.mdx' 导入 SmithdbTracesQueryFiltersBeforeGo;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-after-go.mdx' 导入 SmithdbTracesQueryFiltersAfterGo;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-before-kt.mdx' 导入 SmithdbTracesQueryFiltersBeforeKt;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-after-kt.mdx' 导入 SmithdbTracesQueryFiltersAfterKt;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-before-sh.mdx' 导入 SmithdbTracesQueryFiltersBeforeSh;
+从 '/snippets/code-samples/smithdb-migration/traces-query-filters-after-sh.mdx' 导入 SmithdbTracesQueryFiltersAfterSh;
+
+## 跟踪记录：查询
+
+返回单个追踪项目的根运行记录列表。每个项目包含根运行记录以及可选的`trace_aggregates`层聚合数据（`total_tokens`、`total_cost`、`first_token_time`），客户端无需自行合并`trace_id`。
+
+跟踪记录在`start_time`窗口内进行扫描：`min_start_time`默认为请求时间前24小时，`max_start_time`默认为请求时间。可显式设置以扩大或缩小窗口范围。
+
+支持`trace_filter`和`tree_filter`过滤器以及`selects`字段投影。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.list_runs(is_root=True)` (通用) | `client.traces.query()` |
+
+    <Note>
+    `client.traces.query()` 现在为异步。需使用`await`调用。
+    </Note>
+
+    参见 [参考文档](https://reference.langchain.com/python/langsmith/_openapi_client/resources/traces/TracesResource/query)] 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="TypeScript">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.listRuns({ isRoot: true })` (通用) | `client.traces.query()` |
+
+    参见 [参考文档](https://reference.langchain.com/javascript/langsmith/_openapi_client/Langsmith/Traces/query)] 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="Java">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.runs().query()` (通用，`isRoot(true)`) | `client.traces().query()` |
+
+    参见 [参考文档](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/TraceService.html)] 获取完整参数列表。
+  </Tab>
+  <Tab title="Go">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.Runs.Query()` (通用，`IsRoot: true`) | `client.Traces.Query()` |
+
+    参见 [参考文档](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#TraceService.QueryAutoPaging)] 获取完整参数列表。
+  </Tab>
+  <Tab title="cURL">
+    | 之前 | 之后 |
+    |------|------|
+    | `POST /api/v1/runs/query` (`is_root=true`) | `POST /api/v2/traces/query` |
+  </Tab>
+</Tabs>
+
+#### 查询参数
+
+<Tabs>  
+  <Tab title="Python">  
+    - `session`（一个项目UUID列表）变为 `project_id`，单个UUID；`traces.query`作用范围为每次调用限定一个项目。  
+    - `is_root`被移除：`traces.query`隐式作用范围为根运行。  
+    - 通用 `filter`（针对任意运行的评估）无直接等价项；改用 `trace_filter` 或 `tree_filter`。  
+    - `trace_filter` 和 `tree_filter`保持不变；两者已存在于 `list_runs`。  
+    - `trace_ids`新增：快速路径限制至已知trace UUID集合，规模效率优于等价 `trace_filter`。  
+    - `start_time`（无默认值）变为 `min_start_time`，省略时默认为24小时前。  
+    - `max_start_time`新增，默认为请求时间；`list_runs`的 `end_time`基于运行自身结束时间过滤，而非扫描窗口边界。  
+    - `select`重命名为 `selects`；条目路由至 `trace_aggregates`（`total_tokens`, `total_cost`, `first_token_time`）或 `root_run`（其他所有内容）。  
+  </Tab>  
+  <Tab title="TypeScript">  
+    - `session`（项目UUID列表）变为 `project_id`（单个UUID）；`traces.query`作用范围为每次调用限定一个项目。  
+    - `isRoot`被移除：`traces.query`隐式作用范围为根运行。  
+    - 通用 `filter`（针对任意运行的评估）无直接等价项；改用 `trace_filter` 或 `tree_filter`。  
+    - `traceFilter` 和 `treeFilter`迁移为 `trace_filter`/`tree_filter`；两者已存在于 `listRuns`。注意v1方法使用驼峰式选项（`traceFilter`），v2资源方法直接使用wire格式的 `snake_case`键。  
+    - `trace_ids`新增：快速路径限制至已知trace UUID集合，规模效率优于等价 `trace_filter`。  
+    - `startTime`（无默认值）变为 `min_start_time`，省略时默认为24小时前。  
+    - `max_start_time`新增，默认为请求时间；`listRuns`的 `endTime`基于运行自身结束时间过滤，而非扫描窗口边界。  
+    - `select`重命名为 `selects`；条目路由至 `trace_aggregates`（`total_tokens`, `total_cost`, `first_token_time`）或 `root_run`（其他所有内容）。  
+  </Tab>  
+  <Tab title="Java">  
+    - `session`（`List<String>`个项目UUID）变为 `projectId`（单个UUID）；`traces().query()`作用范围为每次调用限定一个项目。  
+    - `isRoot`被移除：`traces().query()`隐式作用范围为根运行。  
+    - 通用 `filter`（针对任意运行的评估）无直接等价项；改用 `traceFilter` 或 `treeFilter`。  
+    - `traceFilter` 和 `treeFilter`保持不变；两者已存在于 `RunQueryParams`。  
+    - `traceIds`新增：快速路径限制至已知trace UUID集合，规模效率优于等价 `traceFilter`。  
+    - `startTime`（无默认值）变为 `minStartTime`，省略时默认为24小时前。  
+    - `maxStartTime`新增，默认为请求时间；`RunQueryParams`的 `endTime`基于运行自身结束时间过滤，而非扫描窗口边界。  
+    - `select`重命名为 `selects`；条目路由至 `traceAggregates`（`totalTokens`, `totalCost`, `firstTokenTime`）或 `rootRun`（其他所有内容）。  
+  </Tab>  
+  <Tab title="Go">  
+    - `Session`（`[]string`个项目UUID）变为 `ProjectID`（单个UUID）；`Traces.Query()`作用范围为每次调用限定一个项目。  
+    - `IsRoot`被移除：`Traces.Query()`隐式作用范围为根运行。  
+    - 通用 `Filter`（针对任意运行的评估）无直接等价项；改用 `TraceFilter` 或 `TreeFilter`。  
+    - `TraceFilter` 和 `TreeFilter`保持不变；两者已存在于 `RunQueryParams`。  
+    - `TraceIDs`新增：快速路径限制至已知trace UUID集合，规模效率优于等价 `TraceFilter`。  
+    - `StartTime`（无默认值）变为 `MinStartTime`，省略时默认为24小时前。  
+    - `MaxStartTime`新增，默认为请求时间；`RunQueryParams`的 `EndTime`基于运行自身结束时间过滤，而非扫描窗口边界。  
+    - `Select`重命名为 `Selects`；条目路由至 `TraceAggregates`（`TotalTokens`, `TotalCost`, `FirstTokenTime`）或 `RootRun`（其他所有内容）。  
+  </Tab>  
+  <Tab title="cURL">  
+    - `session`（项目UUID列表）变为 `project_id`（单个UUID）。  
+    - `is_root`被移除：端点隐式作用范围为根运行。  
+    - 通用 `filter`无直接等价项；改用 `trace_filter` 或 `tree_filter`。两者已存在于 `POST /api/v1/runs/query`。  
+    - `trace_ids`新增：快速路径限制至已知trace UUID集合。  
+    - `start_time`（无默认值）变为 `min_start_time`，省略时默认为24小时前。  
+    - `max_start_time`新增，默认为请求时间。  
+    - `select`重命名为 `selects`。  
+  </Tab>  
+</Tabs>
+
+#### 响应字段
+
+<Tabs>
+  <Tab title="Python">
+    - `root_run` 承载与 Runs:query 相同的 `Run` 结构（`id`、`name`、`run_type`、`status` 等），由 `selects` 控制。
+    - `total_tokens`/`total_cost` 从 `root_run` 移至 `trace_aggregates`，在跟踪中的每个运行中求和，而非仅根运行。当未选择聚合字段时，`trace_aggregates` 完全从响应中省略。
+    - `trace_aggregates.first_token_time` 是新的
+  </Tab>
+  <Tab title="TypeScript">
+    - `root_run` 承载与 Runs:query 相同的 `Run` 结构（`id`、`name`、`run_type`、`status` 等），由 `selects` 控制。
+    - `total_tokens`/`total_cost` 从 `root_run` 移至 `trace_aggregates`，在跟踪中的每个运行中求和，而非仅根运行。当未选择聚合字段时，`trace_aggregates` 完全从响应中省略。
+    - `trace_aggregates.first_token_time` 是新的
+  </Tab>
+  <Tab title="Java">
+    - `rootRun()` 承载与 Runs:query 相同的 `RunSchema` 结构（`totalTokens()`、`name()`、`runType()`、`status()` 等），由 `selects` 控制。
+    - `totalTokens()`/`totalCost()` 从 `rootRun()` 移至 `traceAggregates()`，在跟踪中的每个运行中求和。
+    - `traceAggregates().firstTokenTime()` 是新的
+  </Tab>
+  <Tab title="Go">
+    - `RootRun` 承载与 Runs:query 相同的 `Run` 结构，由 `Selects` 控制。
+    - `TotalTokens`/`TotalCost` 从 `RootRun` 移至 `TraceAggregates`，在跟踪中的每个运行中求和。通过 `trace.TraceAggregates.JSON.RawJSON() == ""` 检查 `TraceAggregates` 是否缺失，因为它是值类型而非指针。
+    - `TraceAggregates.FirstTokenTime` 是新的
+  </Tab>
+  <Tab title="cURL">
+    JSON 响应字段使用 `snake_case`，与下方项目符号匹配。
+
+    - `root_run` 承载与 Runs:query 相同的结构，由 `selects` 控制。
+    - `total_tokens`/`total_cost` 从 `root_run` 移至 `trace_aggregates`，在跟踪中的每个运行中求和。
+    - `trace_aggregates.first_token_time` 是新的
+  </Tab>
+</Tabs>
+
+### 示例
+
+#### 列出跟踪（根运行）
+
+获取项目中的每个跟踪（根运行），替换 `list_runs(is_root=True)`。
+
+<Tabs>
+  <Tab title="Python">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListRootAsTracesBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListRootAsTracesAfterPy />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListRootAsTracesBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListRootAsTracesAfterJs />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Java">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListRootAsTracesBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListRootAsTracesAfterKt />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Go">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListRootAsTracesBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListRootAsTracesAfterGo />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListRootAsTracesBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListRootAsTracesAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>
+
+#### 获取跟踪的总 Token 和成本
+
+从 `trace_aggregates` 读取跟踪的 Token 和成本总计，而非根运行（v1 在根运行中保留这些数据）。
+
+<Tabs>
+  <Tab title="Python">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryTotalsBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryTotalsAfterPy />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryTotalsBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryTotalsAfterJs />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Java">
+    <Note>The Before example reads `totalTokens` only. `totalCost` is omitted because reading it on the v1 `RunSchema` type triggers a known deserialization bug in the current Java binding (it expects a string, the API returns a number).</Note>
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryTotalsBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryTotalsAfterKt />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Go">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryTotalsBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryTotalsAfterGo />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryTotalsBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryTotalsAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>
+
+#### 通过状态查找跟踪，或通过 ID 获取跟踪
+
+使用 `trace_filter` 按状态（例如，错误状态）过滤跟踪，或跳过过滤直接更快地获取已知跟踪使用 `trace_ids`。
+
+<Tabs>
+  <Tab title="Python">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryFiltersBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryFiltersAfterPy />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryFiltersBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryFiltersAfterJs />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Java">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryFiltersBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryFiltersAfterKt />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Go">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryFiltersBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryFiltersAfterGo />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbTracesQueryFiltersBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbTracesQueryFiltersAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>

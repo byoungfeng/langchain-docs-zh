@@ -1,0 +1,255 @@
+---
+title: "MongoDB Atlas 集成"
+description: "使用 LangChain Python 集成 MongoDB Atlas Vector Store 向量存储。"
+integration:
+  name: MongoDBAtlasVectorSearch
+  pypi: langchain-mongodb
+  featured: true
+  delete_by_id: true
+  filtering: true
+  search_by_vector: true
+  search_with_score: true
+  async_api: true
+  passes_standard_tests: true
+  multi_tenancy: true
+  ids_in_add_documents: true
+---
+
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+本笔记本介绍了如何使用 MongoDB 向量搜索与 LangChain。它还展示了 MongoDB Atlas 嵌入和重新排序 API，用于访问 Voyage AI 的最先进的嵌入模型和重新排序器。
+
+>[MongoDB Atlas](https://www.mongodb.com/docs/atlas/) 是一个完全托管的云数据库，可在 AWS、Azure 和 GCP 中使用。它支持原生向量搜索、全文搜索（BM25）以及对 MongoDB 文档数据的混合搜索。
+
+>[MongoDB 向量搜索](https://www.mongodb.com/products/platform/atlas-vector-search) 允许将您的嵌入存储在 MongoDB 文档中，创建向量搜索索引，并使用近似最近邻算法（`Hierarchical Navigable Small Worlds`）执行 KNN 搜索。它使用 [$vectorSearch MQL Stage](https://www.mongodb.com/docs/atlas/atlas-vector-search/vector-search-overview/)。
+
+>[MongoDB Atlas 嵌入和重新排序 API](https://www.mongodb.com/docs/atlas/atlas-vector-search/ai-integrations/langchain/) 可通过 MongoDB Atlas 访问 Voyage AI 模型。
+
+注意：`MongoDBAtlasVectorSearch` 接口与社区版中的 MongoDB 向量搜索兼容。
+
+## 设置
+
+要使用 MongoDB Atlas，您必须首先部署一个集群。要开始，[免费注册 Atlas](https://www.mongodb.com/cloud/atlas/register)。
+
+为了使用 Voyage AI 嵌入和重新排序模型，您需要创建一个模型 API 密钥。[生成您的 API 密钥](https://www.mongodb.com/docs/voyageai/management/api-keys/?llm-provider=anthropic#std-label-voyage-manage-api-keys)，并获取最新模型 2 亿个免费 Token。
+
+首先，安装以下库以跟随本笔记本。
+
+<LangchainCommunityUnmaintained />
+
+```python
+!pip install -qU langchain-mongodb langchain-voyageai langchain-community
+```
+
+将以下代码单元中的占位符替换为您的 Atlas 集群连接字符串和您的模型 API 密钥。
+
+```python
+import os
+from pymongo import MongoClient
+from langchain_mongodb import MongoDBAtlasVectorSearch
+from langchain_mongodb.retrievers import MongoDBAtlasHybridSearchRetriever
+from langchain_voyageai import VoyageAIEmbeddings, VoyageAIRerank
+from langchain_community.document_loaders import WikipediaLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# Setup credentials
+MONGODB_ATLAS_URI = "YOUR_ATLAS_CONNECTION_STRING_HERE"
+MONGODB_ATLAS_MODEL_API_KEY = "YOUR_ATLAS_MODEL_API_KEY"
+os.environ["VOYAGE_API_KEY"] = MONGODB_ATLAS_MODEL_API_KEY
+
+client = MongoClient(MONGODB_ATLAS_URI)
+db_name = "langchain_db"
+collection_name = "vector_store_example"
+atlas_collection = client[db_name][collection_name]
+vector_index_name = "vector_index"
+```
+
+## 插入数据
+我们加载文档，通过 Atlas 托管的 Voyage AI 模型生成嵌入，并程序化创建向量搜索索引。
+
+```python
+# Load sample data
+loader = WikipediaLoader(query="MongoDB", load_max_docs=2)
+data = loader.load()
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+docs = text_splitter.split_documents(data)
+
+# Initialize Embeddings (Voyage AI hosted on Atlas)
+embeddings = VoyageAIEmbeddings(model="voyage-4-lite")
+
+# Initialize Vector Store
+vector_store = MongoDBAtlasVectorSearch(
+    collection=atlas_collection,
+    embedding=embeddings,
+    index_name=vector_index_name
+)
+```
+
+## 创建向量索引
+
+```python
+# Create the vector search index with specific filters for optimized metadata searching
+vector_store.create_vector_search_index(
+    dimensions=1024,
+    wait_until_complete=45 # waits 45 seconds for index readiness
+)
+```
+
+[可选] 上述 `vector_store.create_vector_search_index` 命令的替代方案，您也可以使用以下索引定义通过 Atlas UI 创建向量搜索索引：
+
+```json  theme={"theme":{"light":"catppuccin-latte","dark":"catppuccin-mocha"}}
+{
+  "fields":[
+    {
+      "type": "vector",
+      "path": "embedding",
+      "numDimensions": 1024,
+      "similarity": "cosine"
+    }
+  ]
+}
+```
+
+```python
+# Ingest documents
+vector_store.add_documents(docs)
+```
+
+## 查询向量存储
+
+### 语义搜索
+根据语义相似性找到最相关的文档。
+
+```python
+query = "What is MongoDB Atlas?"
+results = vector_store.similarity_search(query, k=3)
+
+for doc in results:
+    print(f"* {doc.page_content[:100]}...")
+```
+
+### 带分数的语义搜索
+
+检索文档及其相关性分数。
+
+```python
+results_with_score = vector_store.similarity_search_with_score(query, k=3)
+
+for doc, score in results_with_score:
+    print(f"Score: {score:.4f} | Content: {doc.page_content[:80]}...")
+```
+
+### 带过滤的语义搜索
+
+首先，让我们通过提供用于过滤的字段来更新向量搜索索引。
+
+```python
+# Create the vector search index with specific filters for optimized metadata searching
+vector_store.create_vector_search_index(
+    dimensions=1024,
+    wait_until_complete=60,
+    update=True,
+    filters=["source"]
+)
+```
+
+使用元数据过滤器缩小结果范围。请注意，Atlas 向量搜索需要显式运算符如 `$eq`。
+
+```python
+# Use a source known to exist in our loaded docs
+sample_source = "https://en.wikipedia.org/wiki/MongoDB"
+
+filtered_results = vector_store.similarity_search(
+    query,
+    k=3,
+    pre_filter={"source": {"$eq": sample_source}}
+)
+
+print(f"Retrieved {len(filtered_results)} documents matching source: {sample_source}")
+```
+
+### 混合搜索
+
+结合向量搜索与全文搜索（关键词）使用互惠排名融合（RRF）。
+
+```python
+from langchain_mongodb.index import create_fulltext_search_index
+
+# Use helper method to create the search index
+create_fulltext_search_index(
+   collection = atlas_collection,
+    wait_until_complete=60,
+   field = "text",
+   index_name = "search_index"
+)
+```
+
+```python
+# Requires a standard Search Index named 'default' on the collection
+retriever = MongoDBAtlasHybridSearchRetriever(
+    vectorstore=vector_store,
+    search_index_name="search_index",
+    fulltext_penalty = 50,
+    vector_penalty = 50,
+    top_k=5
+)
+
+hybrid_docs = retriever.invoke("database-as-a-service")
+for doc in hybrid_docs:
+   print("Title: " + doc.metadata["title"])
+   print("Plot: " + doc.page_content)
+   print("Search score: {}".format(doc.metadata["fulltext_score"]))
+   print("Vector Search score: {}".format(doc.metadata["vector_score"]))
+   print("Total score: {}\n".format(doc.metadata["fulltext_score"] + doc.metadata["vector_score"]))
+```
+
+### 向量搜索和重新排序
+
+一个两阶段过程：广泛召回后进行高精度重新排序，以确保最大相关性。
+
+```python
+from langchain_classic.retrievers.contextual_compression import ContextualCompressionRetriever
+
+# 1. Define the base retriever to fetch a broad pool
+base_retriever = vector_store.as_retriever(search_kwargs={"k": 20})
+
+# 2. Initialize the Atlas-hosted Voyage AI Reranker
+reranker = VoyageAIRerank(model="rerank-2.5-lite", top_k=3)
+
+# 3. Create the Compression Retriever
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=reranker,
+    base_retriever=base_retriever
+)
+
+print("--- Reranked Results ---")
+final_docs = compression_retriever.invoke("Explain how MongoDB stores vectors")
+for doc in final_docs:
+    print(f"Relevance Score: {doc.metadata['relevance_score']:.4f} | {doc.page_content[:100]}...")
+```
+
+### 检索增强生成 (RAG)
+
+有关如何使用 MongoDB 向量存储集成与 LangChain 进行检索增强生成 (RAG) 的指南，请参阅以下教程：
+
+- [检索文档](/langchain/oss/deepagents/retrieval)
+- [使用 LangChain 构建 RAG 应用](/langchain/oss/deepagents/rag)
+- [智能体 RAG](/langchain/oss/langgraph/agentic-rag)
+- [基础 RAG](https://www.mongodb.com/docs/atlas/ai-integrations/langchain/get-started/#answer-questions-on-your-data)
+- [带混合搜索的 RAG](https://www.mongodb.com/docs/atlas/ai-integrations/langchain/hybrid-search/#pass-results-to-a-rag-pipeline)
+
+## 其他说明
+
+> * 更多文档可以在 [MongoDB 的 LangChain 文档](https://www.mongodb.com/docs/atlas/ai-integrations/langchain/) 中找到。
+> * 此功能已正式发布，并准备好用于生产部署。
+
+---
+
+## API 参考
+
+有关所有 `MongoDBAtlasVectorSearch` 功能和配置的详细文档，请访问 @[API 参考][MongoDBAtlasVectorSearch]。
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/mongodb_atlas.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/mongodb_atlas.mdx) · 译文由 AI 生成，以英文原文为准。

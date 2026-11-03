@@ -1,0 +1,210 @@
+---
+title: "NVIDIA 中间件集成"
+description: "使用 LangChain Python 集成 NVIDIA 中间件。"
+integration:
+  name: NVIDIA middleware
+  featured: true
+  available: Model routing and Nemotron 3 Ultra harness optimization
+  source: "[`langchain-ai/langchain-nvidia`](https://github.com/langchain-ai/langchain-nvidia), [`langchain-ai/deepagents`](https://github.com/langchain-ai/deepagents)"
+---
+  
+中间件集成和模型特定适配配置用于NVIDIA服务及模型。通过这些组件可路由LangChain对话模型调用或优化深度智能体（Deep Agents）在NVIDIA Nemotron 3 Ultra上的行为。更多详情请参考 [中间件](/langchain/oss/langchain/middleware/overview)。
+
+要使用Nemotron 3.5 Super VL与默认深度智能体适配器配合，请查阅 [ChatNVIDIA示例](/langchain/oss/python/integrations/chat/nvidia_ai_endpoints#使用-nemotron-3-5-super-vl)。
+
+## 概述
+
+| 集成类型 | 描述 |
+|---------|------|
+| [NVIDIA Nemotron 3 Ultra深度智能体适配配置](#优化nvidia-nemotron-3-ultra深度智能体) | 通过模型特定提示词和中间件增强智能体行为的可靠性 |
+| [使用NeMo Switchyard的路由配置](#使用nemo-switchyard进行模型路由) | 通过配置的Switchyard算法路由每个模型调用 |
+
+## 优化NVIDIA Nemotron 3 Ultra深度智能体
+
+深度智能体内置了[NVIDIA Nemotron 3 Ultra](https://build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b)的适配配置。该配置通过[基于评估的适配器调优](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)实现了以下功能：
+
+- 模型特定提示词引导
+- 工具描述标准化
+- 工具调用、文件操作、重试机制、上下文管理和最终答案的中间件支持
+
+<Note>  
+  该内置适配器需要 `deepagents>=0.7.0`。
+</Note>
+
+### 适配器主要修改
+
+- 修复常见文件操作工具参数并标准化空结果
+- 当 `read_file` 返回完整页结果时添加续行指导
+- 重试特定文件操作失败和模型速率限制
+- 标准化ChatNVIDIA消息、推理标记和文本格式工具调用
+- 添加进度跟踪、后续操作、实体解析和最终答案保护机制
+
+### 配置步骤
+
+```bash
+pip install -U "deepagents>=0.7.0" langchain-nvidia-ai-endpoints
+```
+  
+按 [ChatNVIDIA配置指南](/langchain/oss/python/integrations/chat/nvidia_ai_endpoints#访问-nvidia-api-catalog) 中描述配置 `NVIDIA_API_KEY`。
+
+### 自动应用内置适配器
+
+创建使用Nemotron 3 Ultra模型的深度智能体时，适配器会自动识别模型并应用配置，无需显式实例化或传递中间件：
+
+```python Create a profiled deep agent icon="robot"
+from deepagents import create_deep_agent
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+
+model = ChatNVIDIA(model="nvidia/nemotron-3-ultra-550b-a55b")
+agent = create_deep_agent(model=model)
+
+result = agent.invoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "Inspect this project and summarize its architecture.",
+        }
+    ]
+})
+print(result["messages"][-1].content_blocks)
+```
+  
+该适配器已注册于NVIDIA、Baseten、Fireworks、OpenRouter、Nebius和Together提供的Nemotron 3 Ultra模型标识。适配器注册是模型特定的，因此这些供应商的其他模型不受影响。
+
+### API参考
+
+- [Nemotron 3 Ultra适配器源码](https://github.com/langchain-ai/deepagents/blob/main/libs/deepagents/deepagents/profiles/harness/_nvidia_nemotron_3_ultra.py)
+- [`HarnessProfile`](https://reference.langchain.com/python/deepagents/profiles/harness/harness_profiles#deepagents.profiles.harness.harness_profiles.HarnessProfile)
+
+## 使用NeMo Switchyard进行模型路由
+
+实验性 `SwitchyardRoutingMiddleware` 通过配置的 [NeMo Switchyard](https://github.com/NVIDIA-NeMo/Switchyard) `libsy` 算法路由每个深度智能体模型调用。该功能允许结合具有不同成本与性能特性的LangChain对话模型，同时深度智能体继续管理智能体循环、工具、状态和中间件组合。
+
+<Warning>  
+  该集成处于实验阶段。其API和行为的变更可能不提前通知。使用前请查阅 [当前限制](https://github.com/langchain-ai/langchain-nvidia/tree/main/libs/switchyard#limitations)。
+</Warning>
+
+### 核心功能
+
+- 通过 `LangChainLlmClient` 将任何@[`BaseChatModel`]配置为Switchyard目标
+- 使用已安装的 `nemo-switchyard` Python绑定调用任意算法
+- 保留深度智能体工具绑定、回调、LangChain追踪和结构化输出
+- 在每个@[`AIMessage`]返回时检查选定模型并追踪路由过程
+- 同步和异步智能体调用均通过同一算法路由
+
+### 配置
+
+集成需要 Python 3.12 或更高版本、NeMo Switchyard 的源码 checkout 以及 `langchain-nvidia` 仓库的 checkout。为路由器可选择的每个对话模型配置凭证。中间件本身不需要提供者 API 密钥。
+
+#### 安装
+
+从源码构建 Switchyard 的 `libsy` Python 绑定，然后通过其 Deep Agents 和 OpenRouter 依赖安装集成：
+
+```bash
+git clone https://github.com/NVIDIA-NeMo/Switchyard.git
+python -m pip install -e ./Switchyard
+
+git clone https://github.com/langchain-ai/langchain-nvidia.git
+python -m pip install -e "./langchain-nvidia/libs/switchyard[openrouter]"
+```
+
+OpenRouter 示例需要 `OPENROUTER_API_KEY`。在运行前确认您的账户可访问已配置的模型。
+
+<Note>
+  `SwitchyardRoutingMiddleware` 需要 `deepagents>=0.7.4`。
+</Note>
+
+### 实例化
+
+创建两个 LangChain 对话模型，将其适配为 Switchyard 目标，并构建路由中间件。传递给 `stage_router` 的目标顺序很重要：先传递功能更强的目标，再传递高效的目标。
+
+```python Initialize middleware icon="arrows-shuffle"
+from langchain_openrouter import ChatOpenRouter
+
+from switchyard.libsy import LlmTarget, algorithms
+from langchain_nvidia_switchyard import LangChainLlmClient, SwitchyardRoutingMiddleware
+
+efficient_model = ChatOpenRouter(model="nvidia/nemotron-3-ultra-550b-a55b")
+capable_model = ChatOpenRouter(model="anthropic/claude-sonnet-4.6")
+
+router = algorithms.stage_router(
+    LlmTarget("capable", LangChainLlmClient(capable_model)),
+    LlmTarget("efficient", LangChainLlmClient(efficient_model)),
+    picker="efficient_first",
+    confidence_threshold=0.5,
+    recent_window=3,
+)
+
+middleware = SwitchyardRoutingMiddleware(router)
+```
+
+阶段路由是信号驱动的。它可将普通回合路由到高效目标，并将带有关键工具调用失败的信号回合路由到功能更强的目标，而无需单独调用判断模型。
+
+### 与深度智能体配合使用
+
+将中间件传递给 @[`create_deep_agent`]。深度智能体需要基础模型，但中间件会在每次路由调用时替换它。重用已配置的目标以避免构建未使用的模型。
+
+```python Agent with middleware icon="robot"
+from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    model=efficient_model,
+    middleware=[middleware],
+)
+
+result = await agent.ainvoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "Summarize the important files in this project.",
+        }
+    ]
+})
+```
+
+异步 `ainvoke` 路径是标准路径。普通同步应用使用 `agent.invoke(...)`，但笔记本、异步 Web 处理器及异步测试应使用 `await agent.ainvoke(...)`。
+
+### 选择路由算法
+
+`SwitchyardRoutingMiddleware` 接受一个 opaque `switchyard.libsy.Algorithm`，因此中间件不依赖具体路由策略。选择安装的绑定提供的算法：
+
+- **阶段路由**：基于消息历史信号（包括助手工具调用和工具结果）进行路由，默认无需判断模型
+- **LLM 任务分类器**：在选择高效或功能目标前调用判断模型
+- **随机路由**：按权重从目标中选择，可指定种子以获得可复现的本地选择序列
+- **无操作**：检查中间件边界而无需提供者调用
+
+### 检查路由决策
+
+每个路由的 `AIMessage` 包含完整的有序决策追踪在 `response_metadata["switchyard"]` 中：
+
+```python Inspect routing icon="route"
+from langchain.messages import AIMessage
+
+message = next(
+    message
+    for message in reversed(result["messages"])
+    if isinstance(message, AIMessage)
+)
+
+routing = message.response_metadata["switchyard"]
+print(routing["selected_model"])
+print(routing["decisions"])
+```
+
+部分算法会做出多个决策。使用 `decisions` 获取完整追踪； `selected_model` 仅包含最终选择。
+
+### API 参考
+
+- [`SwitchyardRoutingMiddleware(algorithm)`](https://github.com/langchain-ai/langchain-nvidia/tree/main/libs/switchyard#switchyardroutingmiddlewarealgorithm)
+- [`LangChainLlmClient(model)`](https://github.com/langchain-ai/langchain-nvidia/tree/main/libs/switchyard#langchainllmclientmodel)
+
+## 参考文档
+
+- [NVIDIA 集成](/langchain/oss/python/integrations/providers/nvidia)
+- [`langchain-nvidia-switchyard` 包 README](https://github.com/langchain-ai/langchain-nvidia/tree/main/libs/switchyard#readme)
+- [为 NVIDIA Nemotron 3 Ultra 创建 Deep Agents 捕获器配置](https://developer.nvidia.com/blog/create-a-langchain-deep-agents-harness-profile-for-nvidia-nemotron-3-ultra-to-improve-performance/)
+- [Deep Agents 模型与动态选择](/langchain/oss/deepagents/models)
+
+---
+
+> 官方原文：[src/oss/python/integrations/middleware/nvidia.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/middleware/nvidia.mdx) · 译文由 AI 生成，以英文原文为准。

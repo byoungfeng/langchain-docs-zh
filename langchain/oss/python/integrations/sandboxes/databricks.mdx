@@ -1,0 +1,102 @@
+---
+title: "DatabricksSandbox 集成"
+description: "Databricks沙盒是Databricks平台上的受管理、隔离的计算环境。DatabricksSandbox在Databricks沙盒中运行深度智能体壳和文件系统工具，通过databricks-sdk。请参阅Databricks文档了解工作区设置和身份验证。"
+integration:
+  name: DatabricksSandbox
+  pypi: databricks-langchain
+---
+
+[Databricks](https://www.databricks.com/)沙盒是Databricks平台上的受管理、隔离的计算环境。`DatabricksSandbox`在Databricks沙盒中运行[深度智能体](https://github.com/langchain-ai/deepagents)壳和文件系统工具，通过[`databricks-sdk`](https://pypi.org/project/databricks-sdk/)。请参阅[Databricks文档](https://docs.databricks.com/)了解工作区设置和身份验证。
+
+<Note>
+`DatabricksSandbox`后端需要`databricks-langchain>=0.22.0`。
+</Note>
+
+## 安装
+
+<CodeGroup>
+```bash pip
+pip install 'databricks-langchain[deepagents]>=0.22.0'
+```
+
+```bash uv
+uv add 'databricks-langchain[deepagents]>=0.22.0'
+```
+</CodeGroup>
+
+## 创建沙盒后端
+
+`DatabricksSandbox`绑定到一个已经运行的沙盒。使用Databricks SDK进行配置（或复用）沙盒，等待其达到`RUNNING`，然后将其包装为[深度智能体后端](/langchain/oss/deepagents/backends)。沙盒生命周期（创建、启动、删除）保留在您的应用代码中，而不是智能体。
+
+```python
+import time
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.sandbox import (
+    ComputeSpec,
+    Sandbox,
+    SandboxSpec,
+    SandboxState,
+)
+from google.protobuf.duration_pb2 import Duration
+
+from databricks_langchain import DatabricksSandbox
+
+client = WorkspaceClient()
+
+sandbox_id = "my-agent-sandbox"
+name = f"sandboxes/{sandbox_id}"
+
+client.sandbox.create_sandbox(
+    Sandbox(
+        spec=SandboxSpec(
+            compute=ComputeSpec(inactivity_timeout=Duration(seconds=900))
+        )
+    ),
+    sandbox_id=sandbox_id,
+)
+
+# Wait until the sandbox is RUNNING before running commands.
+while client.sandbox.get_sandbox(name).status.state != SandboxState.SANDBOX_STATE_RUNNING:
+    time.sleep(3)
+
+backend = DatabricksSandbox(client, name)
+
+result = backend.execute("echo hello")
+print(result.output)
+```
+
+## 与深度智能体一起使用
+
+```python
+from deepagents import create_deep_agent
+from langchain_anthropic import ChatAnthropic
+
+# `backend` from the previous step, bound to a RUNNING Databricks sandbox.
+agent = create_deep_agent(
+    model=ChatAnthropic(model="claude-sonnet-4-6"),
+    system_prompt="You are a coding assistant with sandbox access.",
+    backend=backend,
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "Write and run a Python script"}]}
+)
+```
+
+您可以使用任何LangChain对话模型，包括[Databricks模型服务支持的`ChatDatabricks`](/langchain/oss/python/integrations/chat/databricks)。
+
+## 清理
+
+您负责管理沙盒生命周期。
+沙盒在删除之前会消耗资源，因此完成工作后请删除沙盒。
+
+```python
+client.sandbox.delete_sandbox(name)
+```
+
+另请参阅：[沙盒](/langchain/oss/deepagents/sandboxes)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/sandboxes/databricks.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/sandboxes/databricks.mdx) · 译文由 AI 生成，以英文原文为准。

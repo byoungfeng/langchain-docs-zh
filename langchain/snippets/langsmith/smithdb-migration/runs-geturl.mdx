@@ -1,0 +1,194 @@
+import SmithdbRunsGetUrlBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-before-py.mdx';
+import SmithdbRunsGetUrlAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-after-py.mdx';
+import SmithdbRunsGetUrlBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-before-js.mdx';
+import SmithdbRunsGetUrlAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-after-js.mdx';
+import SmithdbRunsGetUrlAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-after-kt.mdx';
+import SmithdbRunsGetUrlAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-after-go.mdx';
+import SmithdbRunsGetUrlAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-geturl-after-sh.mdx';
+
+## Runs: 获取 URL
+
+获取 LangSmith UI 的运行 URL。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.get_run_url()` | `client.runs.get_url()` |
+
+    <Note>
+    `client.runs.get_url()` 现在为异步。需使用 `await` 调用。
+    </Note>
+
+    参见 [参考](https://reference.langchain.com/python/langsmith/_openapi_client/resources/runs/RunsResource/get_url) 获取完整参数列表。
+  </Tab>
+  <Tab title="TypeScript">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.getRunUrl()` | `client.runs.getURL()` |
+
+    参见 [参考](https://reference.langchain.com/javascript/langsmith/_openapi_client/Langsmith/Runs/getURL) 获取完整参数列表。
+  </Tab>
+  <Tab title="Java">
+    <Note>Java SDK 没有遗留方法用于获取运行的 UI URL。</Note>
+
+    | 之前 | 之后 |
+    |------|------|
+    | *(无遗留方法)* | `client.runs().getUrl()` |
+
+    参见 [参考](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/RunService.html) 获取完整参数列表。
+  </Tab>
+  <Tab title="Go">
+    <Note>Go SDK 没有遗留方法用于获取运行的 UI URL。</Note>
+
+    | 之前 | 之后 |
+    |------|------|
+    | *(无遗留方法)* | `client.Runs.GetURL()` |
+
+See the [reference](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#RunService.GetURL) for the full parameter list.
+  </Tab>
+  <Tab title="cURL">
+    <Note>The REST API has no legacy equivalent for retrieving a run's UI URL.</Note>
+
+    | Before | After |
+    |--------|-------|
+    | *(no legacy endpoint)* | `GET /api/v2/runs/{run_id}/url` |
+  </Tab>
+</Tabs>
+
+#### 参数
+
+<Tabs>
+  <Tab title="Python">
+    <Warning>
+    `runs.get_url` 需要直接传入运行的 `project_id` 和 `trace_id`，而不再从 `run` 对象或 `project_name`/`project_id` 回退中解析。
+    </Warning>
+
+    | Before (`get_run_url`) | After (`runs.get_url`) | Notes |
+    |---|---|---|
+    | `run` (`RunBase`) | *(removed)* | No full run object needed; pass its identifying fields individually |
+    | `project_name` | *(removed)* | No equivalent; resolve the project UUID yourself if you only have its name |
+    | `project_id` | `project_id` | **Required**; still the project (session) UUID |
+    | *(not available)* | `run_id` | **Required** (positional); the run's ID, previously read from `run.id` |
+    | *(not available)* | `trace_id` | **Required**; the run's trace UUID, previously read from `run` internally |
+    | *(not available)* | `start_time` | Optional; run's start time (RFC3339); omit if unknown |
+  </Tab>
+  <Tab title="TypeScript">
+    <Warning>
+    `client.runs.getURL` 需要直接传入运行的 `project_id` 和 `trace_id`，而不再从 `run` 对象或 `runId` 回退中解析。
+    </Warning>
+
+    | Before (`getRunUrl`) | After (`getURL`) | Notes |
+    |---|---|---|
+    | `run` (`Run`) | *(removed)* | No full run object needed; pass its identifying fields individually |
+    | `runId` | `runID` (positional) | Unchanged purpose; now the first positional argument instead of a named option |
+    | `projectOpts` | *(removed)* | No equivalent; resolve the project UUID yourself |
+    | *(not available)* | `project_id` | **Required**; `snake_case`; the project (session) UUID |
+    | *(not available)* | `trace_id` | **Required**; `snake_case`; the run's trace UUID |
+    | *(not available)* | `start_time` | Optional; `snake_case`; run's start time (RFC3339); omit if unknown |
+  </Tab>
+  <Tab title="Java">
+    | Before | After (`RunGetUrlParams`) | Notes |
+    |---|---|---|
+    | *(no legacy method)* | `runId` | **Required** (positional); the run's ID |
+    | *(no legacy method)* | `projectId()` | **Required**; the project (session) UUID |
+    | *(no legacy method)* | `traceId()` | **Required**; the run's trace UUID |
+    | *(no legacy method)* | `startTime()` | Optional; run's start time (RFC3339); omit if unknown |
+  </Tab>
+  <Tab title="Go">
+    | Before | After (`RunGetURLParams`) | Notes |
+    |---|---|---|
+    | *(no legacy method)* | `runID` (positional) | **Required**; the run's ID |
+    | *(no legacy method)* | `ProjectID` | **Required**; the project (session) UUID |
+    | *(no legacy method)* | `TraceID` | **Required**; the run's trace UUID |
+    | *(no legacy method)* | `StartTime` | Optional; run's start time (RFC3339); omit if unknown |
+  </Tab>
+  <Tab title="cURL">
+    | Before | After (`GET /api/v2/runs/{run_id}/url`) | Notes |
+    |---|---|---|
+    | *(no legacy endpoint)* | `run_id` (path) | **Required** |
+    | *(no legacy endpoint)* | `project_id` (query) | **Required**; the project (session) UUID |
+    | *(no legacy endpoint)* | `trace_id` (query) | **Required**; the run's trace UUID |
+    | *(no legacy endpoint)* | `start_time` (query) | Optional; run's start time (RFC3339); omit if unknown |
+  </Tab>
+</Tabs>
+
+#### 响应
+
+<Tabs>
+  <Tab title="Python">
+    | Before | After | Notes |
+    |---|---|---|
+    | `str` (the URL) | `RunGetURLResponse.url` | Response is now wrapped in an object; read the `.url` attribute |
+  </Tab>
+  <Tab title="TypeScript">
+    | Before | After | Notes |
+    |---|---|---|
+    | `string` (the URL) | `RunGetURLResponse.url` | Response is now wrapped in an object; read the `.url` property |
+  </Tab>
+  <Tab title="Java">
+    | Before | After | Notes |
+    |---|---|---|
+    | *(no legacy method)* | `RunGetUrlResponse.url`() | Returns `Optional<String>` |
+  </Tab>
+  <Tab title="Go">
+    | Before | After | Notes |
+    |---|---|---|
+    | *(no legacy method)* | `RunGetURLResponse.URL` | Returns a `string` |
+  </Tab>
+  <Tab title="cURL">
+    | Before | After | Notes |
+    |---|---|---|
+    | *(no legacy endpoint)* | `{"url": "..."}` | JSON object with a single `url` field |
+  </Tab>
+</Tabs>
+
+### 示例
+
+#### 获取运行 URL
+
+<Tabs>
+  <Tab title="Python">
+    `get_run_url` 接受完整的运行对象。`runs.get_url` 是异步的，需要单独传入运行的 `project_id`（旧 v1 schema 下为 `session_id`）和 `trace_id`，`start_time` 可选。
+
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbRunsGetUrlBeforePy />
+      </Tab>
+      <Tab title="After">
+        <SmithdbRunsGetUrlAfterPy />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+    `getRunUrl` 接受完整的运行对象。`runs.getURL` 需要单独传入运行的 `project_id`（旧 v1 schema 下为 `session_id`）和 `trace_id`，`start_time` 可选。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbRunsGetUrlBeforeJs />
+      </Tab>
+      <Tab title="After">
+        <SmithdbRunsGetUrlAfterJs />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="Java">
+    Java SDK 没有遗留版本。`runs().getUrl` 需要 run 的 `projectId()` 和 `traceId()`，`startTime()` 可选。
+
+    <SmithdbRunsGetUrlAfterKt />
+  </Tab>
+  <Tab title="Go">
+    Go SDK 没有遗留版本。`Runs.GetURL` 需要 run 的 `ProjectID` 和 `TraceID`，`StartTime` 可选。
+
+    <SmithdbRunsGetUrlAfterGo />
+  </Tab>
+  <Tab title="cURL">
+    REST API 没有遗留版本。`GET /api/v2/runs/{run_id}/url` 需要 run 的 `project_id` 和 `trace_id` 查询参数，`start_time` 可选。
+
+    <SmithdbRunsGetUrlAfterSh />
+  </Tab>
+</Tabs>

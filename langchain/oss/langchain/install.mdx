@@ -1,0 +1,114 @@
+---
+title: "安装 LangChain"
+sidebarTitle: "安装"
+description: "安装 LangChain 包以及您使用的模型和集成的独立提供者包。"
+keywords: ["install langchain", "pip install langchain", "npm install langchain"]
+---
+
+要安装 LangChain 包：
+
+:::python
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain
+    # Requires Python 3.10+
+    ```
+
+    ```bash uv
+    uv add langchain
+    # Requires Python 3.10+
+    ```
+</CodeGroup>
+:::
+
+:::js
+    <CodeGroup>
+    ```bash npm
+    npm install langchain @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash pnpm
+    pnpm add langchain @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash yarn
+    yarn add langchain @langchain/core
+    # Requires Node.js 22+
+    ```
+
+    ```bash bun
+    bun add langchain @langchain/core
+    # Requires Bun v1.0.0+
+    ```
+    </CodeGroup>
+:::
+
+LangChain 提供了与数百个 LLM 和数千个其他集成的集成。这些集成存在于独立的提供者包中。
+
+:::python
+<CodeGroup>
+    ```bash pip
+    # Installing the OpenAI integration
+    pip install -U langchain-openai
+
+    # Installing the Anthropic integration
+    pip install -U langchain-anthropic
+    ```
+    ```bash uv
+    # Installing the OpenAI integration
+    uv add langchain-openai
+
+    # Installing the Anthropic integration
+    uv add langchain-anthropic
+    ```
+</CodeGroup>
+
+:::
+
+:::js
+<CodeGroup>
+    ```bash npm
+    # Installing the OpenAI integration
+    npm install @langchain/openai
+    # Installing the Anthropic integration
+    npm install @langchain/anthropic
+    ```
+
+    ```bash pnpm
+    # Installing the OpenAI integration
+    pnpm install @langchain/openai
+    # Installing the Anthropic integration
+    pnpm install @langchain/anthropic
+    ```
+
+    ```bash yarn
+    # Installing the OpenAI integration
+    yarn add @langchain/openai
+    # Installing the Anthropic integration
+    yarn add @langchain/anthropic
+    ```
+
+    ```bash bun
+    # Installing the OpenAI integration
+    bun add @langchain/openai
+    # Installing the Anthropic integration
+    bun add @langchain/anthropic
+    ```
+</CodeGroup>
+:::
+
+<Tip>
+请查看 [集成标签](/langchain/oss/python/integrations/providers/overview) 获取完整的集成列表。
+</Tip>
+
+安装完 LangChain 后，你可以通过遵循 [快速入门指南](/langchain/oss/langchain/quickstart) 来开始使用。
+
+<Tip>
+设置 [LangSmith](https://smith.langchain.com) 跟踪以调试你的第一个 LangChain 应用。请按照 [跟踪快速入门](https://docs.langchain.com/langsmith/trace-with-langchain) 来开始。我们建议你同时设置 [LangSmith 引擎](https://docs.langchain.com/langsmith/engine)，它将监控你的跟踪、检测问题并建议修复方案。
+</Tip>
+
+---
+
+> 官方原文：[src/oss/langchain/install.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/install.mdx) · 译文由 AI 生成，以英文原文为准。

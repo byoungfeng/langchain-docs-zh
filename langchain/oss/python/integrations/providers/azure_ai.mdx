@@ -1,0 +1,143 @@
+---
+title: "Azure AI 集成"
+description: "使用 LangChain Python 集成 Azure AI。"
+---
+
+本页面涵盖了与[Microsoft Azure](https://azure.microsoft.com/)及其相关项目集的所有LangChain集成。
+
+Azure AI、动态会话和SQL Server的集成包 maintained 在 (https://github.com/langchain-ai/langchain-azure) [langchain-azure](https://github.com/langchain-ai/langchain-azure) 仓库中。
+
+## 聊天模型
+
+我们建议开发者从 `langchain-azure-ai`（[Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-studio/how-to/model-catalog-overview)）开始，以访问所有可用模型。
+
+### Azure AI聊天补全
+使用 `AzureAIOpenAIApiChatModel` 类访问Azure OpenAI、DeepSeek R1、Cohere、Phi和Mistral等模型。
+
+<CodeGroup>
+```bash pip
+pip install -U langchain-azure-ai
+```
+
+```bash uv
+uv add langchain-azure-ai
+```
+</CodeGroup>
+
+配置您的端点。您可以使用项目端点并通过 `DefaultAzureCredential`，或直接设置API密钥。
+
+```bash
+export AZURE_AI_PROJECT_ENDPOINT=your-project-endpoint
+```
+
+```python
+from langchain_azure_ai.chat_models import AzureAIOpenAIApiChatModel
+from azure.identity import DefaultAzureCredential
+
+llm = AzureAIOpenAIApiChatModel(
+    model="gpt-5.5",
+    credential=DefaultAzureCredential(),
+)
+
+llm.invoke('Tell me a joke and include some emojis')
+```
+
+## 嵌入模型
+
+### Azure AI模型推理（嵌入）
+<CodeGroup>
+```bash pip
+pip install -U langchain-azure-ai
+```
+
+```bash uv
+uv add langchain-azure-ai
+```
+</CodeGroup>
+
+配置您的端点。您可以使用项目端点并通过 `DefaultAzureCredential`，或直接设置API密钥。
+
+```bash
+export AZURE_AI_PROJECT_ENDPOINT=your-project-endpoint
+```
+
+```python
+from langchain_azure_ai.embeddings import AzureAIOpenAIApiEmbeddingsModel
+from azure.identity import DefaultAzureCredential
+
+embed_model = AzureAIOpenAIApiEmbeddingsModel(
+    model="text-embedding-ada-002",
+    credential=DefaultAzureCredential(),
+)
+```
+
+## 向量存储
+
+### Azure CosmosDB NoSQL向量搜索
+> [Azure CosmosDB NoSQL](https://azure.microsoft.com/en-us/products/cosmos-db/) 是一个完全托管的、全球分布的、无服务器文档数据库，专为现代应用程序设计。它以灵活的JSON文档存储数据，并使用类SQL查询语言。该数据库提供高性能、低延迟和自动弹性扩展能力。同时支持集成向量搜索功能，适用于生成式AI和RAG等AI工作负载。您可以在同一数据库中存储、索引和查询嵌入向量与业务数据，支持向量相似度搜索与传统关键词搜索的混合检索。您可以选择多种索引方法以优化性能，这种统一架构简化了应用架构并确保数据一致性。
+
+需要安装 `langchain-azure-cosmosdb` 和 `azure-cosmos` 包以使用此向量存储。
+
+<CodeGroup>
+    ```bash pip
+    pip install -qU langchain-azure-cosmosdb azure-cosmos
+    ```
+
+    ```bash uv
+    uv add langchain-azure-cosmosdb azure-cosmos
+    ```
+</CodeGroup>
+
+```python
+from langchain_azure_cosmosdb import AzureCosmosDBNoSqlVectorSearch
+
+vector_search = AzureCosmosDBNoSqlVectorSearch.from_documents(
+    documents=docs,
+    embedding=openai_embeddings,
+    cosmos_client=cosmos_client,
+    database_name=database_name,
+    container_name=container_name,
+    vector_embedding_policy=vector_embedding_policy,
+    full_text_policy=full_text_policy,
+    indexing_policy=indexing_policy,
+    cosmos_container_properties=cosmos_container_properties,
+    cosmos_database_properties={},
+    full_text_search_enabled=True,
+)
+```
+
+请参考 (/oss/integrations/vectorstores/azure_cosmos_db_no_sql) 的[使用示例](/langchain/oss/python/integrations/vectorstores/azure_cosmos_db_no_sql)。
+
+### Azure CosmosDB mongo vCore向量搜索
+> [Azure CosmosDB Mongo vCore](https://learn.microsoft.com/en-us/azure/documentdb/) 架构使创建支持完整MongoDB特性的数据库变得简单。您可以通过指向MongoDB（vCore）集群连接字符串，继续使用MongoDB驱动、SDK和工具。
+
+需要安装 `pymongo` 包以使用此向量存储。
+
+<CodeGroup>
+    ```bash pip
+    pip install -qU pymongo
+    ```
+
+    ```bash uv
+    uv add pymongo
+    ```
+</CodeGroup>
+
+```python
+from langchain_azure_ai.vectorstores.azure_cosmos_db_mongo_vcore import (
+    AzureCosmosDBMongoVCoreVectorSearch,
+)
+
+vectorstore = AzureCosmosDBMongoVCoreVectorSearch.from_documents(
+    docs,
+    openai_embeddings,
+    collection=collection,
+    index_name=INDEX_NAME,
+)
+```
+
+请参考 (/oss/integrations/vectorstores/azure_cosmos_db_mongo_vcore) 的[使用示例](/langchain/oss/python/integrations/vectorstores/azure_cosmos_db_mongo_vcore)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/azure_ai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/azure_ai.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,146 @@
+---
+title: "个人模式"
+sidebarTitle: "个人模式"
+description: "使用 OpenWiki 从配置的源构建本地个人脑维基"
+---
+
+个人模式在 `~/.openwiki/wiki` 中从配置的来源（如本地仓库、Custom MCP、Gmail、Notion、网络搜索、Hacker News、Slack 和 X/Twitter）构建一个本地个人脑图维基。
+
+```bash
+openwiki personal
+openwiki personal --init
+openwiki personal --update
+openwiki personal --update "Refresh the wiki from configured connectors"
+```
+
+个人模式不会为智能体启用主机 shell 执行。若要将个人维基状态存储在 `~/.openwiki` 之外的位置，请设置 `OPENWIKI_CONFIG_DIR`。参见 [自定义 OpenWiki](/langchain/oss/openwiki/customize#覆盖状态目录)。
+
+## 首次运行引导
+
+首次设置时，您可以：
+
+- 配置推理提供者、API 密钥和模型
+- 设置 LangSmith API 密钥
+- 设置支持来源的连接器
+- 选择维基模板，自定义其范围，并保存每个来源的摄入笔记和计划
+
+一个 **计划** 是连接器来源的可选 cron，例如定期刷新 Gmail 或网络搜索。OpenWiki 将这些 cron 表达式及相关设置详情与引导偏好设置（选定的模板、连接的来源和每个来源的摄入笔记）一起存储在 `~/.openwiki/onboarding.json` 中。全局个人维基指令单独存储在 `~/.openwiki/INSTRUCTIONS.md` 中。
+
+在 macOS 上，OpenWiki 可以将支持的计划作为用户 LaunchAgents 安装在 `~/Library/LaunchAgents/` 下。这些任务运行 `openwiki --update --print` 并在 `~/.openwiki/logs/` 下记录日志。
+
+## 连接您的来源
+
+在个人模式下，OpenWiki 从您已使用的工具中摄入知识，并将其综合到 `~/.openwiki/wiki/` 下的本地维基中。首次运行引导可以设置 Custom MCP、本地 git 仓库、Notion、Gmail、X/Twitter、网络搜索、Hacker News 和 Slack。
+
+在摄入运行期间，连接器工具将原始数据和清单写入 `~/.openwiki/connectors/<connector>/raw/`，然后来源特定的智能体运行从这些本地文件更新维基。
+
+连接器密钥通过环境变量名称引用，并存储在 `~/.openwiki/.env` 中。
+
+<Important>
+    连接器配置文件不应包含原始密钥值。
+</Important>
+
+### 内置来源
+
+| 源 | 凭证 | 行为 |
+| --- | --- | --- |
+| `custom-mcp` | 默认无需凭证 | 连接到任何配置的 HTTP 或 stdio MCP 服务器，并仅允许明确安全的只读工具 |
+| `git-repo` | 本地路径 | 读取配置的本地仓库路径并写入紧凑型清单 |
+| `x` | OAuth 用户上下文凭证 | 通过 X API 获取主页时间线、用户帖子、提及、书签和列表帖子 |
+| `notion` | Notion OAuth (托管 MCP) | 通过 Notion OAuth 进行身份验证，而不是粘贴 Notion 令牌 |
+| `google` | Gmail OAuth | 在 `openwiki auth gmail` 后通过 Gmail API 获取最新邮件 |
+| `web-search` | `TAVILY_API_KEY` | 通过 LangChain 使用 Tavily |
+| `hackernews` | 无 | 公开的 Hacker News 源和搜索 API |
+| `slack` | Slack 应用程序客户端凭证 + OAuth | 需要为 OAuth 设置 HTTPS 回调；参见 [Slack OAuth](#slack-oauth) |
+
+您可以多次配置同一个源。例如，添加一个用于 AI 研究的网页搜索源和一个用于 NBA 新闻的源。OpenWiki 将它们存储为单独的实例，例如 `web-search-1` 和 `web-search-2`。
+
+### 连接源
+
+对于需要凭证的源，先进行身份验证，然后进行数据摄取。Hacker News 和 Custom MCP 等源默认无需身份验证；网页搜索需要在 `TAVILY_API_KEY` 中设置 `~/.openwiki/.env`。
+
+<Steps>
+    <Step title="Authenticate the provider" icon="key">
+        对于需要身份验证的提供程序，运行本地浏览器 OAuth 流。OpenWiki 将返回的令牌保存到 `~/.openwiki/.env`，在可能的情况下创建连接器配置，并发现 MCP 工具用于 MCP 支持的提供程序：
+
+        ```bash
+        openwiki auth notion
+        openwiki auth gmail
+        openwiki auth x
+        openwiki auth slack
+        ```
+
+        - Slack 和 Gmail 需要在 `~/.openwiki/.env` 中预先设置应用程序客户端凭证
+        - Notion 使用动态客户端注册用于托管 MCP
+        - X 使用 OAuth 2.0 与 PKCE
+        - 在 `openwiki auth gmail` 后，Google 连接器可以直接摄取 Gmail，无需 MCP 传输设置
+
+        高级重试辅助工具：
+
+        ```bash
+        openwiki auth configure <provider>
+        openwiki auth tools <provider>
+        ```
+    </Step>
+
+    <Step title="Ingest the source" icon="download">
+        将原始数据拉入 `~/.openwiki/connectors/` 并将更新合成到个人维基：
+
+        ```bash
+        openwiki ingest all
+        openwiki ingest web-search
+        openwiki ingest web-search-2
+        ```
+
+        您也可以在配置源后从对话或使用 `openwiki personal --update` 进行刷新。
+    </Step>
+</Steps>
+
+### Slack OAuth
+
+Slack OAuth 可能需要 HTTPS 重定向 URL：
+
+```bash
+openwiki ngrok start
+# or with a fixed domain:
+openwiki ngrok start https://your-domain.ngrok.app
+```
+
+OpenWiki 保存 `OPENWIKI_HTTPS_OAUTH_REDIRECT_URI` 并打印回调 URL 以在 Slack 中注册。X/Twitter 和 Gmail 身份验证忽略该 HTTPS 覆盖，默认继续使用本地回调 `http://127.0.0.1:53682/callback`。
+
+### 凭证存储
+
+OpenWiki 将密钥存储在：
+
+- 目录：`~/.openwiki` (模式 `0o700`)
+- 文件：`~/.openwiki/.env` (模式 `0o600`)
+
+常见的连接器相关键包括 Gmail、Notion、Slack 和 X OAuth 令牌，以及 `TAVILY_API_KEY` 用于网页搜索。可选的 OAuth 回调设置：
+
+- `OPENWIKI_OAUTH_CALLBACK_PORT`：本地回调端口
+- `OPENWIKI_HTTPS_OAUTH_REDIRECT_URI`：Slack HTTPS 回调 URL
+
+关于模型提供者的凭证，请参阅 [模型提供者](/langchain/oss/openwiki/providers)。
+
+## 管理计划
+
+在 macOS 上，使用以下方式管理连接器计划：
+
+```bash
+openwiki cron list
+openwiki cron pause <source|all>
+openwiki cron resume <source|all>
+openwiki cron delete <source|all>
+```
+
+`cron delete` 会从 `~/.openwiki/onboarding.json` 删除源的计划并卸载其 LaunchAgent。它不会删除认证、连接器配置、原始数据或维基内容。
+
+## 参见
+
+- [代码模式](/langchain/oss/openwiki/code-mode)
+- [CLI 参考](/langchain/oss/openwiki/cli-reference)
+- [自定义 OpenWiki](/langchain/oss/openwiki/customize)
+
+---
+
+> 官方原文：[src/oss/openwiki/personal-mode.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/personal-mode.mdx) · 译文由 AI 生成，以英文原文为准。

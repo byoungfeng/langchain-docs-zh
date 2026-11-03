@@ -1,0 +1,42 @@
+---
+title: "概述"
+description: "将 useStream 连接到任何 React UI 组件库或生成式 UI 框架"
+---
+
+@[`useStream`] 是与 UI 无关的。它返回纯反应式状态，包含消息、工具调用、加载标志、值和线程元数据，你可以将其连接到你选择的任何可视化层。这些页面展示了不同库如何与 LangChain 前端集成，每个库在构建 AI 聊天和生成式 UI 方面都有不同的理念。
+
+## 集成
+
+<CardGroup cols={2}>
+  <Card title="CopilotKit" icon="package" href="/langchain/oss/langchain/frontend/integrations/copilotkit">
+    带有结构化生成式 UI 支持的完整 AI 聊天运行时。将自定义 CopilotKit 端点添加到你的 LangGraph 部署中，然后在 React 中渲染动态组件树。
+  </Card>
+  <Card title="AI Elements" icon="package" href="/langchain/oss/langchain/frontend/integrations/ai-elements">
+    基于 shadcn/ui 的可组合 AI 聊天组件。直接将 `Conversation`、`Message`、`Tool` 和 `Reasoning` 拖入 `stream.messages`。
+  </Card>
+  <Card title="assistant-ui" icon="package" href="/langchain/oss/langchain/frontend/integrations/assistant-ui">
+    带有完整运行时层的无头 React 框架。通过 `useExternalStoreRuntime` 适配器将 `useStream` 连接到 `AssistantRuntimeProvider`。
+  </Card>
+  <Card title="OpenUI" icon="package" href="/langchain/oss/langchain/frontend/integrations/openui">
+    允许智能体在声明式组件 DSL 中生成完整、交互式仪表板的生成式 UI 库。专为数据丰富、报告式 UI 设计。
+  </Card>
+</CardGroup>
+
+## 选择库
+
+每个库适用于略有不同的集成模型。选择取决于你正在构建什么样的 UI：
+
+| | CopilotKit | AI 元素 | assistant-ui | OpenUI |
+| --- | --- | --- | --- | --- |
+| **最适合** | 完整聊天运行时加上结构化生成式 UI | 带有丰富消息类型的聊天 | 功能齐全的聊天，设置最小化 | 生成的仪表板和报告 |
+| **UI 风格** | CopilotKit 聊天外壳 + 自定义消息渲染器 | 可组合 shadcn/ui 组件 | 无头插槽 + 默认主题 | 预构建组件库，带声明式 DSL |
+| **定制化** | 自定义后端端点、智能体上下文和渲染器 | 直接编辑源文件 | 覆盖组件插槽 | 通过 CSS 变量进行主题设置 |
+| **流式 UX** | 由运行时管理的聊天流，带有结构化助手有效载荷 | 组件级别的渐进式渲染 | 内置线程管理 | 提升效果：外壳立即出现，数据填充 |
+| **工具调用** | 通过 CopilotKit 运行时和自定义渲染器 | `Tool` / `ToolHeader` / `ToolOutput` | 通过消息插槽自定义 | 在生成的 UI 中内联 |
+| **智能体格式** | 结构化助手响应，可选 Markdown | 任何 `stream.messages` | 任何 `stream.messages` | 智能体输出 openui-lang 文本 |
+
+所有四个都与 LangChain 智能体配合良好，后三者还直接连接到 @[`useStream`]。当您需要更丰富的运行时层和可以与 [LangGraph](/langchain/oss/langgraph/overview) 部署并存的专用端点时，CopilotKit 特别有用。
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/integrations/overview.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/integrations/overview.mdx) · 译文由 AI 生成，以英文原文为准。

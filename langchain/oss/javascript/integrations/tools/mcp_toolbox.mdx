@@ -1,0 +1,70 @@
+---
+title: "Mcp 数据库工具箱集成"
+description: "使用 LangChain JavaScript 集成 Mcp 工具箱数据库工具。"
+integration:
+  name: Mcp toolbox for databases
+  npm: '@toolbox-sdk/core'
+---
+
+
+[MCP 数据库工具箱](https://github.com/googleapis/genai-toolbox) 是一个开源的 MCP 数据库服务器。它专为企业级和生产级质量而设计。它通过处理连接池、身份验证等复杂问题，使您能够更轻松、更快、更安全地开发工具。
+
+工具箱工具可以与 LangChain 应用程序无缝集成。有关 [入门](https://mcp-toolbox.dev/documentation/getting-started/local_quickstart_js/) 或 [配置](https://mcp-toolbox.dev/documentation/configuration/) 工具箱的更多信息，请参阅 [文档](https://mcp-toolbox.dev/documentation/introduction/)。
+
+### 配置和部署
+
+工具箱是一个您自己部署和管理的开源服务器。有关部署和配置的更多说明，请参阅官方工具箱文档：
+
+- [安装服务器](https://mcp-toolbox.dev/documentation/introduction/)
+- [配置工具箱](https://mcp-toolbox.dev/documentation/configuration/)
+
+### 安装客户端 SDK
+
+LangChain 依赖于 `@toolbox-sdk/core` 节点包来使用工具箱。在开始之前，请先安装该包：
+
+```shell
+npm install @toolbox-sdk/core
+```
+
+### 加载工具箱工具
+
+一旦您的工具箱服务器配置完成并运行，您可以使用 SDK 从服务器加载工具：
+
+```javascript
+import { ChatGoogle } from "@langchain/google";
+import { ToolboxClient } from "@toolbox-sdk/core";
+import { tool } from "@langchain/core/tools";
+import { createAgent } from "@langchain/classic";
+
+const model = new ChatGoogle("gemini-2.5-flash-lite");
+
+// Replace with your Toolbox Server URL
+const URL = 'http://127.0.0.1:5000';
+
+let client = ToolboxClient(URL);
+toolboxTools = await client.loadToolset('toolsetName');
+
+const getTool = (toolboxTool) => tool(toolboxTool, {
+    name: toolboxTool.getName(),
+    description: toolboxTool.getDescription(),
+    schema: toolboxTool.getParamSchema()
+});
+const tools = toolboxTools.map(getTool);
+
+const agent = createAgent({ llm: model, tools });
+let inputs = { messages: [{ role: "user", content: Some query" }] };
+let response = await agent.invoke(inputs);
+console.log(response);
+```
+
+### 高级工具箱功能
+
+工具箱具有多种功能，可简化开发数据库的 Gen AI 工具。有关更多信息，请阅读以下内容：
+
+- [认证参数](https://mcp-toolbox.dev/documentation/configuration/tools/)：自动将工具输入绑定到 OIDC 令牌中的值，便于运行敏感查询而不会潜在地泄露数据
+- [授权调用](https://mcp-toolbox.dev/documentation/configuration/tools/)：根据用户的 Auth 令牌限制使用工具的访问
+- [OpenTelemetry](https://mcp-toolbox.dev/documentation/monitoring/telemetry/)：使用 [OpenTelemetry](https://opentelemetry.io/docs/) 从工具箱获取指标和跟踪
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/tools/mcp_toolbox.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/tools/mcp_toolbox.mdx) · 译文由 AI 生成，以英文原文为准。

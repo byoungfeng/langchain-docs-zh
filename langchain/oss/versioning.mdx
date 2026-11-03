@@ -1,0 +1,205 @@
+---
+title: "版本控制"
+description: "我们的开源版本号遵循MAJOR.MINOR.PATCH格式，如语义版本化所定义。"
+---
+
+我们的开源版本号遵循`MAJOR.MINOR.PATCH`格式，如[语义版本化](https://semver.org/)所定义。
+
+- **Major**: 破坏性API更新（需要代码变更）
+- **Minor**: 新增功能与改进（保持向后兼容）
+- **Patch**: 缺陷修复与次要改进
+
+例如：
+
+- `1.0.0`: 首个稳定版本，包含生产就绪API
+- `1.1.0`: 向后兼容的新功能添加
+- `1.0.1`: 向后兼容的缺陷修复
+
+## API稳定性
+
+我们通过以下方式沟通API的稳定性：
+
+### 稳定API
+所有无特殊前缀的API均视为稳定且适用于生产环境。我们为稳定特性维护向后兼容性，仅在主版本中引入破坏性变更。
+
+### Beta API
+标记为`beta`的API已实现完整功能，但可能根据用户反馈进行微小调整。这些API可用于生产环境，但未来版本可能需要小规模适配。
+
+### Alpha API
+标记为`alpha`的API处于实验阶段，可能进行重大变更。请谨慎在生产环境中使用。
+
+### 已弃用API
+标记为`deprecated`的API将在未来主版本中移除。如有可能，我们会明确标注移除版本。处理弃用API的步骤如下：
+
+1. 切换至推荐替代API
+2. 遵循与主版本同步发布的迁移指南
+3. 使用可用的自动化迁移工具
+
+### 内部API
+某些API通过以下方式明确标记为"内部"：
+
+- 部分文档会特别标注"内部"并提及相关内容。若文档说明某功能为内部，则其定义可能变更。
+- 函数、方法等对象以leading underscore（`_`）前缀（遵循Python私有成员约定）。若任何方法以单`_`前缀，则视为内部API。
+    - 例外：某些方法以`_`前缀但无实现代码。这些方法旨在被子类重写，属于LangChain的**公共API**。
+
+## 发布周期
+
+<AccordionGroup>
+    <Accordion title="Major releases">
+        主版本发布（如`1.0.0` → `2.0.0`）可能包含：
+
+        - 破坏性API变更
+        - 已弃用功能移除
+        - 架构重大改进
+
+        我们提供：
+
+        - 详细迁移指南
+        - 在可能的情况下提供自动化迁移工具
+        - 延长前一个主版本的支持周期
+    </Accordion>
+
+    <Accordion title="Minor releases">
+        小版本发布（例如 `1.0.0` → `1.1.0`）包括：
+
+        - 新功能和新能力
+        - 性能改进
+        - 新的可选参数
+        - 向后兼容的增强
+    </Accordion>
+
+    <Accordion title="Patch releases">
+        修补版本发布（例如 `1.0.0` → `1.0.1`）包括：
+
+        - 缺陷修复
+        - 安全更新
+        - 文档改进
+        - 无API变化的性能优化
+    </Accordion>
+</AccordionGroup>
+
+## 版本支持政策
+
+- **最新主版本**：全面支持与活跃开发（ACTIVE状态）
+- **前一个主版本**：在下一个主版本发布后12个月内提供安全更新和关键缺陷修复（MAINTENANCE状态）
+- **旧版本**：仅限社区支持
+
+### 长期支持（LTS）版本
+
+LangChain和LangGraph 1.0均被指定为LTS版本：
+
+- 版本1.0将在2.0版本发布前保持ACTIVE状态
+- 2.0版本发布后，版本1.0将进入MAINTENANCE模式至少1年
+- LTS版本遵循语义版本规范（semver），允许安全的小版本升级
+- 旧版本（LangChain 0.3和LangGraph 0.4）将在2026年12月前保持MAINTENANCE状态
+
+### 预1.0版本包
+
+:::python
+**Deep Agents** (`deepagents`) 是正在积极开发的预1.0版本包。作为快速演进的包，其API在小版本之间可能发生变化（尽管我们尽量减少破坏性变更）。Deep Agents将在达到1.0版本后采用与LangChain和LangGraph相同的LTS政策。
+:::
+
+关于发布状态和支持时间线的详细信息，请参考 [发布政策](/langchain/oss/release-policy)。
+
+## 检查你的版本
+
+要检查已安装版本：
+
+:::python
+<CodeGroup>
+
+```python LangChain
+import langchain_core
+print(langchain_core.__version__)
+```
+
+```python LangGraph
+import langgraph
+print(langgraph.__version__)
+```
+
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+
+```javascript LangChain
+import { version } from "langchain/package.json";
+console.log(version);
+```
+
+```javascript LangGraph
+import { version } from "@langchain/langgraph/package.json";
+console.log(version);
+```
+</CodeGroup>
+:::
+
+## 升级
+
+:::python
+<CodeGroup>
+
+```bash LangChain
+# Upgrade to the latest version
+pip install -U langchain-core langchain
+
+# Upgrade to a specific version
+pip install langchain-core==1.0.0
+```
+
+```bash LangGraph
+# Upgrade to the latest version
+pip install -U langgraph
+
+# Upgrade to a specific version
+pip install langgraph==1.0.0
+```
+
+```bash Deep Agents
+# Upgrade to the latest version
+pip install -U deepagents
+
+# Upgrade to a specific version
+pip install deepagents==0.1.0
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+
+```bash LangChain
+# Upgrade to the latest version
+npm update langchain @langchain/core
+
+# Install a specific version
+npm install langchain@1.0.0 @langchain/core@1.0.0
+```
+
+```bash LangGraph
+# Upgrade to the latest version
+npm update @langchain/langgraph
+
+# Install a specific version
+npm install @langchain/langgraph@1.0.0
+```
+</CodeGroup>
+:::
+
+## 预发布版本
+
+我们偶尔会发布alpha和beta版本供早期测试：
+
+- **Alpha**（例如 `1.0.0a1`）：早期预览，预期有重大变更
+- **Beta**（例如 `1.0.0b1`）：功能完整，可能有小变更
+- **发布候选**（例如 `1.0.0rc1`）：稳定发布前的最终测试
+
+## 参考信息
+
+- [发布政策](/langchain/oss/release-policy) - 详细发布和弃用政策
+
+---
+
+> 官方原文：[src/oss/versioning.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/versioning.mdx) · 译文由 AI 生成，以英文原文为准。

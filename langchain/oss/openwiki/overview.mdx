@@ -1,0 +1,82 @@
+---
+title: OpenWiki
+sidebarTitle: "概述"
+description: "写入和维护智能体维基的命令行工具，使编码智能体工作更高效"
+keywords: ["OpenWiki", "CLI", "agent documentation", "wiki", "Deep Agents"]
+mode: wide
+---
+
+OpenWiki 是一个开源的命令行工具，用于编写和维护关于您的代码库或个人知识的 Markdown 维基。该维基捕获架构、集成、评估和工作流等详细信息，以便 [编码智能体](/langchain/oss/deepagents/overview)可以将其用作持久的上下文，而不是在每次任务中都重新发现存储库。
+
+这使得智能体在 Token 上的工作更快、更便宜：智能体首先读取经过策划的维基，然后在需要更多细节的地方检查源代码。人类可以浏览相同的 Markdown（以及本地 [可视化器](/langchain/oss/openwiki/visualize)），但主要受众是智能体。
+
+OpenWiki 基于 [深度智能体](/langchain/oss/deepagents/overview) 构建，并支持使用 [LangSmith](https://docs.langchain.com/langsmith/observability-quickstart) 进行跟踪。
+
+## 入门
+
+安装 CLI，然后为当前存储库初始化文档：
+
+```bash
+npm install -g openwiki
+openwiki --init
+```
+
+查看 [快速入门](/langchain/oss/openwiki/quickstart) 以选择模型提供者、生成文档并保持其更新。要在编码智能体内部而不是独立的模型会话中运行 OpenWiki，请参阅 [编码智能体集成](/langchain/oss/openwiki/integrations)。要搜索现有的维基或分组相关存储库，请参阅 [搜索和链接维基](/langchain/oss/openwiki/search-and-link)。
+
+## 模式
+
+OpenWiki 有两种模式：
+
+| 模式 | 命令 | 输出 | 使用场景 |
+| --- | --- | --- | --- |
+| **代码**（默认） | `openwiki` / `openwiki code` | `openwiki/` 在当前存储库中 | 您需要存储库上下文和编码智能体的文档 |
+| **个人** | `openwiki personal` | `~/.openwiki/wiki` | 您需要一个从配置来源生成的本地个人大脑 |
+
+裸 `openwiki --init` 和 `openwiki --update` 运行在代码模式。使用 `openwiki personal --init` 或 `openwiki personal --update` 用于个人维基。
+
+## 功能
+
+<CardGroup cols={2}>
+    <Card title="Repository wikis" icon="folder-code" href="/langchain/oss/openwiki/code-mode">
+        在 `openwiki/` 下生成 Markdown 文档，然后将它们连接到 `AGENTS.md`（当存在时 `CLAUDE.md`），以便编码智能体可以找到它们。
+    </Card>
+    <Card title="Coding-agent integrations" icon="robot" href="/langchain/oss/openwiki/integrations">
+        在 Codex、Claude Code、OpenCode、Cursor、IBM Bob、Kiro、Oh My Pi、Antigravity 或 Pi 内部运行 OpenWiki。
+    </Card>
+    <Card title="Search and link" icon="search" href="/langchain/oss/openwiki/search-and-link">
+        通过 MCP 查询维基页面，并将相关的存储库维基分组到工作区中。
+    </Card>
+    <Card title="Personal brain" icon="brain" href="/langchain/oss/openwiki/personal-mode">
+        从 git 仓库、Custom MCP、Gmail、Notion、网络搜索、Hacker News 和 X/Twitter 构建本地维基。
+    </Card>
+    <Card title="Grounded Claims" icon="link" href="/langchain/oss/openwiki/code-mode#有据可依的断言">
+        将材料事实追溯到版本化的源证据，并在该证据发生变化时刷新页面。
+    </Card>
+    <Card title="Automatic updates" icon="clock" href="/langchain/oss/openwiki/automate-updates">
+        从 GitHub Actions、GitLab CI 或 Bitbucket Pipelines 刷新文档，并在内容变化时打开 PR。
+    </Card>
+    <Card title="Model providers" icon="cpu" href="/langchain/oss/openwiki/providers">
+        开箱即用地使用 OpenAI、Anthropic、Gemini、Bedrock、OpenRouter、GitHub Copilot、IBM Bob 和其他提供者。
+    </Card>
+    <Card title="Open Knowledge Format" icon="file-text" href="/langchain/oss/openwiki/code-mode#开放知识格式">
+        发出 OKF v0.2 Markdown 包，包含前端元数据、索引和链接的概念。
+    </Card>
+    <Card title="LangSmith tracing" icon="chart-dots" href="/langchain/oss/openwiki/quickstart#使用-langsmith-追踪">
+        使用 LangSmith 跟踪文档运行。
+    </Card>
+</CardGroup>
+
+## 下一步
+
+<CardGroup cols={2}>
+    <Card title="Quickstart" icon="player-play" href="/langchain/oss/openwiki/quickstart">
+        安装 OpenWiki，配置提供者，并生成您的第一个维基。
+    </Card>
+    <Card title="CLI reference" icon="terminal" href="/langchain/oss/openwiki/cli-reference">
+        查看命令、标志和连接器子命令。
+    </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/openwiki/overview.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/overview.mdx) · 译文由 AI 生成，以英文原文为准。

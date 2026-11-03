@@ -1,0 +1,228 @@
+---
+title: "Amazon Bedrock AgentCore 网络搜索集成"
+description: "使用 LangChain Python 集成 Amazon Bedrock AgentCore Web 搜索工具。"
+integration:
+  name: WebSearchToolkit
+  pypi: langchain-aws
+---
+
+[Amazon Bedrock AgentCore Web Search](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html) 为智能体提供来自网络的当前信息，并在每个结果中附带来源 URL。它是一个 AWS 服务管理的连接器，因此使用您已有的 AWS 凭证进行身份验证，并且不需要自己的搜索 API 密钥。
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | [JS 支持](/langchain/oss/javascript/integrations/tools) | 版本 |
+|:------|:--------|:------------:|:---------------------------------------------------------------:|:--------:|
+| [`WebSearchToolkit`](https://github.com/langchain-ai/langchain-aws/tree/main/libs/aws/langchain_aws/tools) | [`langchain-aws`](https://pypi.org/project/langchain-aws/) | ❌ | ❌ | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-aws?style=flat-square&label=%20) |
+
+### 工具特性
+
+| [返回工件](/langchain/oss/langchain/tools) | 原生异步 | 返回数据 | 定价 |
+|:-----------------------------------------------:|:------------:|:-----------:|:-------:|
+| ❌ | ✅ | 标题、URL、发布日期、提取 | 按量付费 (AWS) |
+
+### 可用工具
+
+| 工具 | 描述 |
+|:-----|:------------|
+| `web_search` | 搜索网络并返回带来源标注的结果 |
+
+## 设置
+
+集成位于 `langchain-aws` 包中，该包封装了 `bedrock-agentcore` SDK。
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-aws bedrock-agentcore
+    ```
+    ```bash uv
+    uv add langchain-aws bedrock-agentcore
+    ```
+</CodeGroup>
+
+网络搜索需要 `langchain-aws` 1.7.9 或更高版本和 `bedrock-agentcore` 1.23.0 或更高版本。
+
+显式安装 `bedrock-agentcore`，如上所述。`langchain_aws.tools` 在 `try`/`except ImportError` 内导入网络搜索工具包，因此在没有 `bedrock-agentcore` 的安装或版本低于 1.23.0 时，会跳过导出而不是引发错误，`create_web_search_toolkit` 简单地不在 `langchain_aws.tools` 中。如果导入失败，请先检查两个已安装版本。
+
+### 使用网络搜索目标的网关创建
+
+与该包中的其他 AgentCore 工具不同，网络搜索通过 [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connectors.html) 目标访问服务，因此必须在工具包可以调用它之前创建网关。您只需执行一次此操作，同一个网关服务于账户中的所有智能体。
+
+```python
+from bedrock_agentcore.gateway.client import GatewayClient
+
+client = GatewayClient(region_name="us-east-1")
+
+gateway = client.create_gateway_and_wait(
+    name="my-web-search-gateway",
+    roleArn="arn:aws:iam::111122223333:role/MyGatewayExecutionRole",
+    authorizerType="AWS_IAM",
+    protocolType="MCP",
+)
+
+client.create_web_search_target(gateway_identifier=gateway["gatewayId"])
+```
+
+`authorizerType="AWS_IAM"` 使调用者自己的 IAM 权限控制网关。`NONE` 完全禁用入站授权，允许任何知道其 URL 的人调用网关，并计费到您的账户。
+
+目标默认命名为 `amazon-web-search`，网关 [使用其目标名称为每个工具添加前缀](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-tool-naming.html)，因此网关上的工具是 `amazon-web-search___WebSearch`。工具包为您找到它；只有如果您在网关的工具列表中查找它时，名称才重要。
+
+网络搜索在 `us-east-1`、`eu-west-1` 和 `ap-northeast-1` 中可用。[服务文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html) 包含当前列表。
+
+### 凭证
+
+两个不同的主体各自需要一个权限，而混合使用是最常见的配置错误：
+
+- **您自己的凭证** 需要在网关 ARN 上具有 `bedrock-agentcore:InvokeGateway`。
+- **网关的执行角色** 需要在 `arn:aws:bedrock-agentcore:<region>:aws:tool/web-search.v1` 上具有 `bedrock-agentcore:InvokeWebSearch`，并具有允许 `bedrock-agentcore.amazonaws.com` 假设它的信任策略。它不需要其他任何东西。
+
+如果信任策略将 `aws:SourceArn` 限制为特定区域，则必须是网关的区域。当网关创建时出现不匹配，并且仅在第一次搜索时显示，`Failed to obtain execution role credentials` 接受不匹配。
+
+设置 LangSmith 以获得最佳级别的可观察性也非常有帮助（但不是必需的）：
+
+```python
+import os
+
+os.environ["LANGSMITH_API_KEY"] = "your-api-key"
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+## 实例化
+
+工厂是 **同步的**，与该包中的浏览器和代码解释器工厂不同，因为搜索不需要首先设置会话。
+
+```python
+from langchain_aws.tools import create_web_search_toolkit
+
+toolkit, tools = create_web_search_toolkit(
+    region="us-east-1",
+    gateway_id="my-web-search-gateway-abc123",
+)
+```
+
+通过 `gateway_id`、`gateway_arn` 或如果您已知 MCP URL 通过 `gateway_endpoint` 指向网关。一个 `gateway_arn` 包含它自己的区域。使用 `gateway_id` 时，传递 `region` 以匹配网关的区域，否则将默认为 `us-east-1`。
+
+传递 `target_name` 可在第一次搜索时节省一次工具发现往返。如果您将目标命名为默认值以外的名称，请使用它：
+
+```python
+toolkit, tools = create_web_search_toolkit(
+    gateway_arn="arn:aws:bedrock-agentcore:us-east-1:111122223333:gateway/my-gw-abc123",
+    target_name="amazon-web-search",
+)
+```
+
+## 调用
+
+### 直接工具使用
+
+```python
+search = tools[0]
+
+results = search.invoke({"query": "latest boto3 release notes", "max_results": 5})
+print(results)
+```
+
+结果作为编号文本块返回，每个命中一个，每个都带有标题、URL、发布日期（如果索引报告）和提取：
+
+```text
+1. boto3 1.43.56 release notes
+   URL: https://github.com/boto/boto3/blob/develop/CHANGELOG.rst
+   Published: 12:31PM, Friday, July 24 2026, PDT
+   Adds support for ...
+```
+
+### 在智能体中使用
+
+```python
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain_aws.tools import create_web_search_toolkit
+
+toolkit, tools = create_web_search_toolkit(
+    region="us-east-1",
+    gateway_id="my-web-search-gateway-abc123",
+)
+
+llm = init_chat_model(
+    "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    model_provider="bedrock_converse",
+)
+
+try:
+    agent = create_agent(model=llm, tools=tools)
+    result = agent.invoke(
+        {"messages": [{"role": "user", "content": "What changed in the most recent boto3 release?"}]}
+    )
+    print(result["messages"][-1].content)
+finally:
+    toolkit.close()
+```
+
+工具描述要求模型引用它使用的 URL。引用来源是此连接器的使用条件，因此如果您自定义提示词，请保留该指令。
+
+## 过滤结果
+
+模型可以通过域和发布日期缩小搜索。两者都是工具的参数，因此模型可以在需要时自行设置它们：
+
+```python
+# Only official documentation
+search.invoke({
+    "query": "S3 multipart upload limits",
+    "include_domains": ["docs.aws.amazon.com"],
+})
+
+# Only recent pages
+search.invoke({
+    "query": "python release schedule",
+    "published_after": "2026-01-01T00:00:00Z",
+})
+```
+
+根域名也匹配其子域名。`include_domains` 只能缩小搜索，永远不会扩大它：如果网关目标使用自己的包含列表创建，则两个列表相交，不相交的列表返回空结果。
+
+要强制执行智能体无法放松的域策略，请在目标上设置它，而不是留给模型。这些列表在服务器端应用，智能体无法看到：
+
+```python
+client.create_web_search_target(
+    gateway_identifier=gateway["gatewayId"],
+    include_domains=["docs.aws.amazon.com", "boto3.amazonaws.com"],
+)
+```
+
+## 错误处理
+
+失败的搜索引发 `ToolException`，因此重试包装器（如 `Runnable.with_retry()`）将其视为失败，而不是成功调用返回错误消息。
+
+要让模型读取消息并自行纠正查询，请为每个工具选择加入：
+
+```python
+for tool in tools:
+    tool.handle_tool_error = True
+```
+
+## 释放客户端
+
+工具包持有一个客户端，`close()` 释放它。它还充当上下文管理器：
+
+```python
+toolkit, tools = create_web_search_toolkit(region="us-east-1", gateway_id="my-gw-abc123")
+
+with toolkit:
+    agent = create_agent(model=llm, tools=tools)
+    ...
+```
+
+---
+
+## API 参考
+
+有关所有功能和配置的详细文档，请参阅：
+
+- [langchain-aws API 参考](https://reference.langchain.com/python/langchain-aws)
+- [AgentCore Web Search 工具文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-connector-web-search-tool.html)
+- [AgentCore Gateway 工具命名](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-tool-naming.html)
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/bedrock_agentcore_web_search.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/bedrock_agentcore_web_search.mdx) · 译文由 AI 生成，以英文原文为准。

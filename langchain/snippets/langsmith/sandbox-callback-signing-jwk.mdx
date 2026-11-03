@@ -1,0 +1,11 @@
+要使用 OpenSSL 1.1.1 或更高版本生成 Ed25519 私有 JWK，请运行：
+
+```bash
+openssl genpkey -algorithm ED25519 -out callback-signing.pem
+d=$(openssl pkey -in callback-signing.pem -outform DER | tail -c 32 | base64 | tr '+/' '-_' | tr -d '=\n')
+x=$(openssl pkey -in callback-signing.pem -pubout -outform DER | tail -c 32 | base64 | tr '+/' '-_' | tr -d '=\n')
+printf '{"kty":"OKP","crv":"Ed25519","alg":"EdDSA","use":"sig","kid":"sandbox-callback-%s","x":"%s","d":"%s"}\n' "$(openssl rand -hex 8)" "$x" "$d"
+rm callback-signing.pem
+```
+
+该命令将 JWK 以一行 JSON 格式打印出来。如果 `openssl genpkey` 报告 `Algorithm ED25519 not found`，则您的 `openssl` 是一个较旧的 LibreSSL 构建。安装 OpenSSL 并使用它运行该命令。

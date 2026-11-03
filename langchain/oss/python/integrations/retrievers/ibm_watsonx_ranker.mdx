@@ -1,0 +1,286 @@
+---
+title: "IBM watsonx.ai 集成"
+description: "使用 LangChain Python 集成 IBM watsonx.ai 检索器。"
+integration:
+  name: WatsonxRerank
+  pypi: langchain-ibm
+  package_md: '[`langchain-ibm`](https://reference.langchain.com/python/langchain-ibm)'
+---
+
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>`WatsonxRerank` 是 IBM [watsonx.ai](https://www.ibm.com/products/watsonx-ai) 基础模型的封装。
+
+本笔记本演示如何在一个检索器中使用 [watsonx 的 rerank 端点](https://cloud.ibm.com/apidocs/watsonx-ai#text-rerank)。
+
+## 概述
+
+### 集成细节
+
+| Class | Package | [JS 支持](/langchain/oss/javascript/integrations/document_compressors/ibm) | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: |
+| [`WatsonxRerank`](https://reference.langchain.com/python/langchain-ibm/WatsonxRerank) | [`langchain-ibm`](https://reference.langchain.com/python/langchain-ibm) | ✅ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-ibm?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-ibm?style=flat-square&label=%20) |
+
+## 安装
+
+要访问 IBM watsonx.ai 模型，您需要创建 IBM watsonx.ai 账户、获取 API 密钥，并安装 `langchain-ibm` 集成包。
+
+### 凭据
+下表定义了与 watsonx 基础模型推理所需的凭证。
+
+**操作:** 提供IBM Cloud用户API密钥。详情请见 [管理用户API密钥](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui)。
+
+```python
+import os
+from getpass import getpass
+
+watsonx_api_key = getpass()
+os.environ["WATSONX_APIKEY"] = watsonx_api_key
+```
+
+此外您还可以通过环境变量传递额外的密钥。
+
+```python
+import os
+
+os.environ["WATSONX_URL"] = "your service instance url"
+os.environ["WATSONX_TOKEN"] = "your token for accessing the CLOUD or CPD cluster"
+os.environ["WATSONX_PASSWORD"] = "your password for accessing the CPD cluster"
+os.environ["WATSONX_USERNAME"] = "your username for accessing the CPD cluster"
+os.environ["WATSONX_INSTANCE_ID"] = "your instance_id for accessing the CPD cluster"
+```
+
+### 安装
+
+LangChain IBM 集成位于 `langchain-ibm` 包中：
+
+<LangchainCommunityUnmaintained />
+
+```python
+!pip install -qU langchain-ibm
+!pip install -qU langchain-community
+!pip install -qU langchain_text_splitters
+```
+
+为实验目的请同时安装 `faiss` 或 `faiss-cpu` 包：
+
+```python
+!pip install -qU  faiss
+
+# OR  (depending on Python version)
+
+!pip install -qU  faiss-cpu
+```
+
+打印文档的帮助函数
+
+```python
+def pretty_print_docs(docs):
+    print(
+        f"\n{'-' * 100}\n".join(
+            [f"Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]
+        )
+    )
+```
+
+## 初始化
+
+### 设置基础向量存储检索器
+
+让我们从初始化一个简单的向量存储检索器开始，并将 2023 年州长州情咨文（按块）存储。我们可以设置检索器返回 20 个文档。
+
+初始化 `WatsonxEmbeddings`。更多细节请见 [WatsonxEmbeddings](/langchain/oss/python/integrations/embeddings/ibm_watsonx)。
+
+**注意**：
+
+- 为在 API 调用中提供上下文，必须添加 `project_id` 或 `space_id`。详情请见 [文档](https://www.ibm.com/docs/en/watsonx-as-a-service?topic=projects)。
+- 根据您部署的服务实例区域，使用 [区域特定认证URL](https://ibm.github.io/watsonx-ai-python-sdk/setup_cloud.html#authentication) 之一。
+
+本例中使用 `project_id` 和 Dallas URL。
+
+您需要指定 `model_id` 将用于嵌入。所有可用模型请见 [文档](https://ibm.github.io/watsonx-ai-python-sdk/fm_embeddings.html#EmbeddingModels)。
+
+```python
+from langchain_ibm import WatsonxEmbeddings
+
+wx_embeddings = WatsonxEmbeddings(
+    model_id="ibm/slate-125m-english-rtrvr",
+    url="https://us-south.ml.cloud.ibm.com",
+    project_id="PASTE YOUR PROJECT_ID HERE",
+)
+```
+
+<LangchainCommunityUnmaintained />
+
+```python
+from langchain_community.document_loaders import TextLoader
+from langchain_community.vectorstores import FAISS
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+documents = TextLoader("../../how_to/state_of_the_union.txt").load()
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+texts = text_splitter.split_documents(documents)
+retriever = FAISS.from_documents(texts, wx_embeddings).as_retriever(
+    search_kwargs={"k": 20}
+)
+
+query = "What did the president say about Ketanji Brown Jackson"
+docs = retriever.invoke(query)
+pretty_print_docs(docs[:5])  # Printing the first 5 documents
+```
+
+```text
+Document 1:
+
+One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
+
+And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
+----------------------------------------------------------------------------------------------------
+Document 2:
+
+I spoke with their families and told them that we are forever in debt for their sacrifice, and we will carry on their mission to restore the trust and safety every community deserves.
+
+I’ve worked on these issues a long time.
+
+I know what works: Investing in crime prevention and community police officers who’ll walk the beat, who’ll know the neighborhood, and who can restore trust and safety.
+
+So let’s not abandon our streets. Or choose between safety and equal justice.
+----------------------------------------------------------------------------------------------------
+Document 3:
+
+He met the Ukrainian people.
+
+From President Zelenskyy to every Ukrainian, their fearlessness, their courage, their determination, inspires the world.
+
+Groups of citizens blocking tanks with their bodies. Everyone from students to retirees teachers turned soldiers defending their homeland.
+
+In this struggle as President Zelenskyy said in his speech to the European Parliament “Light will win over darkness.” The Ukrainian Ambassador to the United States is here tonight.
+----------------------------------------------------------------------------------------------------
+Document 4:
+
+As I said last year, especially to our younger transgender Americans, I will always have your back as your President, so you can be yourself and reach your God-given potential.
+
+While it often appears that we never agree, that isn’t true. I signed 80 bipartisan bills into law last year. From preventing government shutdowns to protecting Asian-Americans from still-too-common hate crimes to reforming military justice.
+----------------------------------------------------------------------------------------------------
+Document 5:
+
+To all Americans, I will be honest with you, as I’ve always promised. A Russian dictator, invading a foreign country, has costs around the world.
+
+And I’m taking robust action to make sure the pain of our sanctions  is targeted at Russia’s economy. And I will use every tool at our disposal to protect American businesses and consumers.
+
+Tonight, I can announce that the United States has worked with 30 other countries to release 60 Million barrels of oil from reserves around the world.
+```
+
+## 使用
+
+### 使用 WatsonxRerank 进行重排名
+
+现在让我们用 `ContextualCompressionRetriever` 将基础检索器包裹。我们将添加 `WatsonxRerank`，使用 watsonx 重排名端点对返回结果进行重排名。
+请注意必须指定 WatsonxRerank 中的模型名称！
+
+```python
+from langchain_ibm import WatsonxRerank
+
+wx_rerank = WatsonxRerank(
+    model_id="cross-encoder/ms-marco-minilm-l-12-v2",
+    url="https://us-south.ml.cloud.ibm.com",
+    project_id="PASTE YOUR PROJECT_ID HERE",
+)
+```
+
+```python
+from langchain_classic.retrievers.contextual_compression import ContextualCompressionRetriever
+
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=wx_rerank, base_retriever=retriever
+)
+
+compressed_docs = compression_retriever.invoke(
+    "What did the president say about Ketanji Jackson Brown"
+)
+pretty_print_docs(compressed_docs[:5])  # Printing the first 5 compressed documents
+```
+
+```text
+Document 1:
+
+One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
+
+And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
+----------------------------------------------------------------------------------------------------
+Document 2:
+
+As I said last year, especially to our younger transgender Americans, I will always have your back as your President, so you can be yourself and reach your God-given potential.
+
+While it often appears that we never agree, that isn’t true. I signed 80 bipartisan bills into law last year. From preventing government shutdowns to protecting Asian-Americans from still-too-common hate crimes to reforming military justice.
+----------------------------------------------------------------------------------------------------
+Document 3:
+
+To all Americans, I will be honest with you, as I’ve always promised. A Russian dictator, invading a foreign country, has costs around the world.
+
+And I’m taking robust action to make sure the pain of our sanctions  is targeted at Russia’s economy. And I will use every tool at our disposal to protect American businesses and consumers.
+
+Tonight, I can announce that the United States has worked with 30 other countries to release 60 Million barrels of oil from reserves around the world.
+----------------------------------------------------------------------------------------------------
+Document 4:
+
+I spoke with their families and told them that we are forever in debt for their sacrifice, and we will carry on their mission to restore the trust and safety every community deserves.
+
+I’ve worked on these issues a long time.
+
+I know what works: Investing in crime prevention and community police officers who’ll walk the beat, who’ll know the neighborhood, and who can restore trust and safety.
+
+So let’s not abandon our streets. Or choose between safety and equal justice.
+----------------------------------------------------------------------------------------------------
+Document 5:
+
+He met the Ukrainian people.
+
+From President Zelenskyy to every Ukrainian, their fearlessness, their courage, their determination, inspires the world.
+
+Groups of citizens blocking tanks with their bodies. Everyone from students to retirees teachers turned soldiers defending their homeland.
+
+In this struggle as President Zelenskyy said in his speech to the European Parliament “Light will win over darkness.” The Ukrainian Ambassador to the United States is here tonight.
+```
+
+## 在链中使用
+
+当然您可以将此检索器用于问答管道
+
+初始化 `ChatWatsonx`。更多细节请见 [ChatWatsonx](/langchain/oss/python/integrations/chat/ibm_watsonx)。
+
+```python
+from langchain_ibm import ChatWatsonx
+
+wx_chat = ChatWatsonx(
+    model_id="meta-llama/llama-3-1-70b-instruct",
+    url="https://us-south.ml.cloud.ibm.com",
+    project_id="PASTE YOUR PROJECT_ID HERE",
+)
+```
+
+```python
+from langchain_classic.chains import RetrievalQA
+
+chain = RetrievalQA.from_chain_type(llm=wx_chat, retriever=compression_retriever)
+```
+
+```python
+chain.invoke(query)
+```
+
+```text
+{'query': 'What did the president say about Ketanji Brown Jackson',
+ 'result': 'The President said that he had nominated Circuit Court of Appeals Judge Ketanji Brown Jackson to serve on the United States Supreme Court, and described her as "one of our nation\'s top legal minds" who will continue Justice Breyer\'s legacy of excellence.'}
+```
+
+---
+
+## API 参考
+
+要查看所有 `WatsonxRerank` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-ibm/WatsonxRerank)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/retrievers/ibm_watsonx_ranker.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/retrievers/ibm_watsonx_ranker.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,55 @@
+---
+title: "Yeager.ai 集成"
+description: "使用 LangChain Python 与 Yeager.ai 集成。"
+---
+
+本页面介绍了如何使用 [Yeager.ai](https://yeager.ai) 生成 LangChain 工具和智能体。
+
+## 什么是 yeager.ai
+Yeager.ai 是一个生态系统，旨在简化创建 AI 智能体和工具的流程。
+
+它提供 yAgents（无代码 LangChain 智能体构建器），允许用户轻松创建、测试和部署 AI 解决方案。依托 LangChain 框架，yAgents 可无缝集成多种语言模型和资源，适用于开发者、研究人员及 AI 爱好者各类应用场景。
+
+## yAgents
+低代码生成式智能体，助您轻松构建、原型设计和部署 LangChain 工具。
+
+### 如何使用？
+<CodeGroup>
+```bash pip
+pip install yeagerai-agent
+yeagerai-agent
+```
+
+```bash uv
+uv add yeagerai-agent
+yeagerai-agent
+```
+</CodeGroup>
+访问 http://127.0.0.1:7860
+
+这将安装必要依赖并配置 yAgents。首次运行后，yAgents 会创建 .env 文件供您输入 OpenAI API 密钥。您也可直接在 Gradio 接口的 "Settings" 选项卡中完成设置。
+
+`OPENAI_API_KEY=<your_openai_api_key_here>`
+
+我们推荐使用 GPT-4。若问题拆分充分，工具也可兼容 GPT-3。
+
+### 使用 yAgents 创建并执行工具
+yAgents 可轻松创建并执行 AI 工具。流程概述如下：
+1. 创建工具：通过自然语言提示向 yAgents 描述工具目的与功能。例如：
+`create a tool that returns the n-th prime number`
+
+2. 加载工具到工具箱：向 yAgents 发送指定指令即可加载工具。例如：
+`load the tool that you just created it into your toolkit`
+
+3. 执行工具：通过包含工具名称及参数的指令执行工具。例如：
+`generate the 50th prime number`
+
+您可 [观看演示视频](https://www.youtube.com/watch?v=KA5hCM3RaWE) 了解具体操作。
+
+随着对 yAgents 的熟悉，您将能创建更复杂的工具和智能体，提升工作效率。
+
+更多详情请参考 [yAgents GitHub](https://github.com/yeagerai/yeagerai-agent) 或我们的 [文档](https://yeagerai.gitbook.io/docs/general/welcome-to-yeager.ai)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/yeagerai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/yeagerai.mdx) · 译文由 AI 生成，以英文原文为准。

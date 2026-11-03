@@ -1,0 +1,154 @@
+---
+title: "日志、追踪和监控 Portkey 集成"
+description: "使用 LangChain Python 与 Portkey 日志记录、跟踪和监控。"
+---
+
+在使用 LangChain 构建应用或智能体时，为满足单个用户请求，您通常需要进行多次 API 调用。然而，当您需要分析这些请求时，它们并不会被串联。通过 [**Portkey**](/langchain/oss/python/integrations/providers/portkey/)，来自同一用户请求的所有嵌入（Embedding）、补全（completions）及其他请求都将被记录并关联至统一 ID，从而全面追踪用户交互。
+
+`Portkey`
+本笔记本将指导您如何在 LangChain 应用中通过 `Portkey` 实现 LangChain LLM 调用的日志记录、追踪与监控。
+
+```python
+import os
+
+from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
+from langchain_openai import ChatOpenAI
+from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders
+```
+
+请在此处粘贴您的 OpenAI API 密钥。[(您可在此处获取)](https://platform.openai.com/account/api-keys)
+
+```python
+os.environ["OPENAI_API_KEY"] = "..."
+```
+
+## 获取 Portkey API 密钥
+
+1. 在 [Portkey官网](https://app.portkey.ai/signup) 注册账号
+2. 进入您的 [仪表盘](https://app.portkey.ai/)，点击左下角头像图标，选择 "复制 API 密钥"
+3. 将密钥粘贴至下方
+
+```python
+PORTKEY_API_KEY = "..."  # Paste your Portkey API Key here
+```
+
+## 设置追踪ID
+
+1. 在下方设置您的请求追踪ID
+2. 该追踪ID可用于同一请求发起的所有API调用
+
+```python
+TRACE_ID = "uuid-trace-id"  # Set trace id here
+```
+
+## 生成Portkey请求头
+
+```python
+portkey_headers = createHeaders(
+    api_key=PORTKEY_API_KEY, provider="openai", trace_id=TRACE_ID
+)
+```
+
+定义要使用的提示词和工具
+
+```python
+from langchain_classic import hub
+from langchain.tools import tool
+
+prompt = hub.pull("hwchase17/openai-tools-agent")
+
+
+@tool
+def multiply(first_int: int, second_int: int) -> int:
+    """Multiply two integers together."""
+    return first_int * second_int
+
+
+@tool
+def exponentiate(base: int, exponent: int) -> int:
+    "Exponentiate the base to the exponent power."
+    return base**exponent
+
+
+tools = [multiply, exponentiate]
+```
+
+常规运行您的智能体。**唯一的**修改是现在我们将**包含上述请求头**在请求中。
+
+```python
+model = ChatOpenAI(
+    base_url=PORTKEY_GATEWAY_URL, default_headers=portkey_headers, temperature=0
+)
+
+# Construct the OpenAI Tools agent
+agent = create_openai_tools_agent(model, tools, prompt)
+
+# Create an agent executor by passing in the agent and tools
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+agent_executor.invoke(
+    {
+        "input": "Take 3 to the fifth power and multiply that by thirty six, then square the result"
+    }
+)
+```
+
+```text
+> Entering new AgentExecutor chain...
+
+Invoking: `exponentiate` with `{'base': 3, 'exponent': 5}`
+
+
+243
+Invoking: `multiply` with `{'first_int': 243, 'second_int': 36}`
+
+
+8748
+Invoking: `exponentiate` with `{'base': 8748, 'exponent': 2}`
+
+
+76527504The result of taking 3 to the fifth power, multiplying it by 36, and then squaring the result is 76,527,504.
+
+> Finished chain.
+```
+
+```text
+{'input': 'Take 3 to the fifth power and multiply that by thirty six, then square the result',
+ 'output': 'The result of taking 3 to the fifth power, multiplying it by 36, and then squaring the result is 76,527,504.'}
+```
+
+## Portkey上日志与追踪机制的工作原理
+
+**日志记录**
+
+- 通过Portkey发送请求时，所有请求都会默认被记录
+- 每条请求日志包含 `timestamp`、`model name`、`total cost`、`request time`、`request json`、`response json`以及Portkey的其他功能
+
+**[追踪](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms/traces)**
+
+- 每个请求会携带trace id，并在Portkey仪表盘的日志中可见
+- 您还可以为每个请求设置 **唯一的trace id**（如需）
+- 您还可以将用户反馈附加到trace id。[更多详情请参考此处](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms/feedback)
+
+对于上述请求，您将能够查看完整的日志追踪：
+![在Portkey上查看LangChain追踪](https://assets.portkey.ai/docs/agent_tracing.gif)
+
+## 高级LLMOps功能 - 缓存、标签、重试
+
+除日志记录和追踪外，Portkey还提供更多增强生产能力的功能：
+
+**缓存**
+
+从缓存中响应已处理过的客户查询，而非重新发送至OpenAI。支持精确字符串匹配或语义相似字符串匹配。缓存可节省成本并降低延迟达20倍。[文档](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/cache-simple-and-semantic)
+
+**重试**
+
+自动重试任何未成功的API请求 **`upto 5`** 次。采用 **`exponential backoff`** 策略，通过间隔重试尝试防止网络过载。[文档](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations)
+
+**标签**
+
+通过预定义标签对用户交互进行高精度追踪和审计。[文档](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms/metadata)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/portkey/logging_tracing_portkey.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/portkey/logging_tracing_portkey.mdx) · 译文由 AI 生成，以英文原文为准。

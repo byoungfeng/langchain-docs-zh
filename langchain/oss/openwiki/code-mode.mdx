@@ -1,0 +1,143 @@
+---
+title: "代码模式"
+sidebarTitle: "代码模式"
+description: "使用 OpenWiki 为编码智能体生成和维护存储库文档"
+---
+  
+代码模式会构建一个仓库维基（`openwiki/`），其中包含架构、集成和流程等持久化细节。编程智能体会利用该维基作为上下文，从而在包内更高效地工作，减少重复探索和Token消耗。人类可以阅读相同的Markdown，但智能体是主要受众。智能体通过指针OpenWiki maintained in `AGENTS.md`发现维基，并通过`@AGENTS.md`导入（当该文件已存在时）`CLAUDE.md`获取。
+
+`openwiki`, `openwiki --init`, 和 `openwiki --update` 在代码模式下运行。您也可以显式传递模式：
+
+```bash
+openwiki code --init
+openwiki code --update
+openwiki code --update --print
+```
+  
+再次运行 `openwiki --init` 会替换现有生成的仓库维基和声明为新的生成，同时保留用户编写的 `openwiki/INSTRUCTIONS.md` 简要说明。在持久化检出时，OpenWiki会在 `openwiki/.run.json` 中记录进行中的生成，因此中断后重新运行相同命令可恢复持久的页面队列。临时CI运行器在失败后除非保留工作区否则会重新开始。在生成新运行状态前发生设置失败会恢复之前的维基。
+
+要生成其他语言的维基页面，传递BCP-47语言区域如 `ko`, `zh-CN`, 或 `pt-BR`：
+
+```bash
+openwiki --init --language ko
+```
+  
+您也可以在Codex、Claude Code、OpenCode、Cursor、IBM Bob、Kiro、Oh My Pi或Antigravity中运行OpenWiki。参见 [编程智能体集成](/langchain/oss/openwiki/integrations)。
+
+## 并行页面工作者
+
+原生CLI初始化和更新运行可并发文档多个页面。设置并发度：
+
+```bash
+OPENWIKI_PAGE_CONCURRENCY=4 openwiki --update
+```
+  
+并发度默认为 `1`，接受 `1` 到 `8` 的值。从 `2` 到 `4` 启动并监控提供商的速率限制。编程智能体集成保持宿主顺序页面生命周期；此设置仅控制原生CLI工作者。
+
+每个工作者仅拥有一个页面，已完成页面作为持久的恢复单元。快速入门页面最后生成以便链接到其路由到的页面。若工作者因提供商速率限制失败，运行将减少一个并发度，被写入的页面会恢复并由下一个更新处理。
+
+提供商重试默认为 `3`，当 `OPENWIKI_PAGE_CONCURRENCY` 超过 `1` 时为 `5`。可通过 `OPENWIKI_PROVIDER_RETRY_ATTEMPTS`（正整数）覆盖。
+
+## 代码模式生成的内容
+
+成功初始化或更新后，仓库通常包含：
+
+- **`openwiki/`**: 生成 MarkdownWiki（快速入门、架构、运维及相关主题）
+- **`openwiki/INSTRUCTIONS.md`**: 用户编写的范围与优先级简介。OpenWiki 在初始化和更新时读取该内容。您可自行编辑，或通过聊天界面要求 OpenWiki 修改；常规 `--init` 和 `--update` 运行不会覆盖它
+- **`openwiki/.claims/`**: 结构化断言侧边件，将事实页锚定在版本化仓库证据中
+- **`openwiki/.page-manifest.json`**: 每页进度与源码检查点，支持生成过程续传
+- **`openwiki/.last-update.json`**: 最后一次成功文档校验的元数据（含无操作更新记录）
+- **`AGENTS.md`**: 当缺失时自动创建，并在 `<!-- OPENWIKI:START -->` … `<!-- OPENWIKI:END -->` 块中告知编程智能体何时需查阅Wiki
+- **`CLAUDE.md`**: 仅在文件存在时刷新。该块导入 `@AGENTS.md`，确保 Claude Code 继续加载相同指令。OpenWiki 不在 `CLAUDE.md` 缺失时创建
+
+在活跃运行期间，`openwiki/.run.json` 会检查有序页面队列。OpenWiki 在成功完成时会删除该文件。
+
+## 有据可依的断言
+
+OpenWiki 通过跟踪事实页背后的材料性断言使代码Wiki自我纠错，不仅记录Markdown文件最后生成时间。断言涵盖未来智能体依赖的真理：行为规范、职责划分、架构设计、数据流、不变量、失败语义、配置参数和安全性边界。每个断言指向精确的仓库证据（如 `repo://src/server.ts#L40-L82`），并记录 OpenWiki 在断言建立时观察到的证据版本。
+
+Markdown 文档保持简洁。结构化断言状态存储于 `openwiki/.claims/`。页面完成度通过已 reconcile 的断言实现验证，将项目验证信息写入 OKF 前端元数据，并在标记页面任务完成前证明最终结果。有据断言适用于仓库代码Wiki和仓库证据，connector 导出的事实（包括 LangSmith 唯一观测）不作为断言。
+
+断言更新以稀疏方式 reconcile。页面工作者提交需关注断言的决策（确认、修订、新增或撤回）。未受影响的断言保持稳定标识符，无需通过模型轮流传回声明与证据。宿主驱动运行通过可选 `openwiki_inspect_page_claims` MCP 工具暴露当前页面完整断言集。
+
+## Markdown输出
+
+OpenWiki的持久化输出采用Markdown（OKF）格式，而非静态HTML网站。要浏览器端探索该维基，请运行[`openwiki visualize`](/langchain/oss/openwiki/visualize)。该命令仅在您的本地机器（`127.0.0.1`）上提供查看器，或者您可以[导出一个静态可视化器](/langchain/oss/openwiki/visualize#导出静态站点)用于托管。
+
+## 开放知识格式
+
+OpenWiki以[Google Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) v0.2形式在代码模式和私人模式下生成数据包：
+
+- **概念**是普通的Wiki Markdown页面（单个主题文件）。每个概念都有一个非空的`type` YAML前置元数据，其他标准字段为可选
+- 新建或初始化的页面会获得`generated: {by, at}`。在更新过程中，任何正文变更（包括空格）都会推进时间戳；正文未变则保留原有事件，仅前置元数据变更不会推进时间戳。生产者会被标记为`openwiki/<version>`（或编码代理主机）
+- 仓库页面将已验证的`sources`证据锚定到概念。OpenWiki在确定性地识别条目时保持独立作者来源的完整性
+- 仓库页面仅在成功提交页面且满足以下条件时获得`verified: {by: openwiki/<version>, at: ...}`：验证非空完整的证据集合、通过最终证据复查、持久化证据侧边文件
+- `index.md`和`log.md`是**保留**的脚手架文件，非概念。根索引声明`okf_version: "0.2"`
+- 可选的v0.2来源、信任和生命周期家族（`sources`, `verified`, `status`, `stale_after`）在存在时会被验证。生产者定义的扩展字段会在更新和迁移过程中保持完整
+- 概念文档之间的标准Markdown链接表示关系
+
+## LangSmith连接器
+
+**LangSmith** 连接器增强代码Wiki：它会拉取您选择的项目近期 LangSmith 跟踪（工具调用、结果和延迟），使仓库文档反映代码运行时的行为，而不仅限于源代码说明。
+
+在 `openwiki --init` 的代码模式下配置它。通过源代码菜单添加 LangSmith，选择工作区区域（US、EU 或 APAC），并列出需要文档化的项目。OpenWiki 会提交一个命名人工作区和项目的 `openwiki/.langsmith.json`（不会包含密钥本身）。API 密钥从环境中读取：
+
+```bash
+OPENWIKI_LANGSMITH_API_KEY="<your-langsmith-key>"
+```
+
+本地可通过设置向导将此保存到 `~/.openwiki/.env`。CI 中将其设为仓库密钥并导出。
+
+LangSmith 密钥与工作区和区域绑定。若需文档化跨多个工作区的项目，每个工作区需单独配置密钥，命名为 `OPENWIKI_LANGSMITH_API_KEY_2`、`OPENWIKI_LANGSMITH_API_KEY_3` 等。连接器将连接美国（`api.smith.langchain.com`）、欧盟（`eu.api.smith.langchain.com`）和亚太（`apac.api.smith.langchain.com`）的官方主机。
+
+## 忽略路径
+
+在仓库根目录创建 `.openwikiignore` 文件，防止生成文档读取或描述私有、生成或无关路径。语法支持注释、空行、`*` 和 `**` 模式匹配、目录规则及`!`否定：
+
+```txt
+secrets/
+*.log
+!logs/keep.log
+```
+
+当 `.openwikiignore` 有生效规则时，OpenWiki 会过滤文件系统探索并限制 shell 执行权限，确保忽略路径不参与运行。仓库智能体会使用受约束的文件系统工具，而非任意宿主 shell 命令或无限制的仓库检查。
+
+<Note>
+    这是读取边界：忽略路径不会被读取、扫描或复现于生成文档。但该设置不保证某个主题永不出现，因为智能体可能通过其他允许证据（如测试、README、提交消息或现有 Wiki）推断被忽略区域。
+
+</Note>
+
+## 图表
+
+OpenWiki 在必要时嵌入 Mermaid 图表以更清晰阐释概念。每次运行后它会验证 Mermaid 括号。若图表验证失败，OpenWiki 会将其转换为带简短注释的纯文本 `text` 括号，并在后续 `--update` 运行中尝试修复。
+
+要更接近 GitHub 的渲染效果，在运行 OpenWiki 的环境中安装 Mermaid 解析器：
+
+```bash
+npm install mermaid jsdom
+```
+
+存在解析器时 OpenWiki 使用它，否则采用轻量级检查。图表生成不受影响。
+
+## 定制 Wiki 摘要
+
+编辑 `openwiki/INSTRUCTIONS.md` 指导仓库文档的范围、优先级和写作规范（例如语气、术语、需强调或跳过的内容）。OpenWiki 在初始化和更新运行时读取此文件。您也可在聊天中要求 OpenWiki 修订摘要：
+
+```bash
+openwiki "Update openwiki/INSTRUCTIONS.md to prioritize the public API and skip internal tooling"
+```
+
+常规 `--init` 和 `--update` 运行不会重写此文件。
+
+## 参考文档
+
+- [编程代理集成](/langchain/oss/openwiki/integrations)
+- [搜索与链接 Wiki](/langchain/oss/openwiki/search-and-link)
+- [可视化 Wiki](/langchain/oss/openwiki/visualize)
+- [自动化更新](/langchain/oss/openwiki/automate-updates)
+- [自定义 OpenWiki](/langchain/oss/openwiki/customize)
+- [个人模式](/langchain/oss/openwiki/personal-mode)
+
+---
+
+> 官方原文：[src/oss/openwiki/code-mode.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/code-mode.mdx) · 译文由 AI 生成，以英文原文为准。

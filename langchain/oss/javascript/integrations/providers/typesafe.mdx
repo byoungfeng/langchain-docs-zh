@@ -1,0 +1,133 @@
+---
+title: "TypeSafe 集成"
+description: "使用 LangChain 与 TypeSafe 集成。"
+---
+
+[Jev](https://docs.typesafe.ai/models) 是一个 [系统一模型](https://docs.typesafe.ai/concepts/system-one)，它读取自然语言，但返回的是键入的答案和校准的概率，而不是生成的文本。
+
+[`TypeSafeClassifier`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-typesafe) 将状态分类为键入的决策和概率。它接受字符串、结构化的 JSON 以及 [LangChain 消息对象](/langchain/oss/langchain/messages)。用于需要集中决策的场景，例如路由请求、选择模型或检查是否可以安全运行工具调用。
+
+## 设置
+
+安装 `@langchain/typesafe` 及其 `@langchain/core` 依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/typesafe @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/typesafe @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/typesafe @langchain/core
+```
+</CodeGroup>
+
+将您的 API 密钥保存在服务器上。不要在浏览器代码中暴露它。设置 `dangerouslyAllowBrowser: false` 以拒绝浏览器使用，如下面的快速入门示例所示。
+
+在 [TypeSafe 控制台](https://console.typesafe.ai/settings/keys) 中创建 API 密钥并导出它：
+
+```bash
+export TYPESAFE_API_KEY=...
+```
+
+<Note>
+可选：设置 `TYPESAFE_BASE_URL` 以使用兼容的网关、测试服务器或私有部署。默认值为 `https://api.typesafe.ai`。
+
+```bash
+export TYPESAFE_BASE_URL=https://gateway.example.com
+```
+</Note>
+
+## 快速入门
+
+使用一组命名的固定问题配置 `TypeSafeClassifier`。共享状态的问题在一个请求中独立并行评估：
+
+```typescript
+import { TypeSafeClassifier } from "@langchain/typesafe";
+
+const classifier = new TypeSafeClassifier({
+  dangerouslyAllowBrowser: false,
+  questions: {
+    urgent: {
+      type: "noul",
+      instructions: "Does this need attention right now?",
+    },
+    team: {
+      type: "choice",
+      instructions: "Which team should pick this up?",
+      criteria: {
+        infra: "Deploys, availability, and on-call incidents.",
+        billing: "Payments, invoices, and subscriptions.",
+      },
+    },
+    severity: {
+      type: "score",
+      instructions: "How severe is the impact?",
+      criteria: ["Cosmetic.", "Degraded for some users.", "Full outage."],
+    },
+  },
+});
+
+const response = await classifier.invoke(
+  "The deploy failed twice and customers are seeing 500s. Can someone look now?"
+);
+
+console.log(response.nouls.urgent.noul);
+console.log(response.choices.team.choice, response.choices.team.confidence);
+console.log(response.scores.severity.score);
+```
+
+答案使用您的问题 ID 作为键在 `response.answers` 中。`nouls`、`choices` 和 `scores` 访问器按类型分组答案对象。响应还包括 `model`、`usage` 和可选的 `requestId`。`usage.inputTokens` 和 `usage.outputTokens` 字段是可选的。
+
+分组访问器是不可枚举的获取器。对象展开和 JSON 序列化会忽略它们；在存储或传输响应时使用 `answers`。
+
+状态可以是字符串、JSON 对象或数组，或 LangChain 消息。分类器将消息对象转换为文本，包括嵌套在更大的对象内部时。
+
+## 配置请求
+
+构造函数选项控制身份验证和请求行为：
+
+- **`apiKey`**：覆盖 `TYPESAFE_API_KEY`。
+- **`baseUrl`**：覆盖 `TYPESAFE_BASE_URL`。
+- **`timeout`**：设置每个请求的超时时间（毫秒）。默认为 `30000`。
+- **`maxRetries`**：设置最大重试次数。默认为 `2`；将其设置为 `0` 以禁用重试。
+- **`fetch`**：为代理或测试提供自定义传输。
+
+将请求配置，例如 `signal`、`tags` 和 `metadata`，作为 `invoke` 的第二个参数传递。问题和模型是构造函数设置，不是每次调用的覆盖。
+
+分类器还支持 `batch` 和 `pipe`。其 `stream` 方法生成完整的分类结果，而不是增量答案。
+
+## 处理错误
+
+该包导出 `TypeSafeError`、`TypeSafeAPIError`、`TypeSafeAuthenticationError` 和 `TypeSafeRateLimitError`。使用它们的 `isInstance(error)` 方法来识别失败。避免无差别地记录 API 错误正文：它们可能包含提交的状态。
+
+TypeSafe 接收您提交的状态，包括消息内容和工具调用参数。在调用分类器之前删除密钥或敏感数据。
+
+## 决策类型
+
+每个问题使用三种 [基本类型](https://docs.typesafe.ai/primitives) 之一。将问题定义为具有 `type` 为 `"noul"`、`"choice"` 或 `"score"` 的对象。该包不导出 `Noul`、`Choice` 或 `Score` 构造函数：
+
+| 基本类型 | 询问 | 返回 | 在以下情况下使用它 |
+|---|---|---|---|
+| [`noul`](https://docs.typesafe.ai/primitives/noul) | 这是真的吗？ | `noul`、是的概率 | 您的代码根据一个 `if` 分支 |
+| [`choice`](https://docs.typesafe.ai/primitives/choice) | 这些选项中哪个？ | `choice`，以及 `probabilities` 和 `confidence` | 选项映射到不同的代码路径 |
+| [`score`](https://docs.typesafe.ai/primitives/score) | 哪个级别？ | `score`，以及 `legend`、`probabilities` 和 `confidence` | 答案是一个您与之比较阈值的范围 |
+
+一个 `noul` 答案没有 `confidence` 或 `probabilities`。对于范围，使用 `score` 而不是 `noul`：一个 `noul` 的 `0.5` 表示在是和否之间均等分配，而不是“中等。”
+
+## 跟踪
+
+启用 LangSmith 跟踪时，TypeSafe 分类结果会出现在 [LangSmith](https://docs.langchain.com/langsmith/home) 中。您可以与您的智能体一起检查输入、输出和可用 Token 使用情况。LangSmith 在跟踪输出中记录 `usage`，而不是作为计价的 LLM 指标。
+
+## 参考文档
+
+- [TypeSafe 文档](https://docs.typesafe.ai/)
+- [TypeSafe 置信指南](https://docs.typesafe.ai/confidence)
+- [`@langchain/typesafe` 源代码](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-typesafe)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/typesafe.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/typesafe.mdx) · 译文由 AI 生成，以英文原文为准。

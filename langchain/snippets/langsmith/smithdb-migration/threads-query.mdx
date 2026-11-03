@@ -1,0 +1,332 @@
+import SmithdbThreadsQueryListAllBeforePy from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-before-py.mdx';
+import SmithdbThreadsQueryListAllAfterPy from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-after-py.mdx';
+import SmithdbThreadsQueryListAllBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-before-js.mdx';
+import SmithdbThreadsQueryListAllAfterJs from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-after-js.mdx';
+import SmithdbThreadsQueryListAllBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-before-go.mdx';
+import SmithdbThreadsQueryListAllAfterGo from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-after-go.mdx';
+import SmithdbThreadsQueryListAllBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-before-kt.mdx';
+import SmithdbThreadsQueryListAllAfterKt from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-after-kt.mdx';
+import SmithdbThreadsQueryListAllBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-before-sh.mdx';
+import SmithdbThreadsQueryListAllAfterSh from '/langchain/snippets/code-samples/smithdb-migration/threads-query-list-all-after-sh.mdx';
+import SmithdbThreadsQueryFilterStatusBeforePy from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-before-py.mdx';
+import SmithdbThreadsQueryFilterStatusAfterPy from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-after-py.mdx';
+import SmithdbThreadsQueryFilterStatusBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-before-js.mdx';
+import SmithdbThreadsQueryFilterStatusAfterJs from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-after-js.mdx';
+import SmithdbThreadsQueryFilterStatusBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-before-go.mdx';
+import SmithdbThreadsQueryFilterStatusAfterGo from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-after-go.mdx';
+import SmithdbThreadsQueryFilterStatusBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-before-kt.mdx';
+import SmithdbThreadsQueryFilterStatusAfterKt from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-after-kt.mdx';
+import SmithdbThreadsQueryFilterStatusBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-before-sh.mdx';
+import SmithdbThreadsQueryFilterStatusAfterSh from '/langchain/snippets/code-samples/smithdb-migration/threads-query-filter-status-after-sh.mdx';
+
+## 线程：查询
+
+查询项目内的线程，支持基于游标的分页。返回匹配给定时间范围和可选过滤条件的线程。
+
+### 主要变更
+
+#### 方法名
+
+<Tabs>
+  <Tab title="Python">
+    | 旧版 | 新版 |
+    |------|------|
+    | `client.list_threads()` | `client.threads.query()` |
+
+    <Note>
+    `client.threads.query()` 现在为异步。需通过 `await` 调用。
+    </Note>
+
+    参见 [参考文档](https://reference.langchain.com/python/langsmith/_openapi_client/resources/threads/ThreadsResource/query) 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="TypeScript">
+    | 旧版 | 新版 |
+    |------|------|
+    | `client.listThreads()` | `client.threads.query()` |
+
+    参见 [参考文档](https://reference.langchain.com/javascript/langsmith/_openapi_client/Langsmith/Threads/query) 获取完整参数和字段列表。
+  </Tab>
+  <Tab title="Java">
+    <Note>
+Java 原先没有专门的线程列表方法。最接近的遗留方案是通过 `thread_id` 元数据手动分组通用查询。
+    </Note>
+
+    | 旧版 | 新版 |
+    |------|------|
+    | `client.runs().query()` (通用，客户端端分组) | `client.threads().query()` |
+
+    参见 [参考文档](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/ThreadService.html) 获取完整参数列表。
+  </Tab>
+  <Tab title="Go">
+    <Note>
+Go 原先没有专门的线程列表方法。最接近的遗留方案是通过 `thread_id` 元数据手动分组通用查询。
+    </Note>
+
+    | 旧版 | 新版 |
+    |------|------|
+    | `client.Runs.Query()` (通用，客户端端分组) | `client.Threads.Query()` |
+
+    参见 [API 文档](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#ThreadService.QueryAutoPaging) 获取完整参数列表。
+  </Tab>
+  <Tab title="cURL">
+    | 旧版 | 新版 |
+    |------|------|
+    | `POST /api/v1/runs/query` (`is_root=true`, 客户端端分组) | `POST /api/v2/threads/query` |
+
+    参见 [参考文档](https://docs.langchain.com/langsmith/smith-api/threads/query-threads) 获取完整参数和字段列表。
+  </Tab>
+</Tabs>
+
+#### 查询参数
+
+<Tabs>
+  <Tab title="Python">
+    | 旧版 (`list_threads`) | 新版 (`threads.query`) | 备注 |
+    |---|---|---|
+    | `project_id` XOR `project_name` | `project_id` | 新方法仅接受 UUID；需先通过 `aread_project()` 解析名称，与 `Runs: query` 模式一致 |
+    | `start_time` (默认1天前) | `min_start_time` + `max_start_time` | 可选；默认为以当前时间结束的1天窗口，与 `start_time` 一致 |
+    | `offset` + `limit` | `cursor` + `page_size` | 偏移分页替换为游标分页 |
+    | `filter` (基于 runs) | `filter` | 同样语法；现在基于每个线程的根 runs 评估 |
+  </Tab>
+  <Tab title="TypeScript">
+    | 旧版 (`listThreads`) | 新版 (`threads.query`) | 备注 |
+    |---|---|---|
+    | `projectId` XOR `projectName` | `project_id` | 新方法仅接受 UUID；需先通过 `readProject()` 解析名称 |
+    | `startTime` (默认1天前) | `min_start_time` + `max_start_time` | 可选；默认为以当前时间结束的1天窗口，与 `startTime` 一致 |
+    | `offset` + `limit` | `cursor` + `page_size` | 偏移分页替换为游标分页 |
+    | `filter` | `filter` | 同样语法；现在基于每个线程的根 runs 评估 |
+  </Tab>
+  <Tab title="Java">
+    无需映射查询参数。原方法不存在。旧方案使用通用查询（`is_root=true`，通过 `thread_id` 元数据手动分组）。`threads().query()` 接受 `projectId`, `minStartTime`, `maxStartTime`（两者可选，默认为以当前时间结束的1天窗口），`filter`, `pageSize`, `cursor`。
+  </Tab>
+  <Tab title="Go">
+    无需映射查询参数。原方法不存在。旧方案使用通用查询（`IsRoot: true`，通过 `thread_id` 元数据手动分组）。`Threads.Query()` 接受 `ProjectID`, `MinStartTime`, `MaxStartTime`（两者可选，默认为以当前时间结束的1天窗口），`Filter`, `PageSize`, `Cursor`。
+  </Tab>
+  <Tab title="cURL">
+    `POST /api/v2/threads/query` 主体字段：`project_id`, `min_start_time`（可选），`max_start_time`（可选），`filter`, `page_size`, `cursor`（均需 `snake_case`）。`min_start_time`/`max_start_time` 默认为以当前时间结束的1天窗口（当省略时）。
+  </Tab>
+</Tabs>
+
+#### 响应字段
+
+<Tabs>
+  <Tab title="Python">
+    Python 的遗留 `ListThreadsItem` 仅包含 `thread_id`, `runs`（完整嵌入 `Run[]`），`count`, `min_start_time`, `max_start_time`。完全不包含 Token/cost/latency/feedback 字段。
+
+新的 `Thread` 从不嵌入完整的运行列表（这正是 `threads.list_traces` 的作用），而是添加真实的 `feedback_stats`、`latency_p50`/`latency_p99`、按类别 `_details`、`first_trace_id`/`last_trace_id`、`first_inputs`/`last_outputs` 预览，以及 `last_error`、`num_errored_turns`。
+
+    | Before (legacy `ListThreadsItem`) | After (new `Thread`) | Notes |
+    |---|---|---|
+    | `thread_id` | `thread_id` | Unchanged |
+    | `runs` (full embedded `Run[]`) | *(not available)* | Use `threads.list_traces` for per-trace detail |
+    | `count` | `count` | Unchanged |
+    | `min_start_time` | `min_start_time` | Unchanged |
+    | `max_start_time` | `max_start_time` | Unchanged |
+    | *(not available)* | `start_time` | New: a reference start time for this row, for example for sorting |
+    | *(not available)* | `trace_id` | New: a representative root trace UUID, for example for deep links |
+    | *(not available)* | `first_trace_id`, `last_trace_id` | New: chronologically first/last trace UUID in the query window |
+    | *(not available)* | `first_inputs`, `last_outputs` | New: truncated previews from the first/last trace |
+    | *(not available)* | `last_error` | New |
+    | *(not available)* | `num_errored_turns` | New |
+    | *(not available)* | `latency_p50`, `latency_p99` | New |
+    | *(not available)* | `total_tokens`, `total_cost` | New |
+    | *(not available)* | `total_token_details`, `total_cost_details` | New: per-category dicts, unlike `threads.list_traces` these are not wrapped in `.raw` |
+    | *(not available)* | `feedback_stats` | New |
+  </Tab>
+  <Tab title="TypeScript">
+    | Before (legacy `ListThreadsItem`) | After (new `Thread`) | Notes |
+    |---|---|---|
+    | `thread_id` | `thread_id` | Unchanged |
+    | `runs` (full embedded `Run[]`) | *(not available)* | Use `threads.listTraces` for per-trace detail |
+    | `count` | `count` | Unchanged |
+    | `min_start_time` | `min_start_time` | Unchanged |
+    | `max_start_time` | `max_start_time` | Unchanged |
+    | `total_tokens` | `total_tokens` | Unchanged |
+    | `total_cost` | `total_cost` | Unchanged |
+    | `latency_p50`, `latency_p99` | `latency_p50`, `latency_p99` | Unchanged |
+    | `feedback_stats` | `feedback_stats` | Unchanged |
+    | `first_inputs`, `last_outputs` | `first_inputs`, `last_outputs` | Unchanged |
+    | `last_error` | `last_error` | Unchanged |
+    | *(not available)* | `start_time` | New: a reference start time for this row, for example for sorting |
+    | *(not available)* | `trace_id` | New: a representative root trace UUID, for example for deep links |
+    | *(not available)* | `first_trace_id`, `last_trace_id` | New: chronologically first/last trace UUID in the query window |
+    | *(not available)* | `num_errored_turns` | New |
+    | *(not available)* | `total_token_details`, `total_cost_details` | New: per-category dicts, unlike `threads.listTraces` these are not wrapped in `.raw` |
+  </Tab>
+  <Tab title="Java">
+    `Thread` has 19 fields: `threadId`, `count`, `feedbackStats`, `firstInputs`, `firstTraceId`, `lastError`, `lastOutputs`, `lastTraceId`, `latencyP50`, `latencyP99`, `maxStartTime`, `minStartTime`, `numErroredTurns`, `startTime`, `totalCost`, `totalCostDetails`, `totalTokenDetails`, `totalTokens`, `traceId` (all `Optional`).
+
+旧版 SDK 从未为这个功能提供过类型化的响应。Java 的最接近等效方案在客户端按 `runs().query()` 元数据将原始 `thread_id` 结果分组。以下所有字段都是新的。
+
+
+※ 重要提示：在您之前的输出中占位符集是错误的。缺失的 ID：['1']; 预期外多余的 ID：[]。请再次翻译全文，保留每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。
+
+    | New `Thread` method | Notes |
+    |---|---|
+    | `threadId()` | |
+    | `count()` | |
+    | `minStartTime()`, `maxStartTime()`, `startTime()` | |
+    | `firstTraceId()`, `lastTraceId()`, `traceId()` | `traceId()` is a representative root trace UUID, for example for deep links, in addition to the first/last trace UUIDs |
+    | `firstInputs()`, `lastOutputs()` | Truncated previews from the first/last trace |
+    | `lastError()` | |
+    | `numErroredTurns()` | |
+    | `latencyP50()`, `latencyP99()` | |
+    | `totalTokens()`, `totalCost()` | |
+    | `totalTokenDetails()`, `totalCostDetails()` | Per-category maps |
+    | `feedbackStats()` | |
+  </Tab>
+  <Tab title="Go">
+    `Thread` has 19 fields, in `PascalCase` Go struct form (e.g. `ThreadID`, `Count`, `LatencyP50`).
+
+旧版 SDK 从未为这个功能提供类型化的响应。Go 的最接近等效方案在客户端按 `thread_id` 元数据分组原始 `Runs.Query()` 结果。以下所有字段都是新的。
+
+    | New `Thread` field | Notes |
+    |---|---|
+    | `ThreadID` | |
+    | `Count` | |
+    | `MinStartTime`, `MaxStartTime`, `StartTime` | |
+    | `FirstTraceID`, `LastTraceID`, `TraceID` | `TraceID` is a representative root trace UUID, for example for deep links, in addition to the first/last trace UUIDs |
+    | `FirstInputs`, `LastOutputs` | Truncated previews from the first/last trace |
+    | `LastError` | |
+    | `NumErroredTurns` | |
+    | `LatencyP50`, `LatencyP99` | |
+    | `TotalTokens`, `TotalCost` | |
+    | `TotalTokenDetails`, `TotalCostDetails` | Per-category maps |
+    | `FeedbackStats` | |
+  </Tab>
+  <Tab title="cURL">
+    JSON response fields use `snake_case`: `thread_id`, `count`, `feedback_stats`, `first_inputs`, `first_trace_id`, `last_error`, `last_outputs`, `last_trace_id`, `latency_p50`, `latency_p99`, `max_start_time`, `min_start_time`, `num_errored_turns`, `start_time`, `total_cost`, `total_cost_details`, `total_token_details`, `total_tokens`, `trace_id`.
+
+旧版 API 从未有过专门的线程端点。最接近的等效功能是 `POST /api/v1/runs/query`，在客户端按 `thread_id` 元数据分组。以下所有字段都是新增的。
+
+    | New `threads.query` response field | Notes |
+    |---|---|
+    | `thread_id` | |
+    | `count` | |
+    | `min_start_time`, `max_start_time`, `start_time` | |
+    | `first_trace_id`, `last_trace_id`, `trace_id` | `trace_id` is a representative root trace UUID, for example for deep links, in addition to the first/last trace UUIDs |
+    | `first_inputs`, `last_outputs` | Truncated previews from the first/last trace |
+    | `last_error` | |
+    | `num_errored_turns` | |
+    | `latency_p50`, `latency_p99` | |
+    | `total_tokens`, `total_cost` | |
+    | `total_token_details`, `total_cost_details` | Per-category dicts |
+    | `feedback_stats` | |
+  </Tab>
+</Tabs>
+
+### 示例
+
+#### 列出项目中的线程
+
+获取在指定时间范围内有活动的项目中的每个线程。
+
+<Tabs>
+  <Tab title="Python">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryListAllBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryListAllAfterPy />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryListAllBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryListAllAfterJs />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Java">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryListAllBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryListAllAfterKt />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Go">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryListAllBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryListAllAfterGo />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryListAllBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryListAllAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>
+
+#### 查找错误线程
+
+查找那些在回合结束时出现错误的线程。
+
+<Tabs>
+  <Tab title="Python">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryFilterStatusBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryFilterStatusAfterPy />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryFilterStatusBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryFilterStatusAfterJs />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Java">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryFilterStatusBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryFilterStatusAfterKt />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="Go">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryFilterStatusBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryFilterStatusAfterGo />
+  </Tab>
+</Tabs>
+  </Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbThreadsQueryFilterStatusBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbThreadsQueryFilterStatusAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>

@@ -1,0 +1,79 @@
+---
+title: "OracleAI 向量搜索集成"
+description: "使用 LangChain Python 集成 OracleAI 向量搜索。"
+---
+
+Oracle AI Database 是专为基于 **语义**（而非关键词）查询数据的 AI 工作负载构建。它将 **非结构化内容中的语义搜索** 与 **业务数据中的关系过滤** 整合到一个系统中——从而无需引入独立的向量数据库即可构建 AI 检索工作流（如 RAG），同时避免数据在多个平台间碎片化。
+
+### 为什么重要
+
+- **AI + 业务数据一体化系统**：向量与运营数据共存。
+- **减少碎片化**：比独立向量存储少一个组件。
+- **数据库级保障**：为同一 AI 工作负载应用安全、事务、扩展性和可用性。
+
+## 前置条件
+
+安装 `langchain-oracledb`。`python-oracledb` 驱动会自动作为依赖安装。
+
+<CodeGroup>
+```bash pip
+pip install -qU langchain-oracledb
+```
+```bash uv
+uv add langchain-oracledb
+```
+</CodeGroup>
+
+## 文档加载器
+
+请查看 [使用示例](/langchain/oss/python/integrations/document_loaders/oracleai)。
+
+```python
+from langchain_oracledb.document_loaders.oracleai import OracleDocLoader
+```
+
+## 文本分割器
+
+请查看 [使用示例](/langchain/oss/python/integrations/document_loaders/oracleai)。
+
+```python
+from langchain_oracledb.document_loaders.oracleai import OracleTextSplitter
+```
+
+## 嵌入
+
+请查看 [使用示例](/langchain/oss/python/integrations/embeddings/oracleai)。
+
+```python
+from langchain_oracledb.embeddings.oracleai import OracleEmbeddings
+```
+
+## 概要
+
+请查看 [使用示例](/langchain/oss/python/integrations/tools/oracleai)。
+
+```python
+from langchain_oracledb.utilities.oracleai import OracleSummary
+```
+
+## 向量存储
+
+请查看 [使用示例](/langchain/oss/python/integrations/vectorstores/oracle)。
+
+```python
+from langchain_oracledb.vectorstores.oraclevs import OracleVS
+```
+
+## 全流程演示
+
+请查看 [Oracle AI 向量搜索全流程演示指南](https://github.com/langchain-ai/langchain/blob/v0.3/cookbook/oracleai_demo.ipynb)。
+
+## 扩展资源
+
+- [GitHub 仓库](https://github.com/oracle/langchain-oracle) — 官方 `oracle/langchain-oracle` 单一仓库，内含 [`langgraph-oracledb`](https://github.com/oracle/langchain-oracle/tree/main/libs/langgraph-oracledb)（基于 Oracle 数据库的 LangGraph 检查点和存储）和 [`@oracle/langchain-oracledb`](https://github.com/oracle/langchain-oracle/tree/main/libs/js/langchain-oracledb)（LangChain.js 相关内容）
+- [示例代码](https://github.com/oracle/langchain-oracle/tree/main/samples) — 覆盖聊天、智能体、工具调用、结构化输出、嵌入和基于 Oracle 数据存储的 RAG 的编号学习路径
+- [`langchain-oracledb` 包文档](https://github.com/oracle/langchain-oracle/tree/main/libs/oracledb)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/oracleai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/oracleai.mdx) · 译文由 AI 生成，以英文原文为准。

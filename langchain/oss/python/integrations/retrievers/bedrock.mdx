@@ -1,0 +1,155 @@
+---
+title: "Bedrock (知识库) 集成"
+description: "使用 LangChain Python 与 Bedrock（知识库）检索器集成。"
+integration:
+  name: AmazonKnowledgeBasesRetriever
+  pypi: langchain-aws
+  self_host: false
+  cloud_offering: true
+  package_md: '[`langchain-aws`](https://reference.langchain.com/python/langchain-aws/retrievers/bedrock/AmazonKnowledgeBasesRetriever)'
+---
+
+本指南将帮助您开始使用 AWS Knowledge Bases [retriever](/langchain/oss/deepagents/retrieval)。
+
+[Amazon Bedrock 的知识库](https://aws.amazon.com/bedrock/knowledge-bases/) 是一项亚马逊云科技（AWS）的服务，它允许您使用私有数据来定制 FM 响应，从而快速构建 RAG 应用。
+
+实现 `RAG` 需要组织执行多个繁琐的步骤，将数据转换为嵌入（向量），将嵌入存储在专门的向量数据库中，并构建到数据库中的自定义集成以搜索和检索与用户查询相关的文本。这可能既耗时又低效。
+
+使用 `Knowledge Bases for Amazon Bedrock`，只需指向 `Amazon S3` 中的您的数据位置，`Knowledge Bases for Amazon Bedrock` 将负责整个到您的向量数据库的摄取工作流。如果您没有现有的向量数据库，Amazon Bedrock 将为您创建一个 Amazon OpenSearch Serverless 向量存储。对于检索，通过检索 API 使用 LangChain - Amazon Bedrock 集成，从知识库中检索与用户查询相关的结果。
+
+**Amazon Bedrock 现在还提供 [托管知识库](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html)**，它自动处理嵌入、存储和检索——无需外部向量存储。请参阅下方的 [托管知识库](#托管知识库) 部分。
+
+### 集成详情
+
+<ItemTable category="document_retrievers" item="AmazonKnowledgeBasesRetriever" />
+
+## 设置
+
+知识库可以通过 [AWS 控制台](https://aws.amazon.com/console/) 或使用 [AWS SDK](https://aws.amazon.com/developer/tools/) 进行配置。我们需要 `knowledge_base_id` 来实例化检索器。
+
+如果您想从单个查询中获得自动跟踪，您也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+此检索器位于 `langchain-aws` 包中：
+
+```python
+pip install -qU "langchain-aws>=1.6.3"
+```
+
+**SDK 要求：** 托管搜索和智能体检索需要 `langchain-aws>=1.6.3`，它安装 `boto3>=1.43.32`。
+
+## 实例化
+
+### 向量知识库
+
+对于传统的基于向量的知识库（使用 OpenSearch Serverless、Pinecone 等）：
+
+```python
+from langchain_aws.retrievers import AmazonKnowledgeBasesRetriever
+
+retriever = AmazonKnowledgeBasesRetriever(
+    knowledge_base_id="PUIJP4EQUA",
+    retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 4}},
+)
+```
+
+### 托管知识库
+
+对于 [托管知识库](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html)（推荐——无需向量存储）：
+
+```python
+from langchain_aws.retrievers import AmazonKnowledgeBasesRetriever
+
+retriever = AmazonKnowledgeBasesRetriever(
+    knowledge_base_id="YOUR_MANAGED_KB_ID",
+    retrieval_config={"managedSearchConfiguration": {"numberOfResults": 4}},
+)
+```
+
+托管知识库自动处理嵌入、分块、存储和检索。它们还支持托管重新排序以改进结果质量。
+
+### 智能体检索
+
+对于受益于查询分解和托管重新排序的复杂查询，使用独立的 `agentic_retrieve` 辅助程序：
+
+```python
+from langchain_aws.retrievers import agentic_retrieve
+
+result = agentic_retrieve(
+    knowledge_base_id="YOUR_MANAGED_KB_ID",
+    query="What are the differences between S3 storage classes?",
+    region_name="us-west-2",
+)
+
+for doc in result["results"]:
+    print(doc["content"]["text"])
+```
+
+智能体检索使用 `AgenticRetrieveStream`，它执行智能查询分解和托管重新排序。它需要 `langchain-aws>=1.6.3`，并且仅适用于托管知识库。
+
+## 使用
+
+```python
+query = "What did the president say about Ketanji Brown?"
+
+retriever.invoke(query)
+```
+
+## 在链中使用
+
+```python
+from langchain_aws import ChatBedrock
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+
+llm = ChatBedrock(model_id="anthropic.claude-sonnet-4-20250514-v1:0")
+
+prompt = ChatPromptTemplate.from_template(
+    "Answer the question based on the context:\n\nContext: {context}\n\nQuestion: {question}"
+)
+
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+chain.invoke("What are the key features?")
+```
+
+## 所需的 IAM 权限
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "bedrock:Retrieve",
+    "bedrock:AgenticRetrieveStream"
+  ],
+  "Resource": "arn:aws:bedrock:<region>:<account-id>:knowledge-base/<kb-id>"
+}
+```
+
+## 资源
+
+- [构建托管知识库](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-build-managed.html)
+- [检索 API](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-test-retrieve.html)
+- [智能体检索](https://docs.aws.amazon.com/bedrock/latest/userguide/kb-test-agentic-retrieve.html)
+
+---
+
+## API 参考
+
+有关所有 `AmazonKnowledgeBasesRetriever` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-aws/retrievers/bedrock/AmazonKnowledgeBasesRetriever)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/retrievers/bedrock.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/retrievers/bedrock.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,121 @@
+---
+title: "PerplexitySearchRetriever 集成"
+description: "使用 LangChain 集成 PerplexitySearchRetriever 检索器。"
+integration:
+  name: PerplexitySearchRetriever
+  npm: '@langchain/perplexity'
+---
+
+[Perplexity Search API](https://docs.perplexity.ai/docs/search/quickstart) 返回实时、有依据的网页搜索结果，可以直接放入检索管道中。
+
+## 概述
+
+这将帮助你开始使用 `PerplexitySearchRetriever` [检索](/langchain/oss/deepagents/retrieval)。有关所有 `PerplexitySearchRetriever` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-perplexity/PerplexitySearchRetriever)。
+
+### 集成细节
+
+| 检索器 | 源 | 包 | [PY 支持](/langchain/oss/python/integrations/retrievers/perplexity_search) |
+| :--- | :--- | :---: | :---: |
+| [`PerplexitySearchRetriever`](https://reference.langchain.com/javascript/langchain-perplexity/PerplexitySearchRetriever) | 通过 Perplexity Search API 访问的网页。 | [`@langchain/perplexity`](https://www.npmjs.com/package/@langchain/perplexity) | ✅ |
+
+## 设置
+
+你需要用你的 Perplexity API 密钥填充一个 `PERPLEXITY_API_KEY` 环境变量，或者将其作为 `apiKey` 传递给构造函数。从 [Perplexity API 密钥控制面板](https://www.perplexity.ai/account/api/keys) 获取密钥。
+
+```typescript
+process.env.PERPLEXITY_API_KEY = "your-api-key";
+```
+
+如果你想要从单个查询中获得自动跟踪，你也可以通过取消注释以下内容来设置你的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```typescript
+// process.env.LANGSMITH_API_KEY = "<YOUR API KEY HERE>";
+// process.env.LANGSMITH_TRACING = "true";
+```
+
+### 安装
+
+这个检索器位于 `@langchain/perplexity` 包中：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/perplexity @langchain/core
+```
+```bash yarn
+yarn add @langchain/perplexity @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/perplexity @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+```typescript
+import { PerplexitySearchRetriever } from "@langchain/perplexity";
+
+const retriever = new PerplexitySearchRetriever({
+  maxResults: 5,
+  // searchDomainFilter: ["wikipedia.org"],
+  // searchRecencyFilter: "week",
+});
+```
+
+构造函数选项包括 `maxResults`、`country`、`searchDomainFilter`、`searchRecencyFilter`、`searchAfterDate` 和 `searchBeforeDate`。有关详细信息，请参阅 [Perplexity Search API 参数](https://docs.perplexity.ai/docs/search/quickstart)。
+
+## 使用
+
+```typescript
+const query = "Who won the most recent FIFA World Cup?";
+
+const docs = await retriever.invoke(query);
+```
+
+每个返回的 `Document` 都有搜索结果片段作为 `pageContent` 和 `{ title, url, date, lastUpdated }` 在 `metadata` 中。
+
+## 在链中使用
+
+与其他检索器一样，`PerplexitySearchRetriever` 可以通过 [链](/langchain/oss/deepagents/retrieval) 融入 LLM 应用程序中。
+
+```typescript
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { ChatAnthropic } from "@langchain/anthropic";
+import {
+  RunnablePassthrough,
+  RunnableSequence,
+} from "@langchain/core/runnables";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { Document } from "@langchain/core/documents";
+
+const prompt = ChatPromptTemplate.fromTemplate(`
+Answer the question based only on the context provided.
+
+Context: {context}
+
+Question: {question}`);
+
+const llm = new ChatAnthropic({ model: "claude-haiku-4-5" });
+
+const formatDocs = (docs: Document[]) =>
+  docs.map((doc) => doc.pageContent).join("\n\n");
+
+const ragChain = RunnableSequence.from([
+  {
+    context: retriever.pipe(formatDocs),
+    question: new RunnablePassthrough(),
+  },
+  prompt,
+  llm,
+  new StringOutputParser(),
+]);
+
+await ragChain.invoke("Who won the most recent FIFA World Cup?");
+```
+
+## API 参考
+
+有关所有 `PerplexitySearchRetriever` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-perplexity/PerplexitySearchRetriever)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/retrievers/perplexity_search.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/retrievers/perplexity_search.mdx) · 译文由 AI 生成，以英文原文为准。

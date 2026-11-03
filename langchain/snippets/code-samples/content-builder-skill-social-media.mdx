@@ -1,0 +1,187 @@
+````md expandable wrap
+---
+name: social-media
+description: Drafts engaging social media posts, writes hooks, suggests hashtags, creates thread structures, and generates companion images. Use when the user asks to write a LinkedIn post, tweet, Twitter/X thread, social media caption, social post, or repurpose content for social platforms.
+---
+
+# Social Media Content Skill
+
+## Research First (Required)
+
+**Before writing any social media content, you MUST delegate research:**
+
+1. Use the `task` tool with `subagent_type: "researcher"`
+2. In the description, specify BOTH the topic AND where to save:
+
+```
+task(
+    subagent_type="研究者",
+    description="研究[TOPIC]。将发现保存到research/[slug].md"
+)
+```
+
+Example:
+```
+task(
+    subagent_type="研究者",
+    description="研究2025年可再生能源趋势。将发现保存到research/renewable-energy.md"
+)
+```
+
+3. After research completes, read the findings file before writing
+
+## Output Structure (Required)
+
+**Every social media post MUST have both content AND an image:**
+
+**LinkedIn posts:**
+```
+linkedin/
+└── <slug>/
+    ├── post.md        # 帖子内容
+    └── image.png      # REQUIRED: 生成的视觉元素
+```
+
+**Twitter/X threads:**
+```
+tweets/
+└── <slug>/
+    ├── thread.md      # 帖子内容
+    └── image.png      # REQUIRED: 生成的视觉元素
+```
+
+Example: A LinkedIn post about "prompt engineering" → `linkedin/prompt-engineering/`
+
+**You MUST complete both steps:**
+1. Write the content to the appropriate path
+2. Generate an image using `generate_image` and save alongside the post
+
+**A social media post is NOT complete without its image.**
+
+## Platform Guidelines
+
+### LinkedIn
+
+**Format:**
+- 1,300 character limit (show more after ~210 chars)
+- First line is crucial - make it hook
+- Use line breaks for readability
+- 3-5 hashtags at the end
+
+**Tone:**
+- Professional but personal
+- Share insights and learnings
+- Ask questions to drive engagement
+- Use "I" and share experiences
+
+**Structure:**
+```
+[钩子 - 1句引人入胜的话]
+
+[空行]
+
+[背景 - 为什么这很重要]
+
+[空行]
+
+[主要见解 - 2-3段简短段落]
+
+[空行]
+
+[号召行动或问题]
+
+#hashtag1 #hashtag2 #hashtag3
+```
+
+### Twitter/X
+
+**Format:**
+- 280 character limit per tweet
+- Threads for longer content (use 1/🧵 format)
+- No more than 2 hashtags per tweet
+
+**Thread Structure:**
+```
+1/🧵 [钩子 - 主要见解]
+
+2/ [支持点1]
+
+3/ [支持点2]
+
+4/ [示例或证据]
+
+5/ [结论+号召行动]
+```
+
+## Image Generation
+
+Every social media post needs an eye-catching image. Use the `generate_social_image` tool:
+
+```
+generate_social_image(prompt="详细描述...", platform="linkedin", slug="your-post-slug")
+```
+
+The tool saves the image to `<platform>/<slug>/image.png`.
+
+### Social Image Best Practices
+
+Social images need to work at small sizes in crowded feeds:
+- **Bold, simple compositions** - one clear focal point
+- **High contrast** - stands out when scrolling
+- **No text in image** - too small to read, platforms add their own
+- **Square or 4:5 ratio** - works across platforms
+
+### Writing Effective Prompts
+
+Include these elements:
+
+1. **Single focal point**: One clear subject, not a busy scene
+2. **Bold style**: Vibrant colors, strong shapes, high contrast
+3. **Simple background**: Solid color, gradient, or subtle texture
+4. **Mood/energy**: Match the post tone (inspiring, urgent, thoughtful)
+
+### Example Prompts
+
+**For an insight/tip post:**
+```
+一个发光的灯泡悬浮在深紫色渐变背景上，灯泡由相互连接的金色几何线条构成，向外散发柔和的光线。极简、引人注目、高对比度。方形构图。
+```
+
+**For announcements/news:**
+```
+由彩色几何形状组成的抽象火箭船向上发射，留下粒子轨迹。明亮珊瑚色和蓝绿色调，背景为干净白色。充满活力、庆祝氛围。大胆扁平插画风格。
+```
+
+**For thought-provoking content:**
+```
+两个重叠的半透明圆圈，一个蓝色一个橙色，在中心形成发光的交集。代表合作或想法的交集。深煤灰背景，柔和空灵的光芒。极简和沉思。
+```
+
+## Content Types
+
+### Announcement Posts
+- Lead with the news
+- Explain the impact
+- Include link or next step
+
+### Insight Posts
+- Share one specific learning
+- Explain the context briefly
+- Make it actionable
+
+### Question Posts
+- Ask a genuine question
+- Provide your take first
+- Keep it focused on one topic
+
+## Quality Checklist
+
+Before finishing:
+- [ ] Post saved to `linkedin/<slug>/post.md` or `tweets/<slug>/thread.md`
+- [ ] Image generated alongside the post
+- [ ] First line hooks attention
+- [ ] Content fits platform limits
+- [ ] Tone matches platform norms
+- [ ] Has clear CTA or question
+- [ ] Hashtags are relevant (not generic)
+````

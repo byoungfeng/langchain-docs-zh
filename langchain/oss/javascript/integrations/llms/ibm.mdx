@@ -1,0 +1,266 @@
+---
+title: "LLM 集成"
+description: "使用 LangChain JavaScript 与 IBM watsonx.ai LLM 集成。"
+integration:
+  name: WatsonxLLM
+  npm: '@langchain/ibm'
+---
+
+这将帮助您使用 LangChain 开始使用 IBM 文本完成模型（LLM）。有关 `IBM watsonx.ai` 功能和配置选项的详细文档，请参考 [IBM watsonx.ai](https://reference.langchain.com/javascript/langchain-ibm/WatsonxLLM)。
+
+## 概述
+
+### 集成详情
+
+| 类 | 包 | 本地 | 可序列化 | [PY 支持](/langchain/oss/python/integrations/llms/ibm_watsonx) | 下载 | 版本 |
+| :--- | :--- | :---: | :---: |  :---: | :---: | :---: |
+| [`WatsonxLLM`](https://reference.langchain.com/javascript/langchain-ibm/WatsonxLLM) | [`@langchain/ibm`](https://www.npmjs.com/package/@langchain/ibm) | ❌ | ✅ | ✅ | ![NPM - 下载](https://img.shields.io/npm/dm/@langchain/ibm?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/ibm?style=flat-square&label=%20&) |
+
+## 设置
+
+要访问 IBM WatsonxAI 模型，您需要创建一个 IBM watsonx.ai 账户，获取 API 密钥或其他任何类型的凭证，并安装 `@langchain/ibm` 集成包。
+
+### 凭证
+
+前往 [IBM Cloud](https://cloud.ibm.com/login) 注册 IBM watsonx.ai 并生成 API 密钥，或提供下方所示的其他任何形式的身份验证。
+
+#### IAM 身份验证
+
+```bash
+export WATSONX_AI_AUTH_TYPE=iam
+export WATSONX_AI_APIKEY=<YOUR-APIKEY>
+```
+
+#### Bearer 令牌身份验证
+
+```bash
+export WATSONX_AI_AUTH_TYPE=bearertoken
+export WATSONX_AI_BEARER_TOKEN=<YOUR-BEARER-TOKEN>
+```
+
+#### IBM watsonx.ai 软件身份验证
+
+```bash
+export WATSONX_AI_AUTH_TYPE=cp4d
+export WATSONX_AI_USERNAME=<YOUR_USERNAME>
+export WATSONX_AI_PASSWORD=<YOUR_PASSWORD>
+export WATSONX_AI_URL=<URL>
+```
+
+将这些放入您的环境变量中并初始化对象后，身份验证将自动进行。
+
+也可以通过将这些值作为参数传递给新实例来完成身份验证。
+
+## IAM 身份验证
+
+```typescript
+import { WatsonxLLM } from "@langchain/ibm";
+
+const props = {
+  version: "YYYY-MM-DD",
+  serviceUrl: "<SERVICE_URL>",
+  projectId: "<PROJECT_ID>",
+  watsonxAIAuthType: "iam",
+  watsonxAIApikey: "<YOUR-APIKEY>",
+};
+const instance = new WatsonxLLM(props);
+```
+
+## Bearer 令牌身份验证
+
+```typescript
+import { WatsonxLLM } from "@langchain/ibm";
+
+const props = {
+  version: "YYYY-MM-DD",
+  serviceUrl: "<SERVICE_URL>",
+  projectId: "<PROJECT_ID>",
+  watsonxAIAuthType: "bearertoken",
+  watsonxAIBearerToken: "<YOUR-BEARERTOKEN>",
+};
+const instance = new WatsonxLLM(props);
+```
+
+### IBM watsonx.ai 软件身份验证
+
+```typescript
+import { WatsonxLLM } from "@langchain/ibm";
+
+const props = {
+  version: "YYYY-MM-DD",
+  serviceUrl: "<SERVICE_URL>",
+  projectId: "<PROJECT_ID>",
+  watsonxAIAuthType: "cp4d",
+  watsonxAIUsername: "<YOUR-USERNAME>",
+  watsonxAIPassword: "<YOUR-PASSWORD>",
+  watsonxAIUrl: "<url>",
+};
+const instance = new WatsonxLLM(props);
+```
+
+如果您想自动跟踪您的模型调用，可以通过取消注释下方来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```bash
+# export LANGSMITH_TRACING="true"
+# export LANGSMITH_API_KEY="your-api-key"
+```
+
+### 安装
+
+LangChain IBM watsonx.ai 集成位于 `@langchain/ibm` 包中：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/ibm @langchain/core
+```
+```bash yarn
+yarn add @langchain/ibm @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/ibm @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成聊天完成：
+
+```javascript
+import { WatsonxLLM } from "@langchain/ibm";
+
+const props = {
+  decoding_method: "sample",
+  maxNewTokens: 100,
+  minNewTokens: 1,
+  temperature: 0.5,
+  topK: 50,
+  topP: 1,
+};
+const instance = new WatsonxLLM({
+  version: "YYYY-MM-DD",
+  serviceUrl: process.env.API_URL,
+  projectId: "<PROJECT_ID>",
+  // spaceId: "<SPACE_ID>",
+  // idOrName: "<DEPLOYMENT_ID>",
+  model: "<MODEL_ID>",
+  ...props,
+});
+```
+
+注意：
+
+- 您必须提供 `spaceId`、`projectId` 或 `idOrName`（部署 ID），除非您使用无需指定任何内容即可工作的轻量级引擎（参考 [watsonx.ai 文档](https://www.ibm.com/docs/en/cloud-paks/cp-data/5.0.x?topic=install-choosing-installation-mode)）
+- 根据您的服务实例所在的区域，使用正确的 serviceUrl。
+- 您需要通过 model_id 指定您想要用于推理的模型。
+
+### 使用模型网关
+```typescript
+import { WatsonxLLM } from "@langchain/ibm";
+
+const props = {
+  decoding_method: "sample",
+  maxNewTokens: 100,
+  minNewTokens: 1,
+  temperature: 0.5,
+  topK: 50,
+  topP: 1,
+};
+
+const instance = new WatsonxLLM({
+  version: "YYYY-MM-DD",
+  serviceUrl: process.env.API_URL,
+  model: "<MODEL_ID>",
+  modelGateway: true,
+  ...props,
+});
+```
+
+要使用 Langchain 与模型网关，您需要预先创建一个提供程序，并通过 `@ibm-cloud/watsonx-ai` SDK 或 `watsonx.ai` API 添加模型。请遵循此文档：
+- [API](https://cloud.ibm.com/apidocs/watsonx-ai#create-watsonxai-provider)。
+- [SDK](https://ibm.github.io/watsonx-ai-node-sdk/modules/1_7_x.gateway.html)。
+
+## 调用和生成
+
+```javascript
+const result = await instance.invoke("Print hello world.");
+console.log(result);
+
+const results = await instance.generate([
+  "Print hello world.",
+  "Print bye, bye world!",
+]);
+console.log(results);
+```
+
+```javascript
+
+print('Hello world.')<|endoftext|>
+{
+  generations: [ [ [Object] ], [ [Object] ] ],
+  llmOutput: { tokenUsage: { generated_token_count: 28, input_token_count: 10 } }
+}
+```
+
+## 链接
+
+我们可以像这样将我们的完成模型与提示词模板链接：
+
+```javascript
+import { PromptTemplate } from "@langchain/core/prompts"
+
+const prompt = PromptTemplate.fromTemplate("How to say {input} in {output_language}:\n")
+
+const chain = prompt.pipe(instance);
+await chain.invoke(
+  {
+    output_language: "German",
+    input: "I love programming.",
+  }
+)
+```
+
+```text
+Ich liebe Programmieren.
+
+To express that you are passionate about programming in German,
+```
+
+## 属性覆盖
+
+在初始化时传递的属性将贯穿对象整个生命周期，但是您可以通过传递第二个参数来为单个方法的调用覆盖它们，如下所示
+
+```javascript
+const result2 = await instance.invoke("Print hello world.", {
+  parameters: {
+    maxNewTokens: 100,
+  },
+});
+console.log(result2);
+```
+
+```text
+print('Hello world.')<|endoftext|>
+```
+
+## 分词
+
+此包具有自定义的 getNumTokens 实现，它将返回将使用的确切 Token 数量。
+
+```javascript
+const tokens = await instance.getNumTokens("Print hello world.");
+console.log(tokens);
+```
+
+```text
+4
+```
+
+---
+
+## API 参考
+
+有关所有 `IBM watsonx.ai` 功能和配置的详细文档，请前往 API 参考：[API 文档](https://reference.langchain.com/javascript/langchain-ibm/WatsonxLLM)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/llms/ibm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/llms/ibm.mdx) · 译文由 AI 生成，以英文原文为准。

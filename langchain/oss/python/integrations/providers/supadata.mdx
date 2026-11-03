@@ -1,0 +1,70 @@
+---
+title: "Supadata"
+description: "本页面涵盖了如何在 LangChain 中使用 Supadata 生态系统。它允许您从 YouTube、TikTok 等平台加载数据。"
+---
+
+# Supadata
+
+本页面涵盖了如何在 LangChain 中使用 [Supadata](https://supadata.ai) 生态系统。它允许您从 YouTube、TikTok 等平台加载数据。
+
+## 安装与配置
+
+要使用 Supadata，您需要安装独立的集成包。
+
+```bash
+pip install supadata-langchain
+```
+
+## 文档加载器
+
+Supadata 集成功能支持将视频平台内容作为 LangChain 文档加载数据，并获取字幕和元数据。
+
+```python
+import os
+from supadata_langchain import SupadataLoader
+
+os.environ["SUPADATA_API_KEY"] = "YOUR_API_KEY"
+
+loader = SupadataLoader()
+
+# Fetch Transcript
+docs = loader.load(
+    {
+        "url": "[https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)",
+        "operation": "transcript",
+        "lang": "en",
+        "text": True,
+        "mode": "auto",
+    }
+)
+
+print(docs[0].page_content)
+print(docs[0].metadata)
+```
+
+### 元数据
+
+您还可以获取视频结构化元数据。
+
+```python
+# Fetch Metadata
+docs = loader.load(
+    {
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "operation": "metadata",
+    }
+)
+
+print(docs[0].page_content)
+```
+
+## 资源
+
+* **PyPI 包:** [`supadata-langchain`](https://pypi.org/project/supadata-langchain/)
+* **GitHub 仓库:** [`supadata-ai/langchain-py`](https://github.com/supadata-ai/langchain-py)
+
+如需详细使用示例和 API 文档，请参考 [官方 GitHub 仓库](https://github.com/supadata-ai/langchain-py)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/supadata.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/supadata.mdx) · 译文由 AI 生成，以英文原文为准。

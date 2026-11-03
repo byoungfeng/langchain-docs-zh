@@ -1,0 +1,459 @@
+---
+title: "Google 集成"
+description: "与 Google 集成，使用 LangChain Python."
+sidebarTitle: "Google"
+---
+
+本页面涵盖了与 [Google Gemini](https://ai.google.dev/gemini-api/docs)、[Google Cloud](https://cloud.google.com/) 及其他 Google 产品（如 Google Maps、YouTube 和 [更多](#其他-google-产品)）的 LangChain 集成。
+
+<Note>
+    **统一 SDK 与包整合**
+
+    自 `langchain-google-genai` 4.0.0 版本起，此包使用整合的 [`google-genai`](https://googleapis.github.io/python-genai/) SDK，现支持 **Gemini 开发者 API 和 Gemini 企业智能体平台** 后端。
+
+    `langchain-google-vertexai` 包仍受支持，用于 Gemini 企业智能体平台特定功能（模型花园、向量搜索、评估服务等）。
+
+    请参阅 [完整公告和迁移指南](https://github.com/langchain-ai/langchain-google/discussions/1422)。
+</Note>
+
+不确定使用哪个包？
+
+<AccordionGroup>
+    <Accordion title="Google Generative AI (Gemini API & Gemini Enterprise Agent Platform)">
+        通过 **[Gemini 开发者 API](https://ai.google.dev/)** 或 **[Gemini 企业智能体平台](https://cloud.google.com/products/gemini-enterprise-agent-platform)** 访问 Google Gemini 模型。后端会根据您的配置自动选择。
+
+        - **Gemini 开发者 API**：使用 API 密钥快速设置，适合个人开发者和快速原型设计
+        - **Gemini 企业智能体平台**：具有 Google Cloud 集成的企业功能（需要 GCP 项目）
+
+        使用 `langchain-google-genai` 包用于对话模型、LLM 和嵌入。
+
+        [查看集成。](#google-生成式-ai)
+    </Accordion>
+    <Accordion title="Google Cloud (Gemini Enterprise Agent Platform Services)">
+        访问 Gemini 企业智能体平台特定服务，超出 Gemini 模型范围：模型花园（Llama、Mistral、Anthropic）、评估服务以及专业视觉模型。
+
+        使用 `langchain-google-vertexai` 包用于平台服务，并使用特定包（例如 `langchain-google-community`、`langchain-google-cloud-sql-pg`）用于其他云服务，如数据库和存储。
+
+        [查看集成。](#google-cloud)
+    </Accordion>
+</AccordionGroup>
+
+有关差异的更多详细信息，请参阅 Google 的 [从 Gemini API 迁移到 Gemini 企业智能体平台](https://ai.google.dev/gemini-api/docs/migrate-to-cloud) 指南。
+
+---
+
+## Google 生成式 AI
+
+使用统一的 `langchain-google-genai` 包，通过 [Gemini 开发者 API](https://ai.google.dev/gemini-api/docs) 或 [Gemini 企业智能体平台](https://cloud.google.com/products/gemini-enterprise-agent-platform) 访问 Google Gemini 模型。
+
+### 对话模型
+
+<Columns cols={1}>
+    <Card title="ChatGoogleGenerativeAI" href="/langchain/oss/python/integrations/chat/google_generative_ai" cta="Get started" icon="message" arrow>
+        通过 **Gemini 开发者 API** 或 **Gemini 企业智能体平台** 的 Google Gemini 对话模型。
+    </Card>
+</Columns>
+
+### LLM
+
+<Columns cols={1}>
+    <Card title="GoogleGenerativeAI" href="/langchain/oss/python/integrations/llms/google_generative_ai" cta="Get started" icon="cursor-text" arrow>
+        使用（旧版）LLM 文本完成接口的 Gemini 模型。
+    </Card>
+</Columns>
+
+### 嵌入模型
+
+<Columns cols={1}>
+    <Card title="GoogleGenerativeAIEmbeddings" href="/langchain/oss/python/integrations/embeddings/google_generative_ai" cta="Get started" icon="stack-2" arrow>
+        通过 **Gemini 开发者 API** 或 **Gemini 企业智能体平台** 的 Gemini 嵌入模型。
+    </Card>
+</Columns>
+
+---
+
+## Google Cloud
+
+访问 Gemini 企业智能体平台特定服务，包括模型花园（Llama、Mistral、Anthropic）、向量搜索、评估服务以及专业视觉模型。
+
+<Note>
+    **对于 Gemini 模型**，使用 [`ChatGoogleGenerativeAI`](/langchain/oss/python/integrations/chat/google_generative_ai) 从 `langchain-google-genai`。以下类专注于 **不在整合 SDK 中提供的 Gemini 企业智能体平台服务**。
+</Note>
+
+### 对话模型
+
+<Columns cols={2}>
+    <Card title="ChatAnthropicVertex" icon="messages" href="/langchain/oss/python/integrations/chat/google_anthropic_vertex" cta="Get started" arrow>
+        Anthropic 在 Gemini 企业智能体平台模型花园
+    </Card>
+</Columns>
+
+<AccordionGroup>
+    <Accordion title="ChatVertexAI (deprecated)">
+        **已弃用**—请改用 [`ChatGoogleGenerativeAI`](/langchain/oss/python/integrations/chat/google_generative_ai) 用于 Gemini 模型。
+
+        ```python wrap
+        from langchain_google_vertexai import ChatVertexAI
+        ```
+    </Accordion>
+    <Accordion title="VertexModelGardenLlama">
+        Llama 在 Gemini 企业智能体平台模型花园
+
+        ```python wrap
+        from langchain_google_vertexai.model_garden_maas.llama import VertexModelGardenLlama
+        ```
+    </Accordion>
+    <Accordion title="VertexModelGardenMistral">
+        Mistral 在 Gemini 企业智能体平台模型花园
+
+        ```python wrap
+        from langchain_google_vertexai.model_garden_maas.mistral import VertexModelGardenMistral
+        ```
+    </Accordion>
+    <Accordion title="GemmaChatLocalHF">
+        从 HuggingFace 加载的本地 Gemma 模型。
+
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaChatLocalHF
+        ```
+    </Accordion>
+    <Accordion title="GemmaChatLocalKaggle">
+        从 Kaggle 加载的本地 Gemma 模型。
+
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaChatLocalKaggle
+        ```
+    </Accordion>
+    <Accordion title="GemmaChatVertexAIModelGarden">
+        Gemma 在 Gemini 企业智能体平台模型花园
+
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaChatVertexAIModelGarden
+        ```
+    </Accordion>
+    <Accordion title="VertexAIImageCaptioningChat">
+        作为对话界面的图像描述模型。
+
+        ```python wrap
+        from langchain_google_vertexai.vision_models import VertexAIImageCaptioningChat
+        ```
+    </Accordion>
+    <Accordion title="VertexAIImageEditorChat">
+        根据提示编辑图像。目前仅支持无掩码编辑。
+        
+        ```python wrap
+        from langchain_google_vertexai.vision_models import VertexAIImageEditorChat
+        ```
+    </Accordion>
+    <Accordion title="VertexAIImageGeneratorChat">
+        根据提示生成图像。
+
+        ```python wrap
+        from langchain_google_vertexai.vision_models import VertexAIImageGeneratorChat
+        ```
+    </Accordion>
+    <Accordion title="VertexAIVisualQnAChat">
+        作为对话界面的视觉问答模型。
+
+        ```python wrap
+        from langchain_google_vertexai.vision_models import VertexAIVisualQnAChat
+        ```
+    </Accordion>
+</AccordionGroup>
+
+### LLM
+
+（旧版）字符串输入、字符串输出的 LLM 接口。
+
+<Columns cols={1}>
+    <Card title="VertexAIModelGarden" icon="cursor-text" href="/langchain/oss/python/integrations/llms/google_vertex_ai#vertex-模型花园" cta="Get started" arrow>
+        通过 Gemini 企业智能体平台模型花园访问数百个 OSS 模型。
+    </Card>
+</Columns>
+
+<AccordionGroup>
+    <Accordion title="VertexAI (deprecated)">
+        **已弃用**—请改用 [`GoogleGenerativeAI`](/langchain/oss/python/integrations/llms/google_generative_ai) 用于 Gemini 模型。
+
+        ```python wrap
+        from langchain_google_vertexai import VertexAI
+        ```
+    </Accordion>
+    <Accordion title="Gemma local from Hugging Face">
+        从 HuggingFace 加载的本地 Gemma 模型。
+
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaLocalHF
+        ```
+    </Accordion>
+    <Accordion title="Gemma local from Kaggle">
+        从 Kaggle 加载的本地 Gemma 模型。
+
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaLocalKaggle
+        ```
+    </Accordion>
+    <Accordion title="Gemma on Gemini Enterprise Agent Platform Model Garden">
+        ```python wrap
+        from langchain_google_vertexai.gemma import GemmaVertexAIModelGarden
+        ```
+    </Accordion>
+    <Accordion title="Gemini Enterprise Agent Platform image captioning">
+        作为 LLM 界面的图像描述模型。
+
+        ```python wrap
+        from langchain_google_vertexai.vision_models import VertexAIImageCaptioning
+        ```
+    </Accordion>
+</AccordionGroup>
+
+### 嵌入模型
+
+<AccordionGroup>
+    <Accordion title="VertexAIEmbeddings (deprecated)">
+        **已弃用**—请改用 [`GoogleGenerativeAIEmbeddings`](/langchain/oss/python/integrations/embeddings/google_generative_ai)。
+
+        ```python wrap
+        from langchain_google_vertexai import VertexAIEmbeddings
+        ```
+    </Accordion>
+</AccordionGroup>
+
+### 文档加载器
+
+<Columns cols={2}>
+    <Card title="AlloyDB for PostgreSQL" href="/langchain/oss/python/integrations/document_loaders/google_alloydb" cta="Get started" arrow>
+        基于 Google Cloud 的兼容 PostgreSQL 数据库。
+    </Card>
+    <Card title="BigQuery" href="/langchain/oss/python/integrations/document_loaders/google_bigquery" cta="Get started" arrow>
+        无服务器数据仓库。
+    </Card>
+    <Card title="Bigtable" href="/langchain/oss/python/integrations/document_loaders/google_bigtable" cta="Get started" arrow>
+        结构化和半结构化数据的键值和宽列存储。
+    </Card>
+    <Card title="Cloud SQL for MySQL" href="/langchain/oss/python/integrations/document_loaders/google_cloud_sql_mysql" cta="Get started" arrow>
+        管理型 MySQL 数据库。
+    </Card>
+    <Card title="Cloud SQL for SQL Server" href="/langchain/oss/python/integrations/document_loaders/google_cloud_sql_mssql" cta="Get started" arrow>
+        管理型 SQL Server 数据库。
+    </Card>
+    <Card title="Cloud SQL for PostgreSQL" href="https://cloud.google.com/sql/docs/postgres" cta="Get started" arrow>
+        管理型 PostgreSQL 数据库。
+    </Card>
+    <Card title="Cloud Storage (directory)" href="/langchain/oss/python/integrations/document_loaders/google_cloud_storage_directory" cta="Get started" arrow>
+        从 GCS 存储桶目录加载文档。
+    </Card>
+    <Card title="Cloud Storage (file)" href="/langchain/oss/python/integrations/document_loaders/google_cloud_storage_file" cta="Get started" arrow>
+        从 GCS 加载单个文档。
+    </Card>
+    <Card title="El Carro for Oracle Workloads" href="https://github.com/googleapis/langchain-google-el-carro-python/" cta="Get started" arrow>
+        通过 El Carro 在 Kubernetes 上运行 Oracle 数据库。
+    </Card>
+    <Card title="Firestore (Native Mode)" href="/langchain/oss/python/integrations/document_loaders/google_firestore" cta="Get started" arrow>
+        NoSQL 文档数据库。
+    </Card>
+    <Card title="Firestore (Datastore Mode)" href="/langchain/oss/python/integrations/document_loaders/google_datastore" cta="Get started" arrow>
+        Datastore 模式下的 Firestore。
+    </Card>
+    <Card title="Memorystore for Redis" href="/langchain/oss/python/integrations/document_loaders/google_memorystore_redis" cta="Get started" arrow>
+        管理型 Redis 服务。
+    </Card>
+    <Card title="Spanner" href="/langchain/oss/python/integrations/document_loaders/google_spanner" cta="Get started" arrow>
+        全球分布式关系数据库。
+    </Card>
+    <Card title="Speech-to-Text" href="/langchain/oss/python/integrations/document_loaders/google_speech_to_text" cta="Get started" arrow>
+        转录音频文件。
+    </Card>
+</Columns>
+
+<Accordion title="Cloud Vision loader">
+    使用 Google Cloud Vision API 加载数据。
+
+    ```python
+    from langchain_google_community.vision import CloudVisionLoader
+    ```
+</Accordion>
+
+### 文档转换器
+
+<Columns cols={2}>
+    <Card title="Document AI" href="/langchain/oss/python/integrations/document_transformers/google_docai" cta="Get started" arrow>
+        从非结构化文档中提取结构化数据。
+    </Card>
+    <Card title="Google Translate" href="/langchain/oss/python/integrations/document_transformers/google_translate" cta="Get started" arrow>
+        通过 Cloud Translation API 翻译文本和 HTML。
+    </Card>
+</Columns>
+
+### 向量存储
+
+使用 Google Cloud 数据库和 Gemini Enterprise Agent 平台上的向量搜索来存储和搜索向量。
+
+<Columns cols={2}>
+    <Card title="AlloyDB for PostgreSQL" href="/langchain/oss/python/integrations/vectorstores/google_alloydb" cta="Get started" arrow>
+        基于 AlloyDB 的兼容 PostgreSQL 向量存储。
+    </Card>
+    <Card title="BigQuery Vector Search" href="/langchain/oss/python/integrations/vectorstores/google_bigquery_vector_search" cta="Get started" arrow>
+        使用带有向量索引的 GoogleSQL 进行语义搜索。
+    </Card>
+    <Card title="Memorystore for Redis" href="/langchain/oss/python/integrations/vectorstores/google_memorystore_redis" cta="Get started" arrow>
+        基于 Memorystore for Redis 的向量存储。
+    </Card>
+    <Card title="Spanner" href="/langchain/oss/python/integrations/vectorstores/google_spanner" cta="Get started" arrow>
+        基于 Cloud Spanner 的向量存储。
+    </Card>
+    <Card title="Bigtable" href="https://cloud.google.com/bigtable" cta="Get started" arrow>
+        基于 Cloud Bigtable 的向量存储。
+    </Card>
+    <Card title="Firestore (Native Mode)" href="/langchain/oss/python/integrations/vectorstores/google_firestore" cta="Get started" arrow>
+        基于 Firestore 的向量存储。
+    </Card>
+    <Card title="Cloud SQL for MySQL" href="/langchain/oss/python/integrations/vectorstores/google_cloud_sql_mysql" cta="Get started" arrow>
+        基于 Cloud SQL for MySQL 的向量存储。
+    </Card>
+    <Card title="Cloud SQL for PostgreSQL" href="/langchain/oss/python/integrations/vectorstores/google_cloud_sql_pg" cta="Get started" arrow>
+        基于 Cloud SQL for PostgreSQL 的向量存储。
+    </Card>
+    <Card title="Vector Search on Gemini Enterprise Agent Platform" href="/langchain/oss/python/integrations/vectorstores/google_vertex_ai_vector_search" cta="Get started" arrow>
+        曾被称为 Vertex AI Matching Engine，提供低延迟的向量数据库。这些向量数据库通常被称为向量相似性匹配或近似最近邻（ANN）服务。
+    </Card>
+    <Card title="Vector Search on Gemini Enterprise Agent Platform + Datastore" href="/langchain/oss/python/integrations/vectorstores/google_vertex_ai_vector_search#optional--您也可以创建向量并存储到数据存储中" cta="Get started" arrow>
+        使用 Datastore 进行文档存储的向量搜索。
+    </Card>
+</Columns>
+
+### 检索器
+
+<Columns cols={2}>
+    <Card title="Agent Search on Gemini Enterprise Agent Platform" icon="search" href="/langchain/oss/python/integrations/retrievers/google_vertex_ai_search" cta="Get started" arrow>
+        通过 Gemini Enterprise Agent 平台上的 Agent Search 实现生成式 AI 驱动的搜索。
+    </Card>
+    <Card title="Document AI Warehouse" icon="building-warehouse" href="https://cloud.google.com/document-ai-warehouse" cta="Get started" arrow>
+        使用 Document AI Warehouse 搜索、存储和管理文档。
+    </Card>
+</Columns>
+
+```python Other retrievers
+from langchain_google_community import VertexAIMultiTurnSearchRetriever
+from langchain_google_community import VertexAISearchRetriever
+from langchain_google_community import VertexAISearchSummaryTool
+```
+
+### 工具
+
+将智能体与各种 Google Cloud 服务集成。
+
+<Columns cols={2}>
+    <Card title="Text-to-Speech" icon="volume" href="/langchain/oss/python/integrations/tools/google_cloud_texttospeech" cta="Get started" arrow>
+        使用 100 多种声音合成自然语音。
+    </Card>
+</Columns>
+
+### 回调
+
+跟踪 LLM/对话模型的使用情况。
+
+<AccordionGroup>
+    <Accordion title="Gemini Enterprise Agent Platform callback handler">
+        跟踪 `VertexAI` 使用信息。
+
+        ```python wrap
+        from langchain_google_vertexai.callbacks import VertexAICallbackHandler
+        ```
+    </Accordion>
+    <Accordion title="Google BigQuery">
+        查看文档[更多详情](/langchain/oss/python/integrations/callbacks/google_bigquery)。
+
+        ```python wrap
+        from langchain_google_community.callbacks.bigquery_callback import BigQueryCallbackHandler
+        ```
+    </Accordion>
+</AccordionGroup>
+
+### 评估器
+
+使用 Gemini Enterprise Agent 平台评估模型输出。
+
+<AccordionGroup>
+    <Accordion title="VertexPairWiseStringEvaluator">
+        使用 Gemini Enterprise Agent 平台模型进行成对评估。
+
+        ```python wrap
+        from langchain_google_vertexai.evaluators.evaluation import VertexPairWiseStringEvaluator
+        ```
+    </Accordion>
+    <Accordion title="VertexStringEvaluator">
+        使用 Gemini Enterprise Agent 平台模型进行单预测评估。
+
+        ```python wrap
+        from langchain_google_vertexai.evaluators.evaluation import VertexStringEvaluator
+        ```
+    </Accordion>
+</AccordionGroup>
+
+---
+
+## 其他 Google 产品
+
+核心云平台之外的各种 Google 服务集成。
+
+### 文档加载器
+
+<Columns cols={1}>
+    <Card title="Google Drive" href="/langchain/oss/python/integrations/document_loaders/google_drive" cta="Get started" arrow>
+        从 Google Drive 加载文件。目前支持 Google Docs。
+    </Card>
+</Columns>
+
+### 检索器
+
+<Columns cols={1}>
+    <Card title="Google Drive" href="/langchain/oss/python/integrations/retrievers/google_drive" cta="Get started" arrow>
+        从 Google Drive 检索文档。
+    </Card>
+</Columns>
+
+### 工具
+
+<Columns cols={2}>
+    <Card title="Google Search" href="/langchain/oss/python/integrations/tools/google_search" cta="Get started" arrow>
+        通过 Google 定制搜索引擎 (CSE) 进行网络搜索。
+    </Card>
+    <Card title="Google Drive" href="/langchain/oss/python/integrations/tools/google_drive" cta="Get started" arrow>
+        与 Google Drive 交互。
+    </Card>
+</Columns>
+
+### MCP
+
+<Columns cols={1}>
+    <Card title="MCP Toolbox" href="/langchain/oss/python/integrations/tools/mcp_toolbox" cta="Get started" arrow>
+        连接到包括 Cloud SQL 和 AlloyDB 在内的数据库。
+    </Card>
+</Columns>
+
+### 工具包
+
+<Columns cols={2}>
+    <Card title="Gmail" icon="mail" href="/langchain/oss/python/integrations/tools/google_gmail" cta="Get started" arrow>
+        通过 Gmail API 创建、搜索和发送电子邮件。
+    </Card>
+</Columns>
+
+---
+
+## 第三方集成
+
+通过非官方的第三方 API 访问 Google 服务。
+
+### 搜索
+
+<Columns cols={2}>
+    <Card title="cloro" icon="search" href="https://cloro.dev/docs" cta="Get started" arrow>
+        支持 AI 概述的 Google 搜索结果。
+    </Card>
+</Columns>
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/google.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/google.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,268 @@
+---
+title: "插件与市场"
+sidebarTitle: "插件"
+description: "从市场安装插件或从包技能、MCP 服务器、钩子和 Python 扩展为 dcode 安装技能"
+---
+
+插件扩展 dcode 以实现可重用的[技能](/langchain/oss/deepagents/code/memory-and-skills)、[MCP 服务器](/langchain/oss/deepagents/code/mcp-tools)、[钩子](/langchain/oss/deepagents/code/hooks)和[Python 扩展](/langchain/oss/deepagents/code/extensions)。市场提供目录用于跨项目或团队发现和安装插件。dcode 支持符合[创建插件](#创建插件)和[创建市场](#创建市场)描述的 Claude-和 Codex 风格的插件清单和市场目录。
+
+<Warning>
+    仅从可信来源安装插件和市集。启用的插件可以以您的用户权限添加指令和运行 MCP 服务器、钩子命令或 Python 扩展。
+</Warning>
+
+## 交互式管理插件
+
+要在 `dcode` 会话中浏览市场和管理插件：
+
+1. 运行 `/plugins` 打开插件管理器。
+2. 从其**市场**选项卡添加市场。支持来源包括：
+    - 格式为 `owner/repo` 的 GitHub 仓库，可选后跟 `@branch-or-tag`。
+    - HTTPS Git 仓库 URL，可选后跟 `#branch-or-tag`。
+    - 提供 marketplace JSON 文件的服务 HTTPS URL。
+    - 本地 marketplace 目录或 JSON 文件。
+3. 从市场安装插件。
+4. 运行 `/reload` 在不重启会话的情况下激活新安装的插件技能、MCP 服务器和钩子。具有[Python 扩展](/langchain/oss/deepagents/code/extensions)的插件需要 `/restart` 重建智能体图。
+
+插件管理器还允许您启用、禁用和卸载已安装的插件。禁用插件会保留其安装状态，但在您运行 `/reload` 或启动新会话后，会排除其技能、MCP 服务器和钩子。Python 扩展会保留在当前图中，直到您运行 `/restart` 或启动新会话。
+
+删除市场会卸载其插件并删除管理的缓存数据。当市场来自本地目录或文件时，Deep Agents Code 会保留原始来源。运行 `/reload` 或启动新会话将删除应用于活动会话。
+
+## 使用智能体发现插件
+
+智能体可以搜索配置的市场目录以查找缺失的功能并报告可用插件。
+
+询问智能体关于可用、已禁用或尚未安装的插件。它通过 `dcode plugin list --json` 和 `dcode plugin marketplace list --json` 以当前配置文件读取本地目录，不会搜索互联网上的未连接市场。
+
+## 自动更新插件
+
+Deep Agents Code 可以在首次提示后后台更新已安装的插件。更新仅适用于通过其自己的清单选择参与的已启用插件。插件作者通过将此块添加到该插件的 `plugin.json` 中选择参与：
+
+```json
+{
+  "extensions": {
+    "com.langchain.deepagents.code": {
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+运行会话将继续使用其当前插件版本，直到您运行 `/reload`。要全局禁用自动插件更新，请在 `config.toml` 或环境中的 `DEEPAGENTS_CODE_PLUGIN_AUTO_UPDATE=false` 中设置 `[plugins].auto_update = false`。
+
+## 从命令行管理插件
+
+使用 `dcode plugin` 进行脚本和基于终端的管理。插件 ID 使用格式 `plugin-name@marketplace-name`。
+
+```bash
+# Add and inspect a marketplace
+dcode plugin marketplace add acme/plugins
+dcode plugin marketplace list
+
+# Browse and install plugins
+dcode plugin list
+dcode plugin install code-review@acme-tools
+
+# Change plugin state
+dcode plugin disable code-review@acme-tools
+dcode plugin enable code-review@acme-tools
+
+# Remove a plugin or marketplace
+dcode plugin uninstall code-review@acme-tools
+dcode plugin marketplace remove acme-tools
+```
+
+`plugin list` 和 `plugin marketplace list` 接受 `--json`。安装插件后，在活动交互式会话中运行 `/reload` 或启动新会话。
+
+## 使用插件技能、MCP 服务器和钩子
+
+插件技能命名空间化以防止与项目、用户和其他插件技能冲突。使用其插件 ID 和技能路径调用技能：
+
+```text
+/skill:plugin-name@marketplace-name:skill-name optional arguments
+```
+
+在交互模式下，自动补全也会匹配较短的 `/plugin-name:skill-name` 形式并将其扩展为规范 `/skill:` 命令。嵌套技能目录会将每个目录添加到命名空间中。例如，`skills/review/security/SKILL.md` 来自 `quality@acme-tools` 变为 `/skill:quality@acme-tools:review:security`。
+
+已启用的插件还可以贡献 MCP 服务器。Deep Agents Code 在插件加载时将这些服务器与您的常规 MCP 配置合并。使用 `/mcp` 查看可用服务器和工具。
+
+插件钩子使用与用户和项目钩子相同的生命周期事件和处理器格式。插件管理器列出每个插件声明的事件。启用插件是其钩子的唯一同意门槛：工作区信任适用于项目钩子，不适用于插件钩子。
+
+## 创建插件
+
+Deep Agents Code 插件是一个包含任何支持组件的目录：
+
+```text
+my-plugin/
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/
+│   └── review/
+│       └── SKILL.md
+├── hooks/
+│   └── hooks.json
+└── .mcp.json
+```
+
+Deep Agents Code 也识别 `.codex-plugin/plugin.json`。当组件使用默认位置时，清单是可选的。如果插件只包含一个技能，您可以将 `SKILL.md` 放在插件根目录，而不是创建 `skills/`。
+
+### 定义插件清单
+
+当存在时，`.claude-plugin/plugin.json` 或 `.codex-plugin/plugin.json` 必须包含一个 `name`。您还可以声明版本和自定义组件路径：
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json"
+}
+```
+
+`skills`、`mcpServers` 和 `hooks` 字段接受路径字符串或路径数组。`mcpServers` 和 `hooks` 也可以包含内联配置对象。每个组件路径必须以 `./` 开头，保留在插件根目录内，不包含 `..`。
+
+当未声明自定义路径时，Deep Agents Code 发现：
+
+- `skills/` 下的技能，或当不存在 `skills/` 目录时的根 `SKILL.md`。
+- 根 `.mcp.json` 文件中的 MCP 服务器。
+- `hooks/hooks.json` 中的钩子。
+
+### 添加技能
+
+将每个技能组织为包含 `SKILL.md` 的目录：
+
+```text
+skills/
+└── review/
+    ├── SKILL.md
+    └── checklist.md
+```
+
+使用与独立 Deep Agents Code 技能相同的技能格式。已安装插件的名称成为技能命名空间。有关详细信息，请参阅[记忆和技能](/langchain/oss/deepagents/code/memory-and-skills#技能)。
+
+### 添加 MCP 服务器
+
+将标准 MCP 服务器定义放在 `.mcp.json` 或在插件清单中用 `mcpServers` 内联声明。MCP 服务器和钩子命令支持这些路径变量：
+
+- `${CLAUDE_PLUGIN_ROOT}` 或 `${PLUGIN_ROOT}`：已安装插件目录。
+- `${CLAUDE_PLUGIN_DATA}` 或 `${PLUGIN_DATA}`：插件的可写数据目录。
+- `${CLAUDE_PROJECT_DIR}`：活动项目目录。
+
+例如：
+
+```json
+{
+  "mcpServers": {
+    "review-tools": {
+      "command": "python",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server.py"],
+      "env": {
+        "CACHE_DIR": "${CLAUDE_PLUGIN_DATA}"
+      }
+    }
+  }
+}
+```
+
+有关支持的 MCP 传输和字段，请参阅[MCP 工具](/langchain/oss/deepagents/code/mcp-tools)。
+
+### 添加钩子
+
+在 `hooks/hooks.json` 放置钩子文档，声明相对 `hooks` 路径，或在插件清单中内联定义钩子。钩子命令接收上述路径变量。有关配置和事件参考，请参阅[钩子](/langchain/oss/deepagents/code/hooks)。
+
+### 添加 Python 扩展
+
+<Note>
+    Python 扩展需要 `DEEPAGENTS_CODE_EXPERIMENTAL=1`。
+</Note>
+
+在插件清单中 Deep Agents Code 命名空间下声明一个 Python 入口文件或文件列表：
+
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "extensions": {
+    "com.langchain.deepagents.code": {
+      "pythonExtensions": "./extension.py"
+    }
+  }
+}
+```
+
+插件必须声明非空的 `version`。每个入口必须以 `./` 开头并保留在插件根目录内。更改已安装的插件扩展后，重启 dcode。有关设置函数、支持注册、信任模型和安全行为的详细信息，请参阅[Python 扩展](/langchain/oss/deepagents/code/extensions)。
+
+## 创建市场
+
+市场是一个包含名称和 `plugins` 数组的 JSON 目录。将其存储在市场根目录下的以下路径之一：
+
+- `.claude-plugin/marketplace.json`
+- `.agents/plugins/marketplace.json`
+- `.agents/plugins/api_marketplace.json`
+
+以下市场包含一个存储在同一仓库中的插件：
+
+```json
+{
+  "name": "acme-tools",
+  "plugins": [
+    {
+      "name": "code-review",
+      "source": "./plugins/code-review",
+      "description": "Review code for correctness and maintainability"
+    }
+  ]
+}
+```
+
+每个插件条目需要 `name` 和 `source`。它还可以包含 `description` 和 `author`。本地源路径必须以 `./` 开头并保持在市场根目录内。当所有本地插件共享不同的基本目录时，设置 `metadata.pluginRoot`。
+
+市场条目还可以使用外部 Git 源：
+
+```json
+{
+  "name": "acme-tools",
+  "plugins": [
+    {
+      "name": "code-review",
+      "source": {
+        "source": "github",
+        "repo": "acme/code-review-plugin",
+        "ref": "v1.0.0"
+      }
+    },
+    {
+      "name": "release-tools",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/acme/developer-tools.git",
+        "path": "./plugins/release-tools",
+        "ref": "main"
+      }
+    }
+  ]
+}
+```
+
+支持的外部插件源类型是 `github`、`url` 和 `git-subdir`。远程 URL 必须使用 HTTPS。作为直接 JSON URL 添加的市场不能包含本地相对插件源，因为仅下载目录文件。当目录引用同一源树中的插件目录时，使用 Git 仓库或本地目录。
+
+通过添加其目录、安装插件并启动新会话或运行 `/reload` 来测试本地市场：
+
+```bash
+dcode plugin marketplace add ./my-marketplace
+dcode plugin install code-review@acme-tools
+```
+
+
+## 参考文档
+
+- [记忆和技能](/langchain/oss/deepagents/code/memory-and-skills)
+- [MCP 工具](/langchain/oss/deepagents/code/mcp-tools)
+- [钩子](/langchain/oss/deepagents/code/hooks)
+- [Python 扩展](/langchain/oss/deepagents/code/extensions)
+- [命令参考](/langchain/oss/deepagents/code/cli-reference)
+- [配置](/langchain/oss/deepagents/code/configuration)
+
+---
+
+> 官方原文：[src/oss/deepagents/code/plugins.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/code/plugins.mdx) · 译文由 AI 生成，以英文原文为准。

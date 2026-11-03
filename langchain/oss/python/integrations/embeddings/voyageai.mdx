@@ -1,0 +1,131 @@
+---
+title: "MongoDB 的 VoyageAI 集成"
+description: "使用 LangChain Python 集成 MongoDB 的 VoyageAI 嵌入模型。"
+integration:
+  name: Voyage AI
+  pypi: langchain-voyageai
+---
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>[VoyageAI by MongoDB](https://www.voyageai.com/) 提供了尖端的嵌入/向量化模型。
+
+让我们加载 VoyageAI by MongoDB 嵌入类。（使用 `pip install langchain-voyageai` 安装 LangChain 合作伙伴包）
+
+```python
+from langchain_voyageai import VoyageAIEmbeddings
+```
+
+VoyageAI by MongoDB 使用 API 密钥来监控使用情况和管理权限。要获取您的密钥，请在我们的 [主页](https://www.voyageai.com) 上创建账户。然后，使用您的 API 密钥创建 VoyageEmbeddings 模型。您可以使用以下任何模型：([来源](https://docs.voyageai.com/docs/embeddings))：
+
+- `voyage-4-large`
+- `voyage-4`
+- `voyage-4-lite`
+- `voyage-code-4`
+- `voyage-context-4`
+- `voyage-context-3`
+- `voyage-3.5`
+- `voyage-3.5-lite`
+- `voyage-3-large`
+- `voyage-3`
+- `voyage-3-lite`
+- `voyage-large-2`
+- `voyage-code-2`
+- `voyage-2`
+- `voyage-law-2`
+- `voyage-large-2-instruct`
+- `voyage-finance-2`
+- `voyage-multilingual-2`
+
+```python
+embeddings = VoyageAIEmbeddings(
+    voyage_api_key="[ Your Voyage API key ]", model="voyage-law-2"
+)
+```
+
+准备文档并使用 `embed_documents` 获取它们的嵌入。
+
+```python
+documents = [
+    "Caching embeddings enables the storage or temporary caching of embeddings, eliminating the necessity to recompute them each time.",
+    "An LLMChain is a chain that composes basic LLM functionality. It consists of a PromptTemplate and a language model (either an LLM or chat model). It formats the prompt template using the input key values provided (and also memory key values, if available), passes the formatted string to LLM and returns the LLM output.",
+    "A Runnable represents a generic unit of work that can be invoked, batched, streamed, and/or transformed.",
+]
+```
+
+```python
+documents_embds = embeddings.embed_documents(documents)
+```
+
+```python
+documents_embds[0][:5]
+```
+
+```text
+[0.0562174916267395,
+ 0.018221192061901093,
+ 0.0025736060924828053,
+ -0.009720131754875183,
+ 0.04108370840549469]
+```
+
+类似地，使用 `embed_query` 来嵌入查询。
+
+```python
+query = "What's an LLMChain?"
+```
+
+```python
+query_embd = embeddings.embed_query(query)
+```
+
+```python
+query_embd[:5]
+```
+
+```text
+[-0.0052348352037370205,
+ -0.040072452276945114,
+ 0.0033957737032324076,
+ 0.01763271726667881,
+ -0.019235141575336456]
+```
+
+## 简约的检索系统
+
+嵌入的主要功能是两个嵌入之间的余弦相似度可以捕获相应原始段落的语义相关性。这使我们能够使用嵌入进行语义检索/搜索。
+
+我们可以根据余弦相似度在文档嵌入中找到几个最接近的嵌入，并使用 LangChain 的 `KNNRetriever` 类来检索相应的文档。
+
+<LangchainCommunityUnmaintained />
+
+```python
+from langchain_community.retrievers import KNNRetriever
+
+retriever = KNNRetriever.from_texts(documents, embeddings)
+
+# retrieve the most relevant documents
+result = retriever.invoke(query)
+top1_retrieved_doc = result[0].page_content  # return the top1 retrieved result
+
+print(top1_retrieved_doc)
+```
+
+```text
+An LLMChain is a chain that composes basic LLM functionality. It consists of a PromptTemplate and a language model (either an LLM or chat model). It formats the prompt template using the input key values provided (and also memory key values, if available), passes the formatted string to LLM and returns the LLM output.
+```
+
+## 上下文化块嵌入
+
+上下文模型（`voyage-context-4` 和 `voyage-context-3`）将每个块与其来自同一文档的周围块的上下文嵌入在一起([来源](https://docs.voyageai.com/docs/contextualized-chunk-embeddings))。`VoyageAIEmbeddings` 直接支持它们：对于文档，它调用 `contextualized_embed` 端点并使用 `enable_auto_chunking=True`，因此您可以将整个文档作为普通字符串传递。
+
+```python
+embeddings = VoyageAIEmbeddings(model="voyage-context-4")
+
+documents_embds = embeddings.embed_documents(documents)
+query_embd = embeddings.embed_query(query)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/voyageai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/voyageai.mdx) · 译文由 AI 生成，以英文原文为准。

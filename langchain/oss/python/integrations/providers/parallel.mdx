@@ -1,0 +1,61 @@
+---
+title: "并行集成"
+description: "使用 LangChain Python 集成 Parallel。"
+---
+
+本页面涵盖了 LangChain 与 [Parallel](https://platform.parallel.ai/) 的所有集成。
+
+## 安装与配置
+
+ `Parallel` 集成位于独立的 [合作伙伴包](https://pypi.org/project/langchain-parallel/) 中：
+
+ <CodeGroup>
+    ```bash pip
+    pip install -U langchain-parallel
+    ```
+    ```bash uv
+    uv add langchain-parallel
+    ```
+ </CodeGroup>
+
+设置 `PARALLEL_API_KEY` 环境变量为你的 Parallel API 密钥。在 [platform.parallel.ai](https://platform.parallel.ai) 上注册以获取密钥。
+
+## 对话模型
+
+ <Columns cols={2}>
+    <Card title="ChatParallel" href="/langchain/oss/python/integrations/chat/parallel" cta="Get started" icon="message" arrow>
+        兼容 OpenAI 的对话模型，研究级版本支持可选的网页搜索和字段级引用标注。
+    </Card>
+ </Columns>
+
+## 工具
+
+ <Columns cols={2}>
+    <Card title="ParallelSearchTool" href="/langchain/oss/python/integrations/tools/parallel_search" cta="Get started" icon="search" arrow>
+        搜索网络并返回结构化、LLM-优化的摘要。
+    </Card>
+    <Card title="ParallelExtractTool" href="/langchain/oss/python/integrations/tools/parallel_extract" cta="Get started" icon="file-text" arrow>
+        从一组 URL 中提取干净的 Markdown 内容。
+    </Card>
+    <Card title="ParallelFindAllTool" href="/langchain/oss/python/integrations/tools/parallel_findall" cta="Get started" icon="layers-subtract" arrow>
+        发现满足布尔匹配条件的实体。
+    </Card>
+    <Card title="Task API" href="/langchain/oss/python/integrations/tools/parallel_task" cta="Get started" icon="list-check" arrow>
+        运行研究级任务：单次即兴查询、深度研究、批量增强。 `ParallelTaskRunTool`, `ParallelDeepResearch`, `ParallelTaskGroup`, `ParallelEnrichment`。
+    </Card>
+    <Card title="ParallelMonitor" href="/langchain/oss/python/integrations/tools/parallel_monitor" cta="Get started" icon="radar" arrow>
+        按固定周期调度查询，在出现相关新内容时触发事件。
+    </Card>
+ </Columns>
+
+## 检索器
+
+ <Columns cols={2}>
+    <Card title="ParallelSearchRetriever" href="/langchain/oss/python/integrations/retrievers/parallel" cta="Get started" icon="square-poll-vertical" arrow>
+        `BaseRetriever` 基于 Parallel 搜索。返回 `list[Document]` 以无缝集成到任何 RAG 管道。
+ </Card>
+ </Columns>
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/parallel.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/parallel.mdx) · 译文由 AI 生成，以英文原文为准。

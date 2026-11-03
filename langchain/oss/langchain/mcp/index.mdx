@@ -1,0 +1,183 @@
+---
+title: "模型上下文协议 (MCP)"
+sidebarTitle: "概述"
+description: "通过MCPAdapter将LangChain智能体连接到MCP服务器。"
+keywords: ["MCP", "Model Context Protocol", "MCP server", "MCP tools", "MCPAdapter", "langchain-mcp-adapters"]
+boost: 2
+---
+
+import McpQuickstartPy from '/langchain/snippets/code-samples/mcp-quickstart-py.mdx';
+import McpQuickstartJs from '/langchain/snippets/code-samples/mcp-quickstart-js.mdx';
+import McpDocsServerPy from '/langchain/snippets/code-samples/mcp-docs-server-py.mdx';
+import McpDocsServerJs from '/langchain/snippets/code-samples/mcp-docs-server-js.mdx';
+import McpTransportsPy from '/langchain/snippets/code-samples/mcp-transports-py.mdx';
+import McpTransportsJs from '/langchain/snippets/code-samples/mcp-transports-js.mdx';
+
+:::python
+[模型上下文协议（MCP）](https://modelcontextprotocol.io) 是一个开放协议，它标准化了应用程序如何为语言模型提供工具和上下文。LangChain 智能体通过 @[`MCPAdapter`] 调用 MCP 服务器上定义的工具，@[`MCPAdapter`] 发现服务器的工具，并将它们适配为 LangChain 工具，然后可以直接传递给 @[`create_agent`]。
+
+@[`MCPAdapter`] 基于 [FastMCP](https://gofastmcp.com) 构建，FastMCP 处理传输推断、协议协商、连接管理和身份验证。本节涵盖 LangChain 特定层，并链接到 FastMCP 客户端文档以获取底层连接细节。
+
+<Note>
+`langchain.mcp` 命名空间需要 `langchain[mcp]>=1.4.0`，目前处于 Beta 版本。从它导入会在每个进程中触发一次 `LangChainBetaWarning`。API 可能会发生变化。
+
+如果您在 v1.4.0 之前使用过 MCP，请参阅 [从 `langchain-mcp-adapters` 迁移](/langchain/oss/python/migrate/langchain-mcp-adapters)。
+</Note>
+:::
+
+:::js
+[模型上下文协议（MCP）](https://modelcontextprotocol.io) 是一个开放协议，它标准化了应用程序如何为语言模型提供工具和上下文。LangChain 智能体通过 @[`MCPAdapter`] 调用 MCP 服务器上定义的工具，@[`MCPAdapter`] 发现服务器的工具，并将它们适配为 LangChain 工具，然后可以直接传递给 @[`createAgent`]。
+
+<Note>
+本指南需要 `@langchain/mcp-adapters` 2.0 或更高版本。如果您使用 1.x 版本，请参阅 [1.x 文档](https://docs.langchain.com/oss/langchain/mcp-v1) 或 [迁移指南](/langchain/oss/python/migrate/langchain-mcp-adapters)。
+</Note>
+:::
+
+## 安装
+
+:::python
+使用 `mcp` 扩展安装 LangChain，它会引入 FastMCP：
+
+<CodeGroup>
+```bash pip
+pip install "langchain[mcp]"
+```
+
+```bash uv
+uv add "langchain[mcp]"
+```
+</CodeGroup>
+:::
+
+:::js
+安装 `@langchain/mcp-adapters` 包及其同伴依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/mcp-adapters@^2.0.0 @langchain/core @langchain/langgraph
+```
+
+```bash pnpm
+pnpm add @langchain/mcp-adapters@^2.0.0 @langchain/core @langchain/langgraph
+```
+
+```bash yarn
+yarn add @langchain/mcp-adapters@^2.0.0 @langchain/core @langchain/langgraph
+```
+
+```bash bun
+bun add @langchain/mcp-adapters@^2.0.0 @langchain/core @langchain/langgraph
+```
+</CodeGroup>
+
+如果您导入 SDK 类型或传输，请添加 `@modelcontextprotocol/client`。
+:::
+
+## 快速入门
+
+:::python
+打开一个 @[`MCPAdapter`]，使用 `list_tools()` 发现服务器的工具，并在上下文中构建智能体。工具包含客户端，因此智能体在上下文退出后仍然可用：
+
+<McpQuickstartPy />
+:::
+
+:::js
+将智能体连接到 [LangChain 文档 MCP 服务器](/use-these-docs) 以搜索文档。此示例需要 `langchain`、`@langchain/anthropic` 和一个 Anthropic API 密钥。请参阅 [LangChain 快速入门](/langchain/oss/langchain/quickstart) 进行设置。
+
+在智能体运行期间保持适配器打开，然后在 `finally` 中关闭它：
+
+<McpQuickstartJs />
+:::
+
+<Accordion title="LangChain docs MCP server">
+
+[LangChain 文档 MCP 服务器](/use-these-docs) 是一个公共 HTTP 端点，位于 `https://docs.langchain.com/mcp`。
+
+将智能体连接到它以搜索和阅读文档，而无需编写自定义工具：
+
+:::python
+<McpDocsServerPy />
+:::
+
+:::js
+<McpDocsServerJs />
+:::
+
+<Note>
+文档 MCP 服务器是公共的，不需要 API 密钥。有关 IDE 和编码智能体设置（Claude Code、Cursor 等），请参阅 [以编程方式使用文档](/use-these-docs)。
+</Note>
+
+服务器公开了这些工具：
+
+| 工具 | 描述 |
+|------|-------------|
+| `search_docs_by_lang_chain` | 在文档中搜索相关的指南、教程和示例。 |
+| `query_docs_filesystem_docs_by_lang_chain` | 通过虚拟文件系统读取或搜索文档（`rg`、`head`、`cat` 及相关命令）。 |
+| `submit_feedback` | 报告文档页面的问题。 |
+
+:::js
+`MCPAdapter` 使用服务器名称前缀公开这些工具，例如 `docs_search_docs_by_lang_chain`。
+:::
+
+</Accordion>
+
+## 传输
+
+:::python
+
+@[`MCPAdapter`] 从您提供的目标推断传输。目标是在进程服务器、本地脚本通过 stdio 和远程 URL 之间的唯一区别：
+
+<McpTransportsPy />
+
+目标可以是以下任何一项：
+
+- **一个 `http`/`https` URL**（`str`）：通过 Streamable HTTP 访问。
+- **一个脚本路径**（`Path`）：作为子进程通过 stdio 启动。
+- **一个传输对象**（`StreamableTransport`）：预配置的传输对象。请参阅 [客户端传输](https://gofastmcp.com/clients/transports)。
+- **一个进程内 `FastMCP` 服务器**：在内存中连接，无需子进程或套接字。
+- **一个 `MCPConfig` 字典**（`{"mcpServers": {...}}`）：一个适配器背后的多个服务器。请参阅 [连接](/langchain/oss/langchain/mcp/connections#多个服务器)。
+- **一个预构建的 `fastmcp.Client`**：用于对传输、[缓存](https://gofastmcp.com/clients/client#response-caching) 和 [协议协商](https://gofastmcp.com/clients/client#protocol-negotiation) 进行完全控制。
+
+<Warning>
+一个 `str` 目标必须是 `http` 或 `https` URL。FastMCP 通过将其作为文件系统路径进行测试来解析字符串，然后再将其作为 URL 进行测试，因此命名现有 `.py` 或 `.js` 文件的字符串将启动该文件作为子进程。由于字符串是配置或模型最常以何种形式接收的目标形式，@[`MCPAdapter`] 会拒绝不符合 URL 形状的字符串。
+</Warning>
+
+:::
+
+:::js
+
+@[`MCPAdapter`] 接受一个命名服务器定义的映射。它从每个定义中选择传输，因此一个适配器可以同时连接到本地 stdio 服务器和远程 HTTP 服务器：
+
+<McpTransportsJs />
+
+每个服务器定义可以使用以下传输之一：
+
+- **stdio**：提供 `command` 和 `args`。适配器将命令作为子进程启动，并通过标准输入和输出进行通信。
+- **Streamable HTTP**：提供 `url`。这是基于 URL 服务器的默认传输，因此 `transport: "http"` 是可选的。
+- **SSE**：提供 `url` 并设置 `transport: "sse"`。仅用于暴露 SSE 端点的遗留服务器使用此传输。
+
+传输选择和协议协商是分开的。可选的 `mode` 设置控制客户端接受哪个 MCP 协议时代。请参阅 [协议时代](/langchain/oss/langchain/mcp/connections#协议时代)。
+
+<Note>
+对于新的远程服务器，省略 `transport` 和 `mode`。适配器使用 Streamable HTTP 并自动进行协议协商。仅在连接到具有已知遗留要求的服务器时指定这些设置。
+</Note>
+
+:::
+
+## 下一步
+
+<CardGroup cols={2}>
+  <Card title="Tools" icon="tool" href="/langchain/oss/langchain/mcp/tools">
+    将 MCP 工具加载到智能体中，控制它们的执行，并处理它们的输出。
+  </Card>
+  <Card title="Connections" icon="plug" href="/langchain/oss/langchain/mcp/connections">
+    连接生命周期、多个服务器、协议时代和缓存。
+  </Card>
+  <Card title="Authentication" icon="lock" href="/langchain/oss/langchain/mcp/auth">
+    带有令牌、OAuth 2.1 和按用户服务器身份验证。
+  </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/langchain/mcp/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/mcp/index.mdx) · 译文由 AI 生成，以英文原文为准。

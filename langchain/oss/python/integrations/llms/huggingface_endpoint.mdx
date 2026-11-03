@@ -1,0 +1,133 @@
+---
+title: "Huggingface 端点集成"
+description: "使用 LangChain Python 集成 Huggingface 端点 LLM。"
+integration:
+  name: Huggingface endpoints
+  pypi: langchain-huggingface
+---
+
+
+>The [Hugging Face Hub](https://huggingface.co/docs/hub/index) 是一个拥有超过12万模型、2万数据集和5万演示应用（Spaces）的平台，所有内容均为开源且公开可用，提供了一个在线平台，人们可以轻松协作并共同构建机器学习项目。
+
+`Hugging Face Hub` 也提供多种端点以构建机器学习应用。
+本示例展示了如何连接不同类型的端点。
+
+特别地，文本生成推理由 [Text Generation Inference](https://github.com/huggingface/text-generation-inference) 驱动：一个基于Rust、Python和gRPC构建的定制化服务器，专为极速文本生成推理而生。
+
+```python
+from langchain_huggingface import HuggingFaceEndpoint
+```
+
+## 安装与配置
+
+使用前请确保已安装 `huggingface_hub` 的python [包](https://huggingface.co/docs/huggingface_hub/installation)。
+
+```python
+pip install -qU huggingface_hub
+```
+
+```python
+# get a token: https://huggingface.co/docs/api-inference/quicktour#get-your-api-token
+
+from getpass import getpass
+
+HUGGINGFACEHUB_API_TOKEN = getpass()
+```
+
+```python
+import os
+
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = HUGGINGFACEHUB_API_TOKEN
+```
+
+## 准备示例
+
+```python
+from langchain_huggingface import HuggingFaceEndpoint
+```
+
+```python
+from langchain_classic.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+```
+
+```python
+question = "Who won the FIFA World Cup in the year 1994? "
+
+template = """Question: {question}
+
+Answer: Let's think step by step."""
+
+prompt = PromptTemplate.from_template(template)
+```
+
+## 示例
+
+以下是一个接入 `HuggingFaceEndpoint` 的[无服务器推理服务](https://huggingface.co/docs/inference-providers) API的示例。
+
+```python
+repo_id = "deepseek-ai/DeepSeek-R1-0528"
+
+llm = HuggingFaceEndpoint(
+    repo_id=repo_id,
+    max_length=128,
+    temperature=0.5,
+    huggingfacehub_api_token=HUGGINGFACEHUB_API_TOKEN,
+    provider="auto",  # set your provider here hf.co/settings/inference-providers
+    # provider="hyperbolic",
+    # provider="nebius",
+    # provider="together",
+)
+llm_chain = prompt | llm
+print(llm_chain.invoke({"question": question}))
+```
+
+## 专用端点
+
+免费无服务器API可快速实现解决方案并迭代优化，但高负载场景可能受速率限制，因请求流量与其他用户共享。
+
+对于企业级工作负载，建议使用 [专用推理端点](https://huggingface.co/inference-endpoints/dedicated)。
+这将访问经过全面管理的基础设施，提供更高的灵活性与运行效率。这些资源配备持续支持、可用性保障，并支持自动扩缩容等高级功能。
+
+```python
+# Set the url to your Inference Endpoint below
+your_endpoint_url = "https://fayjubiy2xqn36z0.us-east-1.aws.endpoints.huggingface.cloud"
+```
+
+```python
+llm = HuggingFaceEndpoint(
+    endpoint_url=f"{your_endpoint_url}",
+    max_new_tokens=512,
+    top_k=10,
+    top_p=0.95,
+    typical_p=0.95,
+    temperature=0.01,
+    repetition_penalty=1.03,
+)
+llm("What did foo say about bar?")
+```
+
+### 流式输出
+
+```python
+from langchain_core.callbacks import StreamingStdOutCallbackHandler
+from langchain_huggingface import HuggingFaceEndpoint
+
+llm = HuggingFaceEndpoint(
+    endpoint_url=f"{your_endpoint_url}",
+    max_new_tokens=512,
+    top_k=10,
+    top_p=0.95,
+    typical_p=0.95,
+    temperature=0.01,
+    repetition_penalty=1.03,
+    streaming=True,
+)
+llm("What did foo say about bar?", callbacks=[StreamingStdOutCallbackHandler()])
+```
+
+该 `HuggingFaceEndpoint` 类可通过本地运行 [HuggingFace TGI实例](https://github.com/huggingface/text-generation-inference/blob/main/docs/source/index.md)（提供大语言模型服务）进行测试。具体硬件（GPU/TPU/Gaudi等）支持细节请查阅 TGI [仓库](https://github.com/huggingface/text-generation-inference/tree/main)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/llms/huggingface_endpoint.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/llms/huggingface_endpoint.mdx) · 译文由 AI 生成，以英文原文为准。

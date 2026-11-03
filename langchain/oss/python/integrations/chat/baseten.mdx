@@ -1,0 +1,135 @@
+---
+title: "ChatBaseten 集成"
+description: "使用 LangChain Python 集成 ChatBaseten 对话模型。"
+integration:
+  name: ChatBaseten
+  pypi: langchain-baseten
+---
+
+本指南提供了快速入门指南，用于开始使用 `ChatBaseten` [对话模型](/langchain/oss/langchain/models)。
+
+Baseten 提供专为生产应用设计的推理服务。基于 Baseten 推理栈，这些 API 为领先的开源或自定义模型提供企业级性能和可靠性：https://www.baseten.co/library/。
+
+## 概述
+
+### 细节
+
+| 类别 | 包 | 可序列化 | JS 支持 | 下载量 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| `ChatBaseten` | `langchain-baseten` | beta | ❌ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-baseten?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-baseten?style=flat-square&label=%20) |
+
+### 功能特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token 级流式](/langchain/oss/langchain/streaming/) | 原生异步 | [Token 使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+模型 API 仅支持文本输入，部分专用部署根据模型类型支持图像和音频输入。具体细节请查阅 Baseten 模型库：https://www.baseten.co/library/
+
+---
+
+## 配置
+
+要访问 Baseten 模型，您需要创建 Baseten 账户、获取 API 密钥并安装 `langchain-baseten` 集成包。
+
+前往 [Baseten 官网](https://app.baseten.co) 创建账户并生成 API 密钥。完成此操作后，设置 `BASETEN_API_KEY` 环境变量：
+
+### 凭据
+```python Set API key icon="key"
+import getpass
+import os
+
+if "BASETEN_API_KEY" not in os.environ:
+    os.environ["BASETEN_API_KEY"] = getpass.getpass("Enter your Baseten API key: ")
+```
+
+要启用模型调用的自动化 <Tooltip tip="Log each step of a model's execution to debug and improve it">追踪</Tooltip>，设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python Enable tracing icon="flask"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+LangChain Baseten 集成位于 `langchain-baseten` 包中：
+
+<CodeGroup>
+    ```python pip
+    pip install -U langchain-baseten
+    ```
+    ```python uv
+    uv add langchain-baseten
+    ```
+</CodeGroup>
+
+---
+
+## 实例化
+
+Baseten 提供两种访问对话模型的方式：
+
+1. **模型 API**：用于访问最新、最受欢迎的开源模型。
+2. **专用 URL**：使用特定资源部署的专用模型。
+
+两种方式均支持自动端点归一化。
+
+```python Initialize with model slug icon="robot"
+from langchain_baseten import ChatBaseten
+
+# Option 1: Use Model APIs with model slug
+model = ChatBaseten(
+    model="moonshotai/Kimi-K2-Instruct-0905",  # Choose from available model slugs: https://docs.baseten.co/development/model-apis/overview#supported-models
+    api_key="your-api-key",  # Or set BASETEN_API_KEY env var
+)
+```
+
+```python Initialize with model URL icon="link"
+from langchain_baseten import ChatBaseten
+
+# Option 2: Use dedicated deployments with model url
+model = ChatBaseten(
+    model_url="https://model-<id>.api.baseten.co/environments/production/predict",
+    api_key="your-api-key",  # Or set BASETEN_API_KEY env var
+)
+```
+
+
+---
+
+## 调用
+
+```python Basic invocation icon="player-play"
+# Use the chat model
+response = model.invoke("Hello, how are you?")
+print(response.content)
+```
+
+```text
+Hello! I'm doing well, thank you for asking! How about you?
+```
+
+您还可以使用消息对象处理复杂对话：
+
+<CodeGroup>
+    ```python Dictionary format icon="book"
+    messages = [
+        {"role": "system", "content": "You are a poetry expert"},
+        {"role": "user", "content": "Write a haiku about spring"},
+    ]
+    response = model.invoke(messages)
+    print(response)
+    ```
+</CodeGroup>
+```text
+content='Buds yawn open wide—\na robin stitches the hush\nwith threads of first light.' additional_kwargs={} response_metadata={'token_usage': {'completion_tokens': 26, 'prompt_tokens': 14, 'total_tokens': 40}, 'model_name': 'moonshotai/Kimi-K2-Instruct-0905', 'finish_reason': 'stop', 'model_provider': 'baseten'} id='run--6f7d1db7-daae-4628-a40a-2ab7323e8f15-0'
+```
+
+
+<Tip>
+更多调用类型指南请参考 [对话模型调用方式](/langchain/oss/langchain/models#调用)、[消息类型](/langchain/oss/langchain/messages#消息类型) 和 [内容块](/langchain/oss/langchain/messages#标准内容块)。
+</Tip>
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/baseten.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/baseten.mdx) · 译文由 AI 生成，以英文原文为准。

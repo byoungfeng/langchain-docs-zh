@@ -1,0 +1,205 @@
+---
+title: "Google imagen 集成"
+description: "在 Gemini Enterprise 智能体平台上，将 Google 的尖端图像生成 AI 能力带给应用程序开发者。通过在 Gemini Enterprise 智能体平台上使用 Imagen，应用程序开发者可以利用 AI 生成技术，在几秒钟内将用户的想象力转化为高质量的视觉资产。"
+integration:
+  name: Google imagen
+  pypi: langchain-google-vertexai
+---
+
+>[在 Gemini Enterprise 智能体平台](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/image/overview)上，将 Google 的尖端图像生成 AI 能力带给应用程序开发者。通过在 Gemini Enterprise 智能体平台上使用 Imagen，应用程序开发者可以利用 AI 生成技术，在几秒钟内将用户的想象力转化为高质量的视觉资产。
+
+使用 Imagen on LangChain ，您可以执行以下任务
+
+- [VertexAIImageGeneratorChat](#图像生成)：仅使用文本提示生成全新图像（文本到图像 AI 生成）。
+- [VertexAIImageEditorChat](#图像编辑)：使用文本提示编辑整个上传或生成的图像。
+- [VertexAIImageCaptioning](#图像字幕)：获取图像的文本描述，实现视觉字幕。
+- [VertexAIVisualQnAChat](#视觉问答（vqa）)：使用视觉问答（VQA）获取有关图像的问题答案。
+  - 注意：目前我们仅支持单轮次的视觉问答（VQA）
+
+## 图像生成
+
+仅使用文本提示生成全新图像（文本到图像 AI 生成）
+
+```python
+from langchain.messages import AIMessage, HumanMessage
+from langchain_google_vertexai.vision_models import VertexAIImageGeneratorChat
+```
+
+```python
+# Create Image Generation model Object
+generator = VertexAIImageGeneratorChat()
+```
+
+```python
+messages = [HumanMessage(content=["a cat at the beach"])]
+response = generator.invoke(messages)
+```
+
+```python
+# To view the generated Image
+generated_image = response.content[0]
+```
+
+```python
+import base64
+import io
+
+from PIL import Image
+
+# Parse response object to get base64 string for image
+img_base64 = generated_image["image_url"]["url"].split(",")[-1]
+
+# Convert base64 string to Image
+img = Image.open(io.BytesIO(base64.decodebytes(bytes(img_base64, "utf-8"))))
+
+# view Image
+img
+```
+
+<p>
+<img src="/images/integrations/imagen-generated-cat.jpg" />
+</p>
+
+## 图像编辑
+
+使用文本提示编辑整个上传或生成的图像。
+
+### 编辑生成的图像
+
+```python
+from langchain.messages import AIMessage, HumanMessage
+from langchain_google_vertexai.vision_models import (
+    VertexAIImageEditorChat,
+    VertexAIImageGeneratorChat,
+)
+```
+
+```python
+# Create Image Generation model Object
+generator = VertexAIImageGeneratorChat()
+
+# Provide a text input for image
+messages = [HumanMessage(content=["a cat at the beach"])]
+
+# call the model to generate an image
+response = generator.invoke(messages)
+
+# read the image object from the response
+generated_image = response.content[0]
+```
+
+```python
+# Create Image Editor model Object
+editor = VertexAIImageEditorChat()
+```
+
+```python
+# Write prompt for editing and pass the "generated_image"
+messages = [HumanMessage(content=[generated_image, "a dog at the beach "])]
+
+# Call the model for editing Image
+editor_response = editor.invoke(messages)
+```
+
+```python
+import base64
+import io
+
+from PIL import Image
+
+# Parse response object to get base64 string for image
+edited_img_base64 = editor_response.content[0]["image_url"]["url"].split(",")[-1]
+
+# Convert base64 string to Image
+edited_img = Image.open(
+    io.BytesIO(base64.decodebytes(bytes(edited_img_base64, "utf-8")))
+)
+
+# view Image
+edited_img
+```
+
+<p>
+<img src="/images/integrations/imagen-edited-cat.jpg" />
+</p>
+
+## 图像字幕
+
+```python
+from langchain_google_vertexai import VertexAIImageCaptioning
+
+# Initialize the Image Captioning Object
+model = VertexAIImageCaptioning()
+```
+
+注意：我们在 [图像生成部分](#图像生成)中使用生成的图像
+
+```python
+# use image generated in Image Generation Section
+img_base64 = generated_image["image_url"]["url"]
+response = model.invoke(img_base64)
+print(f"Generated Caption : {response}")
+
+# Convert base64 string to Image
+img = Image.open(
+    io.BytesIO(base64.decodebytes(bytes(img_base64.split(",")[-1], "utf-8")))
+)
+
+# display Image
+img
+```
+
+```text
+Generated Caption : a cat sitting on the beach looking at the camera
+```
+
+<p>
+<img src="/images/integrations/imagen-cat-beach.jpg" />
+</p>
+
+## 视觉问答（VQA）
+
+```python
+from langchain_google_vertexai import VertexAIVisualQnAChat
+
+model = VertexAIVisualQnAChat()
+```
+
+注意：我们在 [图像生成部分](#图像生成)中使用生成的图像
+
+```python
+question = "What animal is shown in the image?"
+response = model.invoke(
+    input=[
+        HumanMessage(
+            content=[
+                {"type": "image_url", "image_url": {"url": img_base64}},
+                question,
+            ]
+        )
+    ]
+)
+
+print(f"question : {question}\nanswer : {response.content}")
+
+# Convert base64 string to Image
+img = Image.open(
+    io.BytesIO(base64.decodebytes(bytes(img_base64.split(",")[-1], "utf-8")))
+)
+
+# display Image
+img
+```
+
+```text
+question : What animal is shown in the image?
+answer : cat
+```
+
+<p>
+<img src="/images/integrations/imagen-cat-beach.jpg" />
+</p>
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/google_imagen.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/google_imagen.mdx) · 译文由 AI 生成，以英文原文为准。

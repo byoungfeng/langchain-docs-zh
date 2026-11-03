@@ -1,0 +1,243 @@
+---
+title: "权限"
+description: "使用声明式权限规则控制 Deep Agents 的文件系统访问"
+---
+
+import PermissionsBasicPy from '/langchain/snippets/code-samples/permissions-basic-py.mdx';
+import PermissionsBasicJs from '/langchain/snippets/code-samples/permissions-basic-js.mdx';
+import PermissionsIsolateWorkspacePy from '/langchain/snippets/code-samples/permissions-isolate-workspace-py.mdx';
+import PermissionsIsolateWorkspaceJs from '/langchain/snippets/code-samples/permissions-isolate-workspace-js.mdx';
+import PermissionsProtectFilesPy from '/langchain/snippets/code-samples/permissions-protect-files-py.mdx';
+import PermissionsProtectFilesJs from '/langchain/snippets/code-samples/permissions-protect-files-js.mdx';
+import PermissionsReadOnlyMemoryPy from '/langchain/snippets/code-samples/permissions-read-only-memory-py.mdx';
+import PermissionsReadOnlyMemoryJs from '/langchain/snippets/code-samples/permissions-read-only-memory-js.mdx';
+import PermissionsDenyAllPy from '/langchain/snippets/code-samples/permissions-deny-all-py.mdx';
+import PermissionsDenyAllJs from '/langchain/snippets/code-samples/permissions-deny-all-js.mdx';
+import PermissionsRuleOrderingPy from '/langchain/snippets/code-samples/permissions-rule-ordering-py.mdx';
+import PermissionsRuleOrderingJs from '/langchain/snippets/code-samples/permissions-rule-ordering-js.mdx';
+import PermissionsSubagentPy from '/langchain/snippets/code-samples/permissions-subagent-py.mdx';
+import PermissionsSubagentJs from '/langchain/snippets/code-samples/permissions-subagent-js.mdx';
+import PermissionsCompositeBackendPy from '/langchain/snippets/code-samples/permissions-composite-backend-py.mdx';
+import PermissionsCompositeBackendJs from '/langchain/snippets/code-samples/permissions-composite-backend-js.mdx';
+import PermissionsCompositeBackendInvalidPy from '/langchain/snippets/code-samples/permissions-composite-backend-invalid-py.mdx';
+import PermissionsInterruptPy from '/langchain/snippets/code-samples/permissions-interrupt-py.mdx';
+import PermissionsCompositeBackendInvalidJs from '/langchain/snippets/code-samples/permissions-composite-backend-invalid-js.mdx';
+
+使用声明式权限规则控制智能体可以读取或写入的文件和目录。将一系列规则传递给 `permissions=`，智能体的内置文件系统工具将遵守这些规则。
+
+:::python
+<Note>
+    权限需要 `deepagents>=0.5.2`。
+</Note>
+::!
+
+:::js
+<Note>
+    权限需要 `deepagents>=1.9.1`。
+</Note>
+::!
+
+:::python
+权限仅适用于内置文件系统工具（`ls`、`read_file`、`glob`、`grep`、`write_file`、`edit_file`、`delete`）。访问文件系统的自定义工具和 MCP 工具不受此限制。权限也不适用于 [沙盒后端](/langchain/oss/deepagents/sandboxes)，后者通过 `execute` 工具支持任意命令执行。
+::!
+
+:::js
+权限仅适用于内置文件系统工具（`ls`、`read_file`、`glob`、`grep`、`write_file`、`edit_file`）。访问文件系统的自定义工具和 MCP 工具不受此限制。权限也不适用于 [沙盒后端](/langchain/oss/deepagents/sandboxes)，后者通过 `execute` 工具支持任意命令执行。
+::!
+
+<Tip>
+当您需要在内置文件系统工具上使用基于路径的允许/拒绝规则时，请使用 `permissions`。当您需要自定义验证逻辑（速率限制、审计日志、内容检查）或需要控制自定义工具时，请使用 [后端策略钩子](/langchain/oss/deepagents/backends#添加策略钩子)。
+</Tip>
+
+## 基本用法
+
+:::python
+
+将一系列 @[`FilesystemPermission`] 规则传递给 @[`create_deep_agent`]。规则按声明顺序评估。第一个匹配的规则生效。如果没有规则匹配，则允许操作。
+
+<PermissionsBasicPy />
+
+::!
+
+:::js
+
+将一系列 `FilesystemPermission` 规则传递给 `createDeepAgent`。规则按声明顺序评估。第一个匹配的规则生效。如果没有规则匹配，则允许操作。
+
+<PermissionsBasicJs />
+
+::!
+
+## 规则结构
+
+:::python
+
+每个 `FilesystemPermission` 有三个字段：
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `operations` | `list["read" \| "write"]` | 该规则适用的操作。`"read"` 涵盖 `ls`、`read_file`、`glob`、`grep`。`"write"` 涵盖 `write_file`、`edit_file`、`delete`。 |
+| `paths` | `list[str]` | 用于匹配文件路径的通配符模式（例如，`["/workspace/**"]`）。支持 `**` 用于递归匹配和 `{a,b}` 用于选择。 |
+| `mode` | `"allow" \| "deny" \| "interrupt"` | 匹配操作是允许、拒绝还是需要人工批准。默认为 `"allow"`。参见 [需要人工批准](#需要人工批准)。 |
+
+规则使用先匹配者胜出评估：第一个 `operations` 和 `paths` 与当前调用匹配的规则决定结果。如果没有规则匹配，调用将被 **允许**（宽松默认）。
+
+::!
+
+:::js
+
+每个 `FilesystemPermission` 有三个字段：
+
+| 字段 | 类型 | 描述 |
+|------|------|------|
+| `operations` | `("read" \| "write")[]` | 该规则适用的操作。`"read"` 涵盖 `ls`、`read_file`、`glob`、`grep`。`"write"` 涵盖 `write_file`、`edit_file`。 |
+| `paths` | `string[]` | 用于匹配文件路径的通配符模式（例如，`["/workspace/**"]`）。支持 `**` 用于递归匹配和 `{a,b}` 用于选择。 |
+| `mode` | `"allow" \| "deny"` | 匹配操作是允许还是拒绝。默认为 `"allow"`。 |
+
+规则使用先匹配者胜出评估：第一个 `operations` 和 `paths` 与当前调用匹配的规则决定结果。如果没有规则匹配，调用将被 **允许**（宽松默认）。
+
+路径必须是绝对路径（以 `/` 开头），不能包含 `..` 或 `~`。无效路径在智能体构建时抛出异常。
+
+::!
+
+:::python
+
+## 需要人工批准
+
+<Note>
+`"interrupt"` 模式需要 `deepagents>=0.6.8`。
+</Note>
+
+将 `mode="interrupt"` 设置为需要人工批准，而不是直接允许或拒绝匹配操作。当智能体在匹配中断模式规则的路径上调用内置写入工具（`write_file`、`edit_file`、`delete`）时，`create_deep_agent` 会引发人工参与中断，而不是运行工具，并且审阅者可以批准、编辑或拒绝调用。
+
+<PermissionsInterruptPy />
+
+中断模式规则会自动连接到智能体的人工参与中间件，并与您传递的任何 `interrupt_on` 合并，因此您以与工具调用中断相同的方式处理和恢复它们。参见 [人工参与](/langchain/oss/deepagents/human-in-the-loop) 以了解恢复流程。
+
+<Note>
+删除目录是全有或全无操作：`delete` 检查目标及其所有后代路径的 `write` 权限，如果其中任何一个是拒绝的，则拒绝整个操作，而不是删除部分树。`delete` 对现有空目录也应用相同的保守检查，因为它仍然是目录而不是确认的叶目标。
+
+
+删除普通文件是一个精确匹配的情况：`delete`以与`write_file`和`edit_file`相同的方式解析目标，使用先匹配胜出的评估方式，因此一个更早、更窄的`allow`规则会胜过一个较晚的通用`deny`规则。`deepagents>=0.7.3`对此精确匹配行为是必需的。
+</Note>
+
+<Tip>
+使用字面量前缀锚定中断模式（例如，`/secrets/**`或`/projects/*/secrets/**`）。批量工具（`ls`、`glob`、`grep`以及在目录上的`delete`）在其搜索子树可能与规则的锚定前缀重叠时触发中断，因此一个完全未锚定的模式如`/**/secrets`会保守地过度触发。
+</Tip>
+
+:::
+
+## 示例
+
+:::python
+
+### 隔离到工作区目录
+
+仅允许在`/workspace/`下读写，并拒绝其他所有操作：
+
+<PermissionsIsolateWorkspacePy />
+
+### 保护特定文件
+
+<PermissionsProtectFilesPy />
+
+### 只读内存
+
+允许智能体读取内存文件，但阻止其修改它们。这对于需要仅由应用代码更新的组织级策略或共享知识库很有用。参见[只读与可写内存](/langchain/oss/deepagents/memory#只读与可写记忆)以获取更多背景。
+
+<PermissionsReadOnlyMemoryPy />
+
+### 拒绝所有访问
+
+阻止所有读写。这是一个限制性的基线，你可以在其上叠加更具体的允许规则：
+
+<PermissionsDenyAllPy />
+
+### 规则顺序
+
+由于先匹配胜出，规则顺序很重要。将更具体的规则放在更广泛的规则之前：
+
+<PermissionsRuleOrderingPy />
+
+:::
+
+:::js
+
+### 隔离到工作区目录
+
+仅允许在`/workspace/`下读写，并拒绝其他所有操作：
+
+<PermissionsIsolateWorkspaceJs />
+
+### 保护特定文件
+
+<PermissionsProtectFilesJs />
+
+### 只读内存
+
+允许智能体读取内存文件，但阻止其修改它们。这对于需要仅由应用代码更新的组织级策略或共享知识库很有用。参见[只读与可写内存](/langchain/oss/deepagents/memory#只读与可写记忆)以获取更多背景。
+
+<PermissionsReadOnlyMemoryJs />
+
+### 拒绝所有访问
+
+阻止所有读写。这是一个限制性的基线，你可以在其上叠加更具体的允许规则：
+
+<PermissionsDenyAllJs />
+
+### 规则顺序
+
+由于先匹配胜出，规则顺序很重要。将更具体的规则放在更广泛的规则之前：
+
+<PermissionsRuleOrderingJs />
+
+:::
+
+## 子智能体权限
+
+:::python
+
+[子智能体](/langchain/oss/deepagents/subagents)默认继承父智能体的权限。要给子智能体不同的权限，在其规范中设置`permissions`字段。这**完全替换**了父智能体的规则。
+
+<PermissionsSubagentPy />
+
+:::
+
+:::js
+
+[子智能体](/langchain/oss/deepagents/subagents)默认继承父智能体的权限。要给子智能体不同的权限，在其规范中设置`permissions`字段。这**完全替换**了父智能体的规则。
+
+<PermissionsSubagentJs />
+
+要显式授予子智能体无限制访问，设置`permissions: []`。空数组用无限制覆盖父规则。省略`permissions`则继承自父智能体。
+
+:::
+
+## 组合后端
+
+:::python
+
+在使用带有沙盒默认值的 @[`CompositeBackend`]时，每个权限路径都必须限定在已知路由前缀下。沙盒支持任意命令执行，因此仅基于路径的权限无法阻止通过 shell 命令的文件系统访问。将权限限定在路由特定的[后端](/langchain/oss/deepagents/backends)可避免此冲突。
+
+<PermissionsCompositeBackendPy />
+
+包含任何路由外路径的权限会引发`NotImplementedError`：
+
+<PermissionsCompositeBackendInvalidPy />
+
+:::
+
+:::js
+
+在使用`CompositeBackend`带有沙盒默认值时，每个权限路径都必须限定在已知路由前缀下。沙盒支持任意命令执行，因此仅基于路径的权限无法阻止通过 shell 命令的文件系统访问。将权限限定在路由特定的[后端](/langchain/oss/deepagents/backends)可避免此冲突。
+
+<PermissionsCompositeBackendJs />
+
+包含任何路由外路径的权限在构建时抛出：
+
+<PermissionsCompositeBackendInvalidJs />
+
+:::
+
+---
+
+> 官方原文：[src/oss/deepagents/permissions.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/permissions.mdx) · 译文由 AI 生成，以英文原文为准。

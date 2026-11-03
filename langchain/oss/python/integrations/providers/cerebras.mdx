@@ -1,0 +1,43 @@
+---
+title: "Cerebras 集成"
+description: "使用 LangChain Python 集成 Cerebras"
+---
+
+在 Cerebras，我们开发了世界上最大、最快的 AI 处理器——晶圆级引擎-3（WSE-3）。由 WSE-3 驱动的 Cerebras CS-3 系统，代表了一种新型 AI 超级计算机，以其无与伦比的性能和可扩展性，为生成式 AI 训练和推理设定了新标准。
+
+选择 Cerebras 作为您的推理提供商，您可以：
+- 实现前所未有的 AI 推理工作负载速度
+- 以高吞吐量进行商业化构建
+- 通过我们无缝的集群技术轻松扩展 AI 工作负载
+
+我们的 CS-3 系统可以快速轻松地集群化，创建世界上最大的 AI 超级计算机，使部署和运行大型模型变得简单。领先的 corporations、研究机构以及政府已开始使用 Cerebras 解决方案开发专有模型和训练流行开源模型。
+
+想体验 Cerebras 的强大功能？访问我们的 [website](https://cerebras.ai) 获取更多资源，并通过 Cerebras Cloud 或本地部署探索访问我们技术的选项！
+
+有关 Cerebras Cloud 的更多信息，请访问 [cloud.cerebras.ai](https://cloud.cerebras.ai/)。我们的 API 参考 位于 [inference-docs.cerebras.ai](https://inference-docs.cerebras.ai/)。
+
+## 安装和设置
+安装集成包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-cerebras
+```
+
+```bash uv
+uv add langchain-cerebras
+```
+</CodeGroup>
+
+## API 密钥
+从 [cloud.cerebras.ai](https://cloud.cerebras.ai/) 获取 API 密钥并将其添加到您的环境变量：
+```
+export CEREBRAS_API_KEY="your-api-key-here"
+```
+
+## 对话模型
+查看 [usage example](/langchain/oss/python/integrations/chat/cerebras) 的使用示例。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/cerebras.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/cerebras.mdx) · 译文由 AI 生成，以英文原文为准。

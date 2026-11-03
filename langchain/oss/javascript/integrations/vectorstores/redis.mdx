@@ -1,0 +1,803 @@
+---
+title: "RedisVectorStore 集成"
+description: "使用 LangChain JavaScript 集成 FluentRedisVectorStore 和 RedisVectorStore。"
+integration:
+  name: RedisVectorStore
+  npm: '@langchain/redis'
+---
+
+<Tip>
+**兼容性**: 仅适用于 Node.js 环境。
+</Tip>
+
+[Redis](https://redis.io/) 是一个快速的开源内存数据存储。自 [Redis 8.0](https://redis.io/docs/latest/develop/whats-new/8-0/) 版本起，[RediSearch](https://redis.io/docs/latest/develop/interact/search-and-query/)（支持向量相似语义搜索的模块）已内置，不再需要单独安装该模块。
+对于较旧版本的 Redis，您可能需要单独安装该模块或使用 [Redis Stack](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/) 发行版。
+
+本指南提供了使用 Redis [向量存储](/langchain/oss/python/integrations/vectorstores) 的快速入门概述。`@langchain/redis` 包提供了两种实现方式：`FluentRedisVectorStore`（推荐，支持高级过滤）和 `RedisVectorStore`（遗留方案）。
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | [Python 支持](/langchain/oss/python/integrations/vectorstores/redis) | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: |
+| [`FluentRedisVectorStore`](https://reference.langchain.com/javascript/langchain-redis/FluentRedisVectorStore) | [`@langchain/redis`](https://www.npmjs.com/package/@langchain/redis) | ❌ | ![NPM - 下载量](https://img.shields.io/npm/dm/@langchain/redis?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/redis?style=flat-square&label=%20&) |
+| [`RedisVectorStore`](https://reference.langchain.com/javascript/langchain-redis/RedisVectorStore) | [`@langchain/redis`](https://www.npmjs.com/package/@langchain/redis) | ✅ | ![NPM - 下载量](https://img.shields.io/npm/dm/@langchain/redis?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/redis?style=flat-square&label=%20&) |
+
+## 设置
+
+要使用 Redis 向量存储，请设置一个已启用 RediSearch 的 Redis Stack 实例，并安装 `@langchain/redis` 和 `@langchain/core`。当您将自定义的 `createClient` 实例传递给 `RedisVectorStore` 时，请安装 [`redis`](https://www.npmjs.com/package/redis) Node.js 客户端。
+
+本指南以 [OpenAI 嵌入](/langchain/oss/python/integrations/embeddings/openai) 为例。您也可以使用 [其他支持的嵌入模型](/langchain/oss/python/integrations/embeddings)。
+
+<CodeGroup>
+```bash npm
+npm install @langchain/redis @langchain/core redis @langchain/openai
+```
+```bash yarn
+yarn add @langchain/redis @langchain/core redis @langchain/openai
+```
+```bash pnpm
+pnpm add @langchain/redis @langchain/core redis @langchain/openai
+```
+</CodeGroup>
+
+您可以通过遵循 [这些说明](https://redis.io/docs/latest/operate/oss_and_stack/install/install-stack/docker/#redisredis-stack) 在本地使用 Docker 设置 Redis 实例。
+
+### 凭证
+
+设置 `REDIS_URL` 环境变量：
+
+```typescript
+process.env.REDIS_URL = "your-redis-url";
+```
+
+如果您在本指南中使用 OpenAI 嵌入，请设置您的 OpenAI 密钥：
+
+```typescript
+process.env.OPENAI_API_KEY = "YOUR_API_KEY";
+```
+
+如果您希望自动跟踪您的模型调用，您还可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```typescript
+// process.env.LANGSMITH_TRACING="true"
+// process.env.LANGSMITH_API_KEY="your-api-key"
+```
+
+## 实例化
+
+```typescript
+import { RedisVectorStore } from "@langchain/redis";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+import { createClient } from "redis";
+
+const embeddings = new OpenAIEmbeddings({
+  model: "text-embedding-3-small",
+});
+
+const client = createClient({
+  url: process.env.REDIS_URL ?? "redis://localhost:6379",
+});
+await client.connect();
+
+const vectorStore = new RedisVectorStore(embeddings, {
+  redisClient: client,
+  indexName: "langchainjs-testing",
+});
+```
+
+## 管理向量存储
+
+### 向向量存储添加项
+
+```typescript
+import type { Document } from "@langchain/core/documents";
+
+const document1: Document = {
+  pageContent: "The powerhouse of the cell is the mitochondria",
+  metadata: { type: "example" },
+};
+
+const document2: Document = {
+  pageContent: "Buildings are made out of brick",
+  metadata: { type: "example" },
+};
+
+const document3: Document = {
+  pageContent: "Mitochondria are made out of lipids",
+  metadata: { type: "example" },
+};
+
+const document4: Document = {
+  pageContent: "The 2024 Olympics are in Paris",
+  metadata: { type: "example" },
+};
+
+const documents = [document1, document2, document3, document4];
+
+await vectorStore.addDocuments(documents);
+```
+
+当前不支持顶层文档 ID，但您可以直接向向量存储提供文档 ID 来删除文档。
+
+## 查询向量存储
+
+在您的链或智能体运行期间，一旦创建了向量存储并添加了相关文档，您很可能需要对其进行查询。
+
+### 直接查询
+
+执行简单的相似度搜索如下：
+
+```typescript
+const similaritySearchResults = await vectorStore.similaritySearch(
+  "biology",
+  2
+);
+
+for (const doc of similaritySearchResults) {
+  console.log(`* ${doc.pageContent} [${JSON.stringify(doc.metadata, null)}]`);
+}
+```
+
+如果您想执行相似度搜索并接收相应的分数，可以运行：
+
+```typescript
+const similaritySearchWithScoreResults =
+  await vectorStore.similaritySearchWithScore("biology", 2);
+
+for (const [doc, score] of similaritySearchWithScoreResults) {
+  console.log(
+    `* [SIM=${score.toFixed(3)}] ${doc.pageContent} [${JSON.stringify(
+      doc.metadata
+    )}]`
+  );
+}
+```
+
+```text
+* [SIM=0.835] The powerhouse of the cell is the mitochondria [{"type":"example"}]
+* [SIM=0.852] Mitochondria are made out of lipids [{"type":"example"}]
+```
+
+### 将其转换为检索器进行查询
+
+您还可以将向量存储转换为 [检索器](/langchain/oss/deepagents/retrieval)，以便在您的链中更方便地使用。
+
+```typescript
+const retriever = vectorStore.asRetriever({
+  k: 2,
+});
+await retriever.invoke("biology");
+```
+
+```javascript
+[
+  Document {
+    pageContent: 'The powerhouse of the cell is the mitochondria',
+    metadata: { type: 'example' },
+    id: undefined
+  },
+  Document {
+    pageContent: 'Mitochondria are made out of lipids',
+    metadata: { type: 'example' },
+    id: undefined
+  }
+]
+```
+
+### 用于检索增强生成
+
+有关如何使用此向量存储进行检索增强生成（RAG）的指南，请参阅以下部分：
+
+- [使用 LangChain 构建 RAG 应用](/langchain/oss/deepagents/rag)。
+- [智能体式 RAG](/langchain/oss/langgraph/agentic-rag)
+- [检索文档](/langchain/oss/deepagents/retrieval)
+
+## 删除文档
+
+您可以通过两种方式从向量存储中删除文档：
+
+### 删除所有文档
+
+您可以使用以下命令删除整个索引及其所有文档：
+
+```typescript
+await vectorStore.delete({ deleteAll: true });
+```
+
+### 通过 ID 删除特定文档
+
+您还可以通过提供其 ID 来删除特定文档。请注意，配置的键前缀将自动添加到您提供的 ID：
+
+```typescript
+// The key prefix will be automatically added to each ID
+await vectorStore.delete({ ids: ["doc1", "doc2", "doc3"] });
+```
+
+## 关闭连接
+
+完成操作后，请确保关闭客户端连接，以避免过度消耗资源：
+
+```typescript
+await client.disconnect();
+```
+
+## 高级功能
+
+### 使用 Redis 向量存储进行高级预过滤
+
+`@langchain/redis` 包提供了两种向量存储实现：
+
+- **`FluentRedisVectorStore`**（推荐）：新的实现，具有类型安全的流畅过滤 API、基于数组的 `customSchema`、GEO 字段和时间戳过滤
+- **`RedisVectorStore`**（遗留方案）：原始实现，具有基于对象的模式和基本过滤功能
+
+<Note>
+**我应该使用哪一个？**
+
+对于新项目或在需要以下功能时，请使用 `FluentRedisVectorStore`：
+- 使用类型安全的流畅 API 进行高级过滤（`Tag`、`Num`、`Text`、`Geo`、`Timestamp` 过滤器）
+- 地理查询
+- 时间戳/日期过滤
+- 具有与/或逻辑的复杂过滤组合
+- 更清洁的基于数组的模式定义
+
+对于以下情况，请使用 `RedisVectorStore`：
+- 需要向后兼容的现有项目
+- 无需高级过滤需求的简单用例
+</Note>
+
+#### 使用 FluentRedisVectorStore
+
+`FluentRedisVectorStore` 提供了一个现代、类型安全的 API，用于高级元数据过滤。
+
+**使用 FluentRedisVectorStore 定义模式：**
+
+```typescript
+import { FluentRedisVectorStore } from "@langchain/redis";
+import type { RedisVectorStoreConfig } from "@langchain/redis";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { createClient } from "redis";
+
+const embeddings = new OpenAIEmbeddings({
+  model: "text-embedding-3-small",
+});
+
+const client = createClient({
+  url: process.env.REDIS_URL ?? "redis://localhost:6379",
+});
+await client.connect();
+
+// Define custom schema for metadata fields using array format
+const customSchema = [
+  { name: "category", type: "tag" },
+  { name: "price", type: "numeric", options: { sortable: true } },
+  { name: "title", type: "text", options: { weight: 2.0 } },
+  { name: "location", type: "geo" },
+  { name: "created_at", type: "numeric", options: { sortable: true } },
+  { name: "brand", type: "tag" },
+  { name: "rating", type: "numeric" },
+];
+
+const vectorStore = await FluentRedisVectorStore.fromDocuments(
+  documents,
+  embeddings,
+  {
+    redisClient: client,
+    indexName: "products",
+    customSchema,
+  }
+);
+```
+
+<Note>
+**`customSchema` 是必需的；推理仅用于验证：**
+
+`FluentRedisVectorStore` 需要一个 `customSchema`。当您使用文档创建索引时，它还会从文档元数据中推断模式，并在推断的模式与您的 `customSchema` 不同时记录警告。
+
+用于此比较的推理规则：
+
+- **"经度,纬度" 格式的字符串**（例如，`"-122.4194,37.7749"`）→ GEO 字段
+- **数字或日期对象** → NUMERIC 字段
+- **任何类型的数组** → TAG 字段
+- **所有其他类型** → TEXT 字段
+
+显式定义您的模式，以便控制字段类型（例如，TEXT 与 TAG 用于字符串）以及 `sortable`、`weight` 或 `caseSensitive` 等选项。
+</Note>
+
+#### 使用 RedisVectorStore（遗留方案）
+
+原始 `RedisVectorStore` 使用基于对象的模式格式：
+
+```typescript
+import { RedisVectorStore } from "@langchain/redis";
+import { SchemaFieldTypes } from "redis";
+
+// Define custom schema for metadata fields using object format
+const customSchema = {
+  userId: {
+    type: SchemaFieldTypes.TEXT,
+    required: true,
+    SORTABLE: true,
+  },
+  category: {
+    type: SchemaFieldTypes.TAG,
+    SORTABLE: true,
+    SEPARATOR: ",",
+  },
+  score: {
+    type: SchemaFieldTypes.NUMERIC,
+    SORTABLE: true,
+  },
+  tags: {
+    type: SchemaFieldTypes.TAG,
+    SEPARATOR: ",",
+    CASESENSITIVE: true,
+  },
+  description: {
+    type: SchemaFieldTypes.TEXT,
+    NOSTEM: true,
+    WEIGHT: 2.0,
+  },
+};
+
+const vectorStoreWithSchema = new RedisVectorStore(embeddings, {
+  redisClient: client,
+  indexName: "langchainjs-custom-schema",
+  customSchema,
+});
+```
+
+#### 模式字段类型
+
+**FluentRedisVectorStore 支持四种模式字段类型：**
+
+- **TEXT**：支持可选词干处理、加权排序的全文可搜索字段
+- **TAG**：用于精确匹配的分类字段，支持多个值和自定义分隔符
+- **NUMERIC**：支持范围查询和排序的数字字段。用于时间戳（存储 Unix 纪元秒；`Date` 值将自动转换）
+- **GEO**：用于基于位置查询的地理坐标字段（存储为 `[longitude, latitude]`）
+
+使用 `Timestamp()` 过滤器辅助函数针对 `numeric` 时间戳字段。
+
+**RedisVectorStore（遗留方案）支持三种字段类型：**
+
+- **TEXT**：全文可搜索字段
+- **TAG**：用于精确匹配的分类字段
+- **NUMERIC**：支持范围查询的数字字段
+
+#### 字段配置选项
+
+**FluentRedisVectorStore（基于数组的模式）：**
+
+- `name`: 字段名称（必填）
+- `type`: 字段类型 - `"text"`、`"tag"`、`"numeric"` 或 `"geo"`（必填）
+- `options`: 可选配置对象：
+  - `sortable`: 在此字段上启用排序（布尔值）
+  - `separator`: 对于 TAG 字段，指定多个值的分隔符（字符串，默认：","）
+  - `caseSensitive`: 对于 TAG 字段，启用区分大小写的匹配（布尔值）
+  - `noStem`: 对于 TEXT 字段，禁用词干提取（布尔值）
+  - `weight`: 对于 TEXT 字段，指定搜索权重（数字，默认：1.0）
+
+**RedisVectorStore (基于对象的模式):**
+
+- `required`: 字段是否必须存在于元数据中（默认：false）
+- `SORTABLE`: 在此字段上启用排序（默认：undefined）
+- `SEPARATOR`: 对于 TAG 字段，指定多个值的分隔符（默认：",")
+- `CASESENSITIVE`: 对于 TAG 字段，启用区分大小写的匹配（Redis 需要 `true`，而不是布尔值）
+- `NOSTEM`: 对于 TEXT 字段，禁用词干提取（Redis 需要 `true`，而不是布尔值）
+- `WEIGHT`: 对于 TEXT 字段，指定搜索权重（默认：1.0）
+
+#### 带模式验证的文档添加
+
+在使用 `RedisVectorStore` 或 `FluentRedisVectorStore` 时，如果创建了索引，则在添加文档时，会将其元数据与提供的自定义模式进行比较。
+
+**FluentRedisVectorStore (基于数组的模式):**
+
+如果定义的模式与从文档中推断的元数据字段之间存在不匹配，控制台将记录警告消息：
+
+```
+"The custom schema does not match the metadata schema inferred from the documents.
+This is not necessarily an issue, but could indicate an invalid custom schema."
+```
+
+此验证有助于您尽早发现潜在问题，例如：
+- 将字段定义为 `numeric`，而您的文档包含字符串值
+- 将字段定义为 `geo`，而您的文档未使用 "lon,lat" 字符串格式
+- 模式中缺少而文档中存在的字段
+- 模式定义与实际数据之间的类型不匹配
+
+**RedisVectorStore (基于对象的模式):**
+
+仅在定义了 customSchema 时进行验证；如果不存在模式，则完全跳过验证。验证：
+- 如果标记为 required: true 的字段缺失（未定义或 null），则抛出错误
+- 如果字段类型与模式类型不匹配，则抛出错误，例如，NUMERIC 模式字段期望数字元数据字段
+
+<Tip>
+**模式验证的最佳实践：**
+
+1. **使用正确的数据类型**：确保您的文档元数据与模式字段类型匹配
+2. **GEO 字段**：使用字符串格式 `"longitude,latitude"`（例如，`"-122.4194,37.7749"`）
+3. **TIMESTAMP 字段**：使用 Date 对象或数字（Unix 时间戳）
+4. **TAG 字段的数组**：数组自动推断为 TAG 字段
+5. **使用样本数据进行测试**：在批量索引之前，使用几个文档验证您的模式
+</Tip>
+
+#### 使用 fluent API 进行高级过滤
+
+<Note>
+**重要提示：** fluent 过滤 API（`Tag`、`Num`、`Text`、`Geo`、`Timestamp`、`Custom`）**仅在使用 `FluentRedisVectorStore` 时可用**。遗留的 `RedisVectorStore` 使用不同的过滤方法。
+</Note>
+
+`FluentRedisVectorStore` 提供了一个强大的 fluent API 用于构建复杂的元数据过滤器。此 API 支持类型安全的过滤器构建，并支持各种字段类型和逻辑操作。
+
+**导入过滤器构建器：**
+
+```typescript
+import {
+  FluentRedisVectorStore,
+  Tag,
+  Num,
+  Text,
+  Geo,
+  Timestamp,
+  Custom,
+} from "@langchain/redis";
+```
+
+**简单的 TAG 过滤：**
+
+```typescript
+// Filter for electronics category
+const electronicsFilter = Tag("category").eq("electronics");
+const results = await vectorStore.similaritySearch(
+  "high quality device",
+  5,
+  electronicsFilter
+);
+```
+
+**数值范围过滤：**
+
+```typescript
+// Filter for products between $20-$500
+const priceFilter = Num("price").between(20, 500);
+const results = await vectorStore.similaritySearch(
+  "quality product",
+  5,
+  priceFilter
+);
+
+// Other numeric operations
+Num("price").eq(99.99);           // Exact match
+Num("price").gt(50);              // Greater than
+Num("price").gte(50);             // Greater than or equal
+Num("price").lt(100);             // Less than
+Num("price").lte(100);            // Less than or equal
+Num("price").between(20, 100);   // Between (inclusive)
+```
+
+**文本搜索过滤：**
+
+```typescript
+// Search for titles containing "programming"
+const textFilter = Text("title").wildcard("*programming*");
+const results = await vectorStore.similaritySearch(
+  "learning guide",
+  5,
+  textFilter
+);
+
+// Other text operations
+Text("title").eq("exact title");           // Exact match
+Text("description").match("guide");        // Text match
+Text("title").wildcard("*JavaScript*");    // Wildcard search
+```
+
+**地理过滤：**
+
+```typescript
+// Find items within 50km of San Francisco
+const geoFilter = Geo("location").within(-122.4194, 37.7749, 50, "km");
+const results = await vectorStore.similaritySearch(
+  "local products",
+  5,
+  geoFilter
+);
+
+// Geo coordinates are stored as [longitude, latitude]
+const doc = {
+  pageContent: "Product description",
+  metadata: {
+    location: [-122.4194, 37.7749], // [longitude, latitude]
+  },
+};
+```
+
+**时间戳过滤：**
+
+```typescript
+// Find items created after March 1, 2023
+const timestampFilter = Timestamp("created_at").gt(new Date("2023-03-01"));
+const results = await vectorStore.similaritySearch(
+  "recent items",
+  5,
+  timestampFilter
+);
+
+// Note: Timestamps are stored as Unix epoch timestamps (numbers)
+// Date objects are automatically converted during serialization
+// and returned as numbers during deserialization
+const createdDate = new Date((doc.metadata.created_at as number) * 1000);
+```
+
+**使用 AND 进行复杂组合过滤：**
+
+```typescript
+// Electronics under $400 in California
+const complexFilter = Tag("category")
+  .eq("electronics")
+  .and(Num("price").lt(400))
+  .and(Geo("location").within(-119.4179, 36.7783, 500, "km"));
+
+const results = await vectorStore.similaritySearch(
+  "affordable electronics",
+  5,
+  complexFilter
+);
+```
+
+**OR 过滤：**
+
+```typescript
+// Books OR items under $30
+const orFilter = Tag("category").eq("books").or(Num("price").lt(30));
+const results = await vectorStore.similaritySearch(
+  "affordable items",
+  5,
+  orFilter
+);
+```
+
+**多个 TAG 值：**
+
+```typescript
+// TechCorp OR ViewTech brands
+const multiTagFilter = Tag("brand").eq(["TechCorp", "ViewTech"]);
+const results = await vectorStore.similaritySearch(
+  "branded products",
+  5,
+  multiTagFilter
+);
+```
+
+**否定过滤：**
+
+```typescript
+// NOT electronics
+const negationFilter = Tag("category").ne("electronics");
+const results = await vectorStore.similaritySearch(
+  "non-electronic items",
+  5,
+  negationFilter
+);
+```
+
+**使用原始 RediSearch 语法创建自定义过滤器：**
+
+```typescript
+// Use raw RediSearch query syntax for advanced cases
+const customFilter = Custom("(@category:{electronics} @price:[0 400])");
+const results = await vectorStore.similaritySearch(
+  "affordable tech",
+  5,
+  customFilter
+);
+```
+
+#### 使用 FluentRedisVectorStore 的完整过滤示例
+
+以下是一个全面示例，展示了使用 `FluentRedisVectorStore` 的各种过滤功能：
+
+```typescript
+import { createClient } from "redis";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import {
+  FluentRedisVectorStore,
+  Tag,
+  Num,
+  Text,
+  Geo,
+  Timestamp,
+} from "@langchain/redis";
+import { Document } from "@langchain/core/documents";
+
+// Connect to Redis
+const client = createClient({
+  url: process.env.REDIS_URL ?? "redis://localhost:6379",
+});
+await client.connect();
+
+// Sample documents with rich metadata
+const docs = [
+  new Document({
+    metadata: {
+      category: "electronics",
+      price: 299.99,
+      title: "Wireless Bluetooth Headphones",
+      location: [-122.4194, 37.7749], // San Francisco
+      created_at: new Date("2023-01-15"),
+      brand: "TechCorp",
+      rating: 4.5,
+    },
+    pageContent:
+      "High-quality wireless Bluetooth headphones with noise cancellation",
+  }),
+  new Document({
+    metadata: {
+      category: "books",
+      price: 24.99,
+      title: "JavaScript Programming Guide",
+      location: [-74.006, 40.7128], // New York
+      created_at: new Date("2023-03-20"),
+      author: "John Smith",
+      pages: 450,
+    },
+    pageContent:
+      "Comprehensive guide to modern JavaScript programming techniques",
+  }),
+];
+
+// Create FluentRedisVectorStore with metadata schema
+const vectorStore = await FluentRedisVectorStore.fromDocuments(
+  docs,
+  new OpenAIEmbeddings(),
+  {
+    redisClient: client,
+    indexName: "advanced_products",
+    customSchema: [
+      { name: "category", type: "tag" },
+      { name: "price", type: "numeric", options: { sortable: true } },
+      { name: "title", type: "text", options: { weight: 2.0 } },
+      { name: "location", type: "geo" },
+      { name: "created_at", type: "numeric", options: { sortable: true } },
+      { name: "brand", type: "tag" },
+      { name: "author", type: "tag" },
+      { name: "rating", type: "numeric" },
+      { name: "pages", type: "numeric" },
+    ],
+  }
+);
+
+// Example: Complex filtering - Electronics under $400 near San Francisco
+const complexFilter = Tag("category")
+  .eq("electronics")
+  .and(Num("price").lt(400))
+  .and(Geo("location").within(-122.4194, 37.7749, 100, "km"));
+
+const results = await vectorStore.similaritySearch(
+  "affordable electronics",
+  5,
+  complexFilter
+);
+
+// Cleanup
+await vectorStore.delete({ deleteAll: true });
+await client.disconnect();
+```
+
+#### 使用遗留 API 进行高级过滤
+
+遗留的 `RedisVectorStore` 使用 `similaritySearchVectorWithScoreAndMetadata` 方法提供元数据过滤功能：
+
+```typescript
+// Search with TAG filtering
+const tagFilterResults =
+  await vectorStoreWithSchema.similaritySearchVectorWithScoreAndMetadata(
+    await embeddings.embedQuery("programming tutorial"),
+    3,
+    {
+      category: "programming", // Exact tag match
+      tags: ["javascript", "frontend"], // Multiple tag OR search
+    }
+  );
+
+console.log("Tag filter results:");
+for (const [doc, score] of tagFilterResults) {
+  console.log(`* [SIM=${score.toFixed(3)}] ${doc.pageContent}`);
+  console.log(`  Metadata: ${JSON.stringify(doc.metadata)}`);
+}
+```
+
+```typescript
+// Search with NUMERIC range filtering
+const numericFilterResults =
+  await vectorStoreWithSchema.similaritySearchVectorWithScoreAndMetadata(
+    await embeddings.embedQuery("high quality content"),
+    5,
+    {
+      score: { min: 90, max: 100 }, // Score between 90 and 100
+      category: ["programming", "ai"], // Multiple categories
+    }
+  );
+
+console.log("Numeric filter results:");
+for (const [doc, score] of numericFilterResults) {
+  console.log(`* [SIM=${score.toFixed(3)}] ${doc.pageContent}`);
+  console.log(
+    `  Score: ${doc.metadata.score}, Category: ${doc.metadata.category}`
+  );
+}
+```
+
+```typescript
+// Search with TEXT field filtering
+const textFilterResults =
+  await vectorStoreWithSchema.similaritySearchVectorWithScoreAndMetadata(
+    await embeddings.embedQuery("development guide"),
+    3,
+    {
+      description: "comprehensive guide", // Text search in description field
+      score: { min: 85 }, // Minimum score of 85
+    }
+  );
+
+console.log("Text filter results:");
+for (const [doc, score] of textFilterResults) {
+  console.log(`* [SIM=${score.toFixed(3)}] ${doc.pageContent}`);
+  console.log(`  Description: ${doc.metadata.description}`);
+}
+```
+
+#### 数值范围查询选项
+
+对于数值字段，您可以指定各种范围查询：
+
+```txt
+// Exact value match
+{ score: 95 }
+
+// Range with both min and max
+{ score: { min: 80, max: 100 } }
+
+// Only minimum value
+{ score: { min: 90 } }
+
+// Only maximum value
+{ score: { max: 95 } }
+```
+
+
+#### 性能优势
+
+使用自定义模式和 fluent 过滤 API 提供了多种性能优势：
+
+1. **索引元数据字段**：单独索引每个元数据字段，在向量搜索之前启用快速预过滤
+2. **类型优化的查询**：数值、TAG、地理和文本字段使用优化的 RediSearch 查询结构
+3. **减少向量比较**：在向量相似度计算之前应用过滤器，减少计算开销
+4. **更好的查询规划**：Redis 可以根据字段类型和索引优化查询
+5. **类型安全**：fluent API 提供过滤器构建的编译时类型检查
+
+#### 向后兼容性
+
+`RedisVectorStore` 和 `FluentRedisVectorStore` 目前都受支持并维护。然而，`RedisVectorStore` 被视为遗留功能，未来可能在主要版本中弃用。使用 `RedisVectorStore` 的现有代码将继续正常工作，无需任何更改。
+
+**迁移注意事项：**
+
+- 保留 `customSchema` 配置键，但将基于对象的格式切换为 `{ name, type, options }` 字段的数组
+- 用 fluent 过滤表达式（`Tag`、`Num`、`Text`、`Geo`、`Timestamp`、`Custom`）替换对象或字符串过滤器
+- GEO 模式字段和 `Timestamp()` 过滤辅助工具仅在 `FluentRedisVectorStore` 上可用
+- 元数据存储不同：`FluentRedisVectorStore` 将元数据作为单独的字段索引，与遗留的 JSON-blob 元数据不兼容。创建新索引并重新导入文档，而不是将 `FluentRedisVectorStore` 指向现有的遗留索引
+
+---
+
+## API 参考
+
+有关所有功能和配置的详细文档：
+
+- [`RedisVectorStore` API 参考](https://reference.langchain.com/javascript/langchain-redis/RedisVectorStore)
+- [`FluentRedisVectorStore` API 参考](https://reference.langchain.com/javascript/langchain-redis/FluentRedisVectorStore)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/vectorstores/redis.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/vectorstores/redis.mdx) · 译文由 AI 生成，以英文原文为准。

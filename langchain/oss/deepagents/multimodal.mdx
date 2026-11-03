@@ -1,0 +1,111 @@
+---
+title: "多模态输入和输出"
+sidebarTitle: "多模态"
+description: "当您的模型支持多模态输入和工具结果时，使用 Deep Agents 处理图像、音频、视频和文档"
+---
+
+import MultimodalSummarizationPy from '/langchain/snippets/code-samples/multimodal-summarization-py.mdx';
+import MultimodalSummarizationJs from '/langchain/snippets/code-samples/multimodal-summarization-js.mdx';
+import MultimodalUserInputPy from '/langchain/snippets/code-samples/multimodal-user-input-py.mdx';
+import MultimodalUserInputJs from '/langchain/snippets/code-samples/multimodal-user-input-js.mdx';
+import MultimodalCaptureScreenshotPy from '/langchain/snippets/code-samples/multimodal-capture-screenshot-py.mdx';
+import MultimodalCaptureScreenshotJs from '/langchain/snippets/code-samples/multimodal-capture-screenshot-js.mdx';
+
+Deep Agents 支持多模态工作流，当你使用一个接受多模态输入和工具结果或返回多模态输出的 [大型语言模型](/langchain/oss/python/integrations/chat) 时。你可以将图像和其他媒体附加到用户消息中，使用内置的 `read_file` 工具读取非文本文件，并从自定义工具中返回多模态内容。
+
+内置的 [上下文压缩](/langchain/oss/deepagents/context-engineering#上下文压缩) 主要面向文本。请根据多模态工作负载进行规划：将大型媒体存储在后端，并在可能的情况下传递引用。
+
+## 多模态用户输入
+
+在发送给智能体的 `messages` 中传递多模态内容，使用与 LangChain 对话模型相同的 [标准内容块](/langchain/oss/langchain/messages#标准内容块)：
+
+:::python
+
+<MultimodalUserInputPy />
+
+:::
+
+:::js
+
+<MultimodalUserInputJs />
+
+:::
+
+关于块类型、提供程序特定要求以及额外的示例（PDF、音频、视频），请参阅 [多模态消息](/langchain/oss/langchain/messages#多模态)。
+
+## 内置的 `read_file` 工具
+
+harness `read_file` 工具返回 [标准内容块](/langchain/oss/langchain/messages#标准内容块) 以支持的多模态文件，而不是纯文本。当选择的模型支持相应的模态时，智能体可以检查其 [文件系统](/langchain/oss/deepagents/overview#虚拟文件系统访问) 中存储的图像、文档和媒体。检查你选择的模型支持的 MIME 类型。
+
+<Accordion title="Supported multimodal file extensions">
+
+| 类型 | 扩展名 |
+| ---- | ---------- |
+| [图像](/langchain/oss/langchain/messages#多模态) | `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.heic`, `.heif` |
+| [视频](/langchain/oss/langchain/messages#多模态) | `.mp4`, `.mpeg`, `.mov`, `.avi`, `.flv`, `.mpg`, `.webm`, `.wmv`, `.3gpp` |
+| [音频](/langchain/oss/langchain/messages#多模态) | `.wav`, `.mp3`, `.aiff`, `.aac`, `.ogg`, `.flac` |
+| [文件](/langchain/oss/langchain/messages#多模态) | `.pdf`, `.ppt`, `.pptx` |
+
+</Accordion>
+
+## 自定义工具输出
+
+[自定义工具](/langchain/oss/deepagents/tools#自定义工具) 可以包含多模态文件，例如图像：
+
+:::python
+
+<MultimodalCaptureScreenshotPy />
+
+:::
+
+:::js
+
+<MultimodalCaptureScreenshotJs />
+
+:::
+
+返回值转换为模型在下一轮读取的 `ToolMessage`。使用 `content_blocks` 在结果消息中访问归一化表示。
+
+:::python
+关于返回类型选项、序列化行为和 MCP 示例，请参阅 [多模态内容](/langchain/oss/langchain/mcp/tools#多模态内容)。
+:::
+
+<Tip>
+当工具生成图像或其他大型二进制数据时，将工件保存到 [后端](/langchain/oss/deepagents/backends)，并返回简洁的文本描述以及路径或 URL。这可以保持消息历史更小，并且与 [上下文压缩](/langchain/oss/deepagents/context-engineering#上下文压缩) 更兼容。
+</Tip>
+
+## 上下文压缩和多模态内容
+
+内置的卸载和摘要针对文本和消息历史进行了优化：
+
+- **卸载** 仅测量文本 Token。非文本块（包括图像）在替换消息中保留，而不是被压缩。仅包含图像的消息不会根据图像大小单独卸载。
+- **摘要** 将较旧的消息压缩为纯文本摘要。在该范围内的图像、音频、视频和文件块不会被传递——模型只看到摘要器写的内容。低于保留阈值的最近消息保持不变。
+
+    当摘要运行时，较旧回合中的媒体块会从活动上下文中删除：
+
+    :::python
+
+    <MultimodalSummarizationPy />
+
+    :::
+
+    :::js
+
+    <MultimodalSummarizationJs />
+
+    :::
+
+    原始对话仍然作为文本写入文件系统。有关触发器、保留阈值和完整流程，请参阅 [摘要](/langchain/oss/deepagents/context-engineering#摘要)。
+
+对于多模态密集型工作负载：
+
+- 将图像、截图和图表存储在文件系统后端或外部对象存储中，然后通过消息传递文件路径或 URL。
+- 在长时间运行的对话中，优先使用引用而不是 base64 编码的图像块。
+- 使用 [子智能体](/langchain/oss/deepagents/subagents) 进行图像密集型检查，以便主智能体接收紧凑的文本结果。
+- 调整摘要阈值或在你的提供程序为图像收费许多 Token 时提供自定义 Token 计数器。
+
+有关卸载阈值、摘要触发器和自定义选项，请参阅 [上下文压缩](/langchain/oss/deepagents/context-engineering#上下文压缩)。
+
+---
+
+> 官方原文：[src/oss/deepagents/multimodal.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/multimodal.mdx) · 译文由 AI 生成，以英文原文为准。

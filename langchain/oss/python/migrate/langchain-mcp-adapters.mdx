@@ -1,0 +1,243 @@
+---
+title: "从 langchain-mcp-adapters 迁移"
+sidebarTitle: langchain-mcp-adapters
+description: "从独立的 langchain-mcp-adapters 包迁移到内置的 langchain.mcp 命名空间。"
+---
+
+import McpWrapToolCallPy from '/langchain/snippets/code-samples/mcp-wrap-tool-call-py.mdx';
+
+MCP 现在已包含在 LangChain 的 `langchain.mcp` 命名空间中，基于 [FastMCP](https://gofastmcp.com) 构建。它取代了独立的 [`langchain-mcp-adapters`](https://github.com/langchain-ai/langchain-mcp-adapters) 包，其 `MultiServerMCPClient` 被合并为一个 @[`MCPAdapter`] 类。
+
+有关完整功能文档，请参阅 [模型上下文协议 (MCP)](/langchain/oss/langchain/mcp)。
+
+<Prompt
+    description="从 langchain-mcp-adapters 迁移到 langchain.mcp"
+    icon="arrow-right"
+    actions={["copy"]}
+>
+将此代码库从独立的 `langchain-mcp-adapters` 包迁移到内置的 `langchain.mcp` 命名空间。
+
+## 第 1 步：阅读指南
+
+获取并遵循 https://docs.langchain.com/oss/python/migrate/langchain-mcp-adapters.md 作为包变更、导入路径、客户端 API、连接配置、回调、拦截器、认证以及尚未封装功能的权威来源。迁移后的当前功能文档，也需要获取 https://docs.langchain.com/oss/python/langchain/mcp.md 及其相关页面。
+
+## 第 2 步：升级包
+
+卸载 `langchain-mcp-adapters` 并使用项目已使用的包管理器（`uv` 或 `pip`）在 `>=1.4.0` 安装 `langchain[mcp]`。如果项目已固定版本，请优先固定当前稳定版本。
+
+## 第 3 步：应用迁移
+
+识别所有从 `langchain_mcp_adapters` 导入或使用 `MultiServerMCPClient` 的调用位置，然后根据指南应用前/后变更，包括：
+
+- 将 `MultiServerMCPClient` 替换为 `MCPAdapter`（异步上下文管理器；使用 `list_tools()`）。
+- 将服务器配置移动到标准的 `MCPConfig` 结构（`mcpServers`），并在指南说明传输被推断时删除每个条目的 `transport` 键。
+- 更新导入路径、重命名的辅助函数（例如 `convert_mcp_tool_to_langchain_tool` 到 `as_langchain_tool`）、构造函数参数、回调、工具拦截器和认证为页面上的映射。
+- 保留指南标记为保留的行为（例如 `MCPToolArtifact` 和多模态内容）。
+
+## 第 4 步：明确处理缺失部分
+
+如果代码库使用提示词、资源、采样、根、SSE/WebSocket 传输、`to_fastmcp` 或指南标记为不支持的任何 API 或协议弃用的 API，请停止并询问用户如何继续。不要自行发明替代方案。
+
+## 规则
+
+- 仅限于此迁移范围。不要重写无关的智能体代码。
+- 优先使用指南中的 `langchain.mcp` API 而不是保留 `langchain-mcp-adapters`。
+- 当调用位置或参数未被指南覆盖时，请询问而不是猜测。
+</Prompt>
+
+<Note>
+`langchain.mcp` 命名空间需要 `langchain[mcp]>=1.4.0` 并处于 Beta 版本。从其中导入会触发 `LangChainBetaWarning`。API 可能会变更。
+</Note>
+
+## 安装
+
+用 `mcp` 附加包替换独立包，它会引入 FastMCP：
+
+<CodeGroup>
+```bash pip
+pip uninstall langchain-mcp-adapters
+pip install "langchain[mcp]"
+```
+
+```bash uv
+uv remove langchain-mcp-adapters
+uv add "langchain[mcp]"
+```
+</CodeGroup>
+
+## 导入路径
+
+| `langchain-mcp-adapters` | `langchain.mcp` |
+|---|---|
+| `from langchain_mcp_adapters.client import MultiServerMCPClient` | `from langchain.mcp import MCPAdapter` |
+| `from langchain_mcp_adapters.tools import load_mcp_tools` | `from langchain.mcp import MCPAdapter` (使用 `MCPAdapter(...).list_tools()`) |
+| `from langchain_mcp_adapters.tools import convert_mcp_tool_to_langchain_tool` | `from langchain.mcp import as_langchain_tool` (已重命名) |
+| `from langchain_mcp_adapters.tools import MCPToolArtifact` | `from langchain.mcp import MCPToolArtifact` |
+
+## 客户端
+
+`MultiServerMCPClient` 使用服务器配置字典并暴露了多个方法。@[`MCPAdapter`] 是一个异步上下文管理器，它会从其目标推断传输并暴露 `list_tools()`。
+
+之前：
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+client = MultiServerMCPClient(
+    {
+        "math": {"transport": "stdio", "command": "python", "args": ["/path/to/math_server.py"]},
+        "weather": {"transport": "http", "url": "http://localhost:8000/mcp"},
+    }
+)
+tools = await client.get_tools()
+```
+
+之后：
+
+```python
+from langchain.mcp import MCPAdapter
+
+config = {
+    "mcpServers": {
+        "math": {"command": "python", "args": ["/path/to/math_server.py"]},
+        "weather": {"url": "http://localhost:8000/mcp"},
+    }
+}
+async with MCPAdapter(config) as adapter:
+    tools = await adapter.list_tools()
+```
+
+配置使用标准的 [`MCPConfig`](https://gofastmcp.com/integrations/mcp-json-configuration) 结构（`mcpServers`），传输是从每个条目推断而不是使用 `transport` 键命名的。对于单个服务器，直接传递其 URL、脚本路径或进程内服务器。参见 [连接](/langchain/oss/langchain/mcp/connections#多个服务器)。
+
+### 客户端方法
+
+| `MultiServerMCPClient` 方法 | `langchain.mcp` |
+|---|---|
+| `get_tools(server_name=...)` | `MCPAdapter(...).list_tools()`。通过将适配器指向该服务器来限定于单个服务器。 |
+| `get_prompt(server_name, prompt_name, arguments=...)` | **不支持。** 参见 [提示词和资源](#提示词和资源)。 |
+| `get_resources(server_name, uris=...)` | **不支持。** 参见 [提示词和资源](#提示词和资源)。 |
+| `session(server_name, auto_initialize=...)` | 未公开。`list_tools()` 管理会话；每个返回的工具在每次调用中都会开启自己的会话。参见 [连接生命周期](/langchain/oss/langchain/mcp/connections#连接生命周期)。 |
+
+### 构造函数参数
+
+| `MultiServerMCPClient(...)` 参数 | `langchain.mcp` |
+|---|---|
+| `connections` (连接配置字典) | 适配器的 `target`：URL、`Path`、进程内服务器、`MCPConfig` 字典、预构建的 `fastmcp.Client` 或 `ClientGroup`。 |
+| `tool_name_prefix` | 对于多服务器 `MCPConfig` 或 `ClientGroup` (`{server}_{tool}`)，前缀自动应用。参见 [多服务器](/langchain/oss/langchain/mcp/connections#多个服务器)。 |
+| `handle_tool_errors` | **已作为标志移除。** 行为现在固定：`isError=True` 成为 `ToolMessage(status="error")`；传输失败会抛出。参见 [工具](/langchain/oss/langchain/mcp/tools#错误)。 |
+| `callbacks` (`Callbacks`) | 在 `fastmcp.Client` 上设置相应的处理器。参见 [回调](#回调)。 |
+| `tool_interceptors` (`ToolCallInterceptor`) | 使用 LangChain [`@wrap_tool_call`](#工具拦截器) 中间件。 |
+
+## 连接配置
+
+`langchain-mcp-adapters` 使用了带类型的连接类。@[`MCPAdapter`] 会推断传输，或者你可以传递 `fastmcp` 传输以获得完全控制。
+
+| `langchain-mcp-adapters` | `langchain.mcp` |
+|---|---|
+| `StdioConnection` | 一个 `Path` 目标，或一个 `MCPConfig` 条目包含 `command`/`args`。 |
+| `StreamableHttpConnection` | 一个 `http`/`https` URL 目标，或一个 `MCPConfig` 条目包含 `url`。 |
+| `SSEConnection` | `Client(SSETransport(url))`，传递给 @[`MCPAdapter`]。支持，但传输已弃用。参见 [弃用的传输](#弃用的传输)。 |
+| `WebsocketConnection` | 无 FastMCP 传输。将服务器迁移到 Streamable HTTP。参见 [弃用的传输](#弃用的传输)。 |
+| `httpx_client_factory` | 设置在 `fastmcp` 传输上。参见 [共享连接池](/langchain/oss/langchain/mcp/connections#共享连接池)。 |
+| `auth` (每个连接) | 在 `fastmcp.Client` 上设置 `auth`。参见 [认证](/langchain/oss/langchain/mcp/auth)。 |
+| `headers` (每个连接) | 设置在 `fastmcp` 传输上（`StreamableHttpTransport(url, headers=...)`）。 |
+
+### 弃用的传输
+
+MCP 规范 [弃用了 HTTP+SSE 传输](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#backwards-compatibility)（协议版本 2024-11-05）以 Streamable HTTP 代替。FastMCP 仍然提供 `SSETransport` 以向后兼容，因此 SSE 服务器通过 `MCPAdapter(Client(SSETransport(url)))` 仍然可以工作，但优先将服务器迁移到 Streamable HTTP。WebSocket 没有 FastMCP 传输。
+
+## 提示词生成
+
+提示词生成从客户端注册的回调移动到 LangGraph @[`interrupt`]，现在默认启用。@[`MCPAdapter`] 为每个构建的客户端配置了能力并驱动中断循环；当运行暂停时回答服务器的请求，使用 `Command(resume={"responses": {key: answer}})` 继续执行。
+
+| `langchain-mcp-adapters` | `langchain.mcp` |
+|---|---|
+| `Callbacks(on_elicitation=...)` | 自动。`MCPAdapter(target)` 自动配置提示词生成，无需选择。预构建客户端自己的提示词生成处理器会被保留。 |
+
+参见 [提示词生成](/langchain/oss/langchain/mcp/tools#elicitation)。
+
+## 采样和根
+
+`langchain.mcp` 通过中断回答 **提示词生成** 请求，但不会回答 [采样](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling)（服务器请求客户端运行 LLM 完成任务）或 [根](https://modelcontextprotocol.io/specification/2025-06-18/client/roots)（服务器请求客户端可以访问哪些本地路径）。返回任何之一的工具调用会触发 `NotImplementedError`。
+
+这遵循协议。现代 MCP 时代是无会话的，服务器没有实时回传通道可以在请求中途调用，因此推送形式的采样和根仅存在于传统握手时代。FastMCP 4 因为此原因从每个时代中移除了 `ctx.sample()` 和 `ctx.list_roots()`。如果您需要通过 LangChain 回答服务器的采样或根请求，请 [打开问题](https://github.com/langchain-ai/langchain/issues)。
+
+## 回调
+
+`langchain-mcp-adapters` `Callbacks` 对象已不存在，但底层的处理器仍然存在：FastMCP 直接在其 `Client` 上接管它们。使用您需要的处理器构建一个 `fastmcp.Client`，并将其传递给 @[`MCPAdapter`]。
+
+| `Callbacks` 字段 | `langchain.mcp` |
+|---|---|
+| `on_elicitation` | 自动作为中断处理；不需要处理器。预构建客户端自己的 `elicitation_handler` 会被尊重。参见 [Elicitation](/langchain/oss/langchain/mcp/tools#elicitation)。 |
+| `on_progress` | `Client(transport, progress_handler=...)`。 |
+| `on_logging_message` | `Client(transport, log_handler=...)`。 |
+
+```python
+from fastmcp.client import Client
+
+from langchain.mcp import MCPAdapter
+
+client = Client("https://example.com/mcp", progress_handler=on_progress, log_handler=on_log)
+async with MCPAdapter(client) as adapter:
+    tools = await adapter.list_tools()
+```
+
+参见 FastMCP 文档中的 [Callback handlers](https://gofastmcp.com/clients/client#callback-handlers)。
+
+## 工具拦截器
+
+`langchain-mcp-adapters` 拦截器类型（`tool_interceptors`、`ToolCallInterceptor`、`MCPToolCallRequest`、`MCPToolCallResult`）已不存在。使用 LangChain @[`@wrap_tool_call`] 中间件在智能体端拦截工具调用，该中间件包装了 `create_agent` 运行的每个工具，而不仅限于 MCP 工具。MCP 起源信息可在工具的元数据下的 `metadata["mcp"]` 中获取，因此拦截器仍然可以根据它分支：
+
+<McpWrapToolCallPy />
+
+## 错误处理
+
+`handle_tool_errors` 标志已不存在。行为现在是固定的：报告 `isError=True` 的 MCP 工具会以 @[`ToolMessage`] 的形式到达模型，其中 `status="error"` 携带服务器的消息，而传输失败会引发异常。参见 [Tools](/langchain/oss/langchain/mcp/tools#错误)。
+
+## 身份验证
+
+身份验证移至 `fastmcp.Client`。不再在连接配置上使用 `auth` 和 `headers`，而是构建一个客户端，将 `auth` 设置为承载令牌、字面值 `"oauth"` 或任何 `httpx.Auth`，并将该客户端传递给 @[`MCPAdapter`]。支持每服务器和每用户的身份验证。参见 [Authentication](/langchain/oss/langchain/mcp/auth)。
+
+## 工具结果
+
+工具结果处理被保留并扩展。
+
+| `langchain-mcp-adapters` | `langchain.mcp` |
+|---|---|
+| `MCPToolArtifact`（结构化内容） | **保留。** 从 `langchain.mcp` 导出。参见 [structured content](/langchain/oss/langchain/mcp/tools#结构化内容)。 |
+| 多模态内容块 | **保留。** 参见 [multimodal content](/langchain/oss/langchain/mcp/tools#多模态内容)。 |
+| 工具元数据 | **扩展。** 在工具的元数据下以 `mcp` 命名空间分组，包含注释和服务器标识。参见 [tool metadata](/langchain/oss/langchain/mcp/tools#工具元数据)。 |
+| `convert_mcp_tool_to_langchain_tool` | 重命名为 @[`as_langchain_tool`]，现在是一个协程：`await as_langchain_tool(tool, client)`。 |
+| `to_fastmcp`（LangChain 工具 → FastMCP 工具） | 尚无 `langchain.mcp` 等价物。如果您将 LangChain 工具转换为 MCP 工具，请 [打开问题](https://github.com/langchain-ai/langchain/issues) — 我们希望了解用例。 |
+
+## 提示词和资源
+
+`langchain.mcp` 专注于工具，目前尚未包装 MCP [prompts](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts) 或 [resources](https://modelcontextprotocol.io/specification/2025-06-18/server/resources)。这些 `langchain-mcp-adapters` 辅助函数目前没有 `langchain.mcp` 等价物：
+
+| `langchain-mcp-adapters` | `langchain.mcp` |
+|---|---|
+| `load_mcp_prompt`、`get_prompt`、`convert_mcp_prompt_message_to_langchain_message` | 尚无包装 |
+| `load_mcp_resources`、`get_resources`、`get_mcp_resource`、`convert_mcp_resource_to_langchain_blob` | 尚无包装 |
+
+我们尚未看到足够的请求来优先考虑第一流的包装。如果您有用例，请 [打开问题](https://github.com/langchain-ai/langchain/issues) — 我们真诚地希望了解，这有助于我们确定优先级。在此期间，您可以通过 FastMCP 客户端直接读取提示词和资源：`client.get_prompt(...)` 和 `client.read_resource(...)`。参见 FastMCP 文档中的 [Reading resources](https://gofastmcp.com/clients/resources) 和 [Getting prompts](https://gofastmcp.com/clients/prompts)。
+
+## MCP 协议中已弃用的功能
+
+某些 `langchain-mcp-adapters` 功能没有替代方案，因为 MCP 协议本身已弃用或移除了它们依赖的机制，而不是 `langchain.mcp` 选择删除它们。`langchain.mcp` 通过 FastMCP 4 针对现代、无会话的协议时代。
+
+| 机制 | 协议状态 | 迁移影响 |
+|---|---|---|
+| HTTP+SSE 传输 | [弃用](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#backwards-compatibility)（协议 2024-11-05）以 Streamable HTTP 代替 | SSE 通过 FastMCP 的 `SSETransport` 仍然工作，但建议将服务器迁移到 Streamable HTTP。WebSocket 没有FastMCP 传输。 |
+| 服务器推送采样和根 | 从现代时代中移除；无会话协议没有实时回传通道。FastMCP 4 从每个时代中移除了 `ctx.sample()` 和 `ctx.list_roots()` | 由 `langchain.mcp` 未回答。参见 [Sampling and roots](#采样和根)。 |
+| 服务器推送 Elicitation | 现代时代用输入必需的回合替换了推送请求 | 通过中断而不是回调回答。参见 [Elicitation](#提示词生成)。 |
+| JSON-RPC 批量处理 | [移除](https://modelcontextprotocol.io/specification/2025-06-18/changelog)（协议 2025-06-18） | 不适用；请求单独发送。 |
+
+## 参见
+
+- [模型上下文协议 (MCP)](/langchain/oss/langchain/mcp)
+- [FastMCP 客户端文档](https://gofastmcp.com/clients/client)
+- [MCP 规范](https://modelcontextprotocol.io)
+
+---
+
+> 官方原文：[src/oss/python/migrate/langchain-mcp-adapters.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/migrate/langchain-mcp-adapters.mdx) · 译文由 AI 生成，以英文原文为准。

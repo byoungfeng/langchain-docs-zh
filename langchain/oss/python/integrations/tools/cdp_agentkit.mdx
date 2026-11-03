@@ -1,0 +1,103 @@
+---
+title: "Cdp agentkit 工具包集成"
+description: "使用 LangChain Python 集成 Cdp agentkit 工具包"
+integration:
+  name: Cdp agentkit toolkit
+  pypi: coinbase-agentkit-langchain
+---
+
+Coinbase AgentKit LangChain扩展为LLM智能体提供了与[Coinbase开发者平台](https://docs.cdp.coinbase.com/)交互的工具，智能体可执行链上操作如转账、交易和智能合约交互。
+
+## 概览
+
+### 集成细节
+
+| 类别/辅助工具 | 包   | 可序列化 | JS支持 | 版本 |
+| :--- | :--- | :---: | :---: | :---: |
+| `get_langchain_tools` | `coinbase-agentkit-langchain` | ❌ | ❌ | ![PyPI - 版本](https://img.shields.io/pypi/v/coinbase-agentkit-langchain?style=flat-square&label=%20) |
+
+## 安装
+
+1. 安装AgentKit包
+2. 设置CDP API凭据
+3. 创建`AgentKit`实例并用`get_langchain_tools`转换为LangChain工具
+4. 将工具传递给您的智能体
+
+要启用对单个工具的自动化追踪，设置您的[LangSmith](https://docs.langchain.com/langsmith/observability)API密钥：
+
+```python
+import getpass
+import os
+
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+```bash
+pip install -qU coinbase-agentkit coinbase-agentkit-langchain
+```
+
+#### 设置环境变量
+
+在[CDP门户](https://portal.cdp.coinbase.com/access/api)创建API凭据，然后设置：
+
+```python
+import getpass
+import os
+
+for env_var in [
+    "CDP_API_KEY_ID",
+    "CDP_API_KEY_PRIVATE",
+]:
+    if not os.getenv(env_var):
+        os.environ[env_var] = getpass.getpass(f"Enter your {env_var}: ")
+
+```
+
+## 实例化
+
+```python
+from coinbase_agentkit import AgentKit
+from coinbase_agentkit_langchain import get_langchain_tools
+
+agent_kit = AgentKit()
+tools = get_langchain_tools(agent_kit)
+```
+
+关于钱包提供商、动作提供商和高级配置，请参考[Coinbase AgentKit README](https://github.com/coinbase/agentkit/blob/master/python/coinbase-agentkit/README.md)。
+
+## 工具
+
+```python
+for tool in tools:
+    print(tool.name)
+```
+
+可用操作取决于`AgentKit`上配置的动作提供商。常见提供商包括钱包详情、余额、水龙头资金、转账、交易和代币/NFT部署。
+
+## 在智能体中调用
+
+```python
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4o-mini")
+
+agent = create_agent(model=llm, tools=tools)
+```
+
+完整运行示例（含CDP智能钱包）请见[AgentKit LangChain对话机器人示例](https://github.com/coinbase/agentkit/blob/main/python/examples/langchain-cdp-smart-wallet-chatbot/chatbot.py)。
+
+## API参考
+
+配置选项和API的详细文档：
+
+- [API参考](https://docs.cdp.coinbase.com/)
+- [AgentKit LangChain扩展](https://github.com/coinbase/agentkit/tree/main/python/framework-extensions/langchain)
+- [源代码](https://github.com/coinbase/agentkit)
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/cdp_agentkit.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/cdp_agentkit.mdx) · 译文由 AI 生成，以英文原文为准。

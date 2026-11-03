@@ -1,0 +1,161 @@
+---
+title: "OracleSummary 集成"
+sidebarTitle: "工具"
+description: "使用 LangChain JavaScript 集成 OracleSummary 工具。"
+integration:
+  name: OracleSummary
+  npm: '@oracle/langchain-oracledb'
+---
+
+
+<Tip>
+**兼容性**：仅在 Node.js 上可用。
+</Tip>
+
+Oracle AI 数据库支持 AI 工作负载，您可以通过 **语义**（语义学）查询数据，而不仅仅是关键词。它将 **非结构化内容语义搜索** 与 **业务数据关系过滤** 结合在一个系统中——这样您可以在不引入单独的向量数据库的情况下构建检索工作流（如 RAG），并将数据分割到多个平台。
+
+本指南展示了如何使用 `OracleSummary` 从 Oracle AI 向量搜索 LangChain 集成生成文档摘要。
+
+> **为什么选择摘要？**
+> 摘要是将长文档压缩成检索友好内容（预览、元数据或精简上下文）的一种实用方法，同时保持治理和操作保证接近数据。
+
+如果您刚开始使用 Oracle 数据库，请考虑探索 [免费的 Oracle 26 AI](https://www.oracle.com/database/free/#resources)。有关用户管理的背景信息，请参考官方 [Oracle 指南](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-privilege-and-role-authorization.html#GUID-16473474-7F47-4E40-A592-01836E7D911C)。
+
+## 概述
+
+### 集成详情
+
+| 类 | 包 | 本地 | [PY 支持](/langchain/oss/python/integrations/tools/oracleai) |
+| :--- | :--- | :---: | :---: |
+| `OracleSummary` | [`@oracle/langchain-oracledb`](https://www.npmjs.com/package/@oracle/langchain-oracledb) | ✅ | ✅ |
+
+## 设置
+
+要访问 OracleSummary，安装 `@oracle/langchain-oracledb` 辅助工具（使用 `@langchain/core`）并确保您的环境满足 [Oracle 数据库驱动程序](https://node-oracledb.readthedocs.io/en/latest/) 的先决条件。
+
+### 凭证
+
+为拥有您的摘要配置的 Oracle 用户设置凭证（或使用密钥管理器）：
+
+```bash
+export ORACLE_USER=testuser
+export ORACLE_PASSWORD=testuser
+export ORACLE_DSN="localhost:1521/free"
+```
+
+如果您计划调用 OCI 生成式 AI 或 Hugging Face 等第三方提供者，请首先在 Oracle 数据库中创建凭证（例如 `OCI_CRED`, `HF_CRED`），具体方法请参考 [Oracle AI 向量搜索指南](https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-EC9DDB58-6A15-4B36-BA66-ECBA20D2CE57) 中文档的 PL/SQL 辅助工具。
+
+### 安装
+
+<CodeGroup>
+```bash npm
+npm install @oracle/langchain-oracledb @langchain/core
+```
+```bash yarn
+yarn add @oracle/langchain-oracledb @langchain/core
+```
+```bash pnpm
+pnpm add @oracle/langchain-oracledb @langchain/core
+```
+</CodeGroup>
+
+## 实例化工具
+
+```typescript
+import oracledb from "oracledb";
+import { OracleSummary } from "@oracle/langchain-oracledb";
+
+const connection = await oracledb.getConnection({
+  user: process.env.ORACLE_USER,
+  password: process.env.ORACLE_PASSWORD,
+  connectionString: process.env.ORACLE_DSN,
+});
+
+const summary = new OracleSummary(
+  connection,
+  {
+    provider: "database",
+    glevel: "S",
+    numParagraphs: 1,
+    language: "english",
+  },
+  process.env.HTTP_PROXY, // optional
+);
+```
+
+第三个构造函数参数是一个可选的代理字符串。仅在出站请求必须通过 HTTP 代理时提供（例如，在调用 Hugging Face 端点时）。
+
+## 使用数据库内模型摘要文本
+
+直接在 Oracle 数据库中运行 ONNX 摘要模型，以将数据保留在您的交易工作负载相同的主机上。
+
+```typescript
+const result = await summary.getSummary(
+  "Oracle Database combines relational and vector workloads so you can build secure RAG pipelines.",
+);
+
+console.log(result); // => concise summary text
+```
+
+## 使用托管提供者
+
+将 `provider` 参数切换为通过 [OCI 生成式 AI](https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm) 或 Hugging Face 路由摘要请求。提供您在 Oracle 数据库中注册的凭证名称，如果需要，还提供一个代理字符串。
+
+```typescript
+const ociSummary = new OracleSummary(
+  connection,
+  {
+    provider: "ocigenai",
+    credential_name: "OCI_CRED",
+    url: "https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/20231130/actions/summarizeText",
+    model: "cohere.command",
+  },
+  process.env.HTTP_PROXY,
+);
+
+const hfSummary = new OracleSummary(connection, {
+  provider: "huggingface",
+  credential_name: "HF_CRED",
+  url: "https://api-inference.huggingface.co/models/",
+  model: "facebook/bart-large-cnn",
+  wait_for_model: "true",
+});
+```
+
+## 使用 LangChain 工具链
+
+您可以将 `OracleSummary` 封装在自定义 LangChain 工具或可运行程序中，以将其与智能体工具调用集成。
+
+```typescript
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+
+const summarizeTool = tool(
+  async ({ text }: { text: string }) => summary.getSummary(text),
+  {
+    name: "oracle_summary",
+    description: "Summarize Oracle-sourced documents.",
+    schema: z.object({
+      text: z.string().describe("Full text to summarize"),
+    }),
+  },
+);
+
+const toolSummary = await summarizeTool.invoke({ text });
+```
+
+## 下一步
+
+- 使用 [`OracleDocLoader`](/langchain/oss/javascript/integrations/document_loaders/file_loaders/oracleai) 加载内容
+- 使用 [`OracleTextSplitter`](/langchain/oss/javascript/integrations/document_loaders/file_loaders/oracleai#分块文档) 分块和规范化
+- 使用 [`OracleEmbeddings`](/langchain/oss/python/integrations/embeddings/oracleai) 生成嵌入，并将它们存储在 [`OracleVS`](/langchain/oss/javascript/integrations/vectorstores/oracleai)
+
+---
+
+## API 参考
+
+有关所有 `OracleSummary` 参数和返回类型的详细文档，请参阅 [Oracle LangChain Oracle DB 存储库](https://github.com/oracle/langchain-oracle/tree/main/libs/js/langchain-oracledb)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/tools/oracleai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/tools/oracleai.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,129 @@
+---
+title: "学习"
+description: "在文档的 学习 部分，您将找到一系列教程、概念概述和附加资源，帮助您使用 Managed Deep Agents、Deep Agents、LangChain 和 LangGraph 构建强大的应用程序。"
+---
+
+在文档的 **学习** 部分，您将找到一系列教程、概念概述和附加资源，帮助您使用 Managed Deep Agents、Deep Agents、LangChain 和 LangGraph 构建强大的应用程序。
+
+## 教程
+
+以下按框架组织的常见用例教程。
+
+### Managed Deep Agents
+
+[Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview) 是构建和部署深度智能体的推荐方式。您编写智能体；LangSmith 运行 harness 和 runtime。
+
+<Card title="Deep research" icon="search" href="/langchain/oss/deepagents/deep-research" horizontal>
+  使用 Managed Deep Agents 或 Deep Agents SDK 构建多步骤网络研究智能体。
+</Card>
+
+<Card title="Content builder" icon="pencil" href="/langchain/oss/deepagents/content-builder" horizontal>
+  使用 Managed Deep Agents 或 Deep Agents SDK 构建具有品牌声音、技能和图像工具的内容写作智能体。
+</Card>
+
+### Deep Agents
+
+为了在使用与 [Managed Deep Agents](#managed-deep-agents) 相同的 Deep Agents harness 的同时获得最大灵活性，使用 Deep Agents SDK 并自行托管智能体，或运行自定义 [LangSmith Deployment](https://docs.langchain.com/langsmith/deployment)。
+
+<Card title="Deep research" icon="search" href="/langchain/oss/deepagents/deep-research" horizontal>
+  使用 Managed Deep Agents 或 Deep Agents SDK 构建多步骤网络研究智能体。
+</Card>
+
+<Card title="Content builder" icon="pencil" href="/langchain/oss/deepagents/content-builder" horizontal>
+  使用 Managed Deep Agents 或 Deep Agents SDK 构建具有品牌声音、技能和图像工具的内容写作智能体。
+</Card>
+
+:::python
+<Card title="Data analysis" icon="chart-pie" href="/langchain/oss/deepagents/data-analysis" horizontal>
+  使用 Deep Agents SDK 构建向 Slack 发送报告的数据分析智能体。
+</Card>
+:::
+
+### LangChain
+
+[LangChain](/langchain/oss/langchain/overview) [智能体](/langchain/oss/langchain/agents) 实现使简单用例的入门变得容易。
+
+<Card title="Semantic Search" icon="search" href="/langchain/oss/langchain/knowledge-base" horizontal>
+  使用 LangChain 组件构建 PDF 上的语义搜索引擎。
+</Card>
+
+<Card title="RAG Agent" icon="user-search" href="/langchain/oss/deepagents/rag" horizontal>
+  创建检索增强生成 (RAG) 智能体。
+</Card>
+
+<Card title="SQL Agent" icon="database" href="/langchain/oss/langchain/sql-agent" horizontal>
+  使用人类审核循环构建与数据库交互的 SQL 智能体。
+</Card>
+
+<Card title="Voice Agent" icon="microphone" href="/langchain/oss/langchain/voice-agent" horizontal>
+  构建您可以说话和倾听的智能体。
+</Card>
+
+### LangGraph
+
+LangChain 的 [智能体](/langchain/oss/langchain/agents) 实现使用 [LangGraph](/langchain/oss/langgraph/overview) 原语。
+如果需要更深入的自定义，智能体可以直接在 LangGraph 中实现。
+
+<Card title="Custom RAG Agent" icon="user-search" href="/langchain/oss/langgraph/agentic-rag" horizontal>
+  使用 LangGraph 原语构建 RAG 智能体以实现细粒度控制。
+</Card>
+
+<Card title="Custom SQL Agent" icon="database" href="/langchain/oss/langgraph/sql-agent" horizontal>
+  直接在 LangGraph 中实现 SQL 智能体以获得最大灵活性。
+</Card>
+
+### 多智能体
+
+这些教程展示了 [多智能体模式](/langchain/oss/langchain/multi-agent)，将 LangChain 智能体与 LangGraph 工作流相结合。
+
+:::python
+<Card title="Subagents: Personal assistant" icon="sitemap" href="/langchain/oss/langchain/multi-agent/subagents-personal-assistant" horizontal>
+  构建一个委派给子智能体的个人助理。
+</Card>
+
+<Card title="Handoffs: Customer support" icon="users" href="/langchain/oss/langchain/multi-agent/handoffs-customer-support" horizontal>
+  构建一个客户支持工作流，其中单个智能体在不同状态之间转换。
+</Card>
+
+<Card title="Router: Knowledge base" icon="share" href="/langchain/oss/langchain/multi-agent/router-knowledge-base" horizontal>
+  构建一个多源知识库，将查询路由到专业智能体。
+</Card>
+
+<Card title="Skills: SQL assistant" icon="wand" href="/langchain/oss/langchain/multi-agent/skills-sql-assistant" horizontal>
+  构建一个使用按需上下文加载逐步加载专业技能的智能体。
+</Card>
+:::
+
+## 概念概述
+
+这些指南解释了 LangChain 和 LangGraph 的核心概念和 API。
+
+<Card title="Memory" icon="brain" href="/langchain/oss/concepts/memory" horizontal>
+  了解线程内和线程间的交互持久性。
+</Card>
+
+<Card title="Context engineering" icon="notebook" href="/langchain/oss/concepts/context" horizontal>
+  学习为 AI 应用提供正确信息和工具以完成任务的方法。
+</Card>
+
+<Card title="Graph API" icon="topology-star" href="/langchain/oss/langgraph/graph-api" horizontal>
+  探索 LangGraph 的声明式图构建 API。
+</Card>
+
+<Card title="Functional API" icon="code" href="/langchain/oss/langgraph/functional-api" horizontal>
+  将智能体构建为单个函数。
+</Card>
+
+## 附加资源
+
+<Card title="LangChain Academy" icon="school" href="https://academy.langchain.com/" horizontal>
+  课程和练习以提升您的 LangChain 技能。
+</Card>
+
+<Card title="Case Studies" icon="presentation" href="/langchain/oss/langgraph/case-studies" horizontal>
+  查看团队如何在生产中使用 LangChain 和 LangGraph。
+</Card>
+
+---
+
+> 官方原文：[src/oss/learn.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/learn.mdx) · 译文由 AI 生成，以英文原文为准。

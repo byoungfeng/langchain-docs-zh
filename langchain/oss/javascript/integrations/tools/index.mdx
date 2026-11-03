@@ -1,0 +1,52 @@
+---
+title: "工具集成"
+sidebarTitle: "工具和工具包"
+description: "使用 LangChain JavaScript 集成工具。"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/javascript-tools-downloads.mdx';
+
+[工具](/langchain/oss/langchain/tools) 是设计为被模型调用的实用程序：它们的输入设计为由模型生成，输出设计为传递回模型。
+
+一个 [工具包](/langchain/oss/langchain/tools#预构建工具) 是一组旨在一起使用的工具。
+
+## 网络搜索
+
+下表展示了以某种形式执行在线搜索的工具：
+
+| 工具/工具包 | 免费/付费 | 返回数据 |
+|-------------|-----------|-------------|
+| [Diffbot](https://github.com/diffbot/langchain-diffbot) | 免费 | URL, 摘要, 标题, 日期, 知识图谱 (组织, 新闻, 人物, 地点, 交易) |
+| [Exa Search](/langchain/oss/python/integrations/tools/exa_search) | 每月1000次免费搜索 | URL, 作者, 标题, 发布日期 |
+| [Nia Toolkit](/langchain/oss/javascript/integrations/tools/nia) | 提供免费层级 | 代码, 文档, 元数据, 来源 |
+| [Perplexity Search](/langchain/oss/python/integrations/tools/perplexity_search) | 付费 (提供每月免费层级) | URL, 标题, 摘要, 日期, 最后更新 |
+| [TalorData SERP](https://docs.talordata.com/serp-api/integration/sdk-integration/how-to-set-up-talordata-with-langchain) | 付费 | 标题, URL, 摘要, 位置, 知识图谱, 答案框, AI 概览 |
+| [Tavily Search](/langchain/oss/python/integrations/tools/tavily_search) | 每月1000次免费搜索 | URL, 内容, 标题, 图片, 答案 |
+
+## 集成平台
+
+以下平台通过统一接口提供对多个工具和服务的访问：
+
+| 工具/工具包 | 集成数量 | 定价 | 主要功能 |
+|-------------|----------------------|---------|--------------|
+| [`Composio`](/langchain/oss/python/integrations/tools/composio) | 500+ | 提供免费层级 | OAuth 处理, 事件驱动工作流, 多用户支持 |
+
+## 媒体生成
+
+下表展示了生成视频、图像或音频资产的工具：
+
+| 工具/工具包 | 定价 | 功能 |
+|-------------|---------|--------------|
+| [Magic Hour](https://docs.magichour.ai) | 免费层级 (400信用点 + 每天100) | 文本到视频, 图像到视频, 以及使用Sora 2, Veo 3.1, Kling 3.0, WAN 2.2, GPT-image, Nano Banana Pro的图像生成。同步和异步, 返回URL或本地下载。 |
+
+## 所有工具和工具包
+
+<IntegrationDownloads />
+
+<Info>
+    如果你想编写自己的工具, 请参阅 [创建工具](/langchain/oss/langchain/tools#创建工具)。如果你想贡献一个集成, 请参阅 [构建新集成](/langchain/oss/contributing/integrations-langchain)。
+</Info>
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/tools/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/tools/index.mdx) · 译文由 AI 生成，以英文原文为准。

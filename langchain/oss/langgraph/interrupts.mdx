@@ -1,0 +1,1717 @@
+---
+title: "中断"
+description: "中断允许您在特定位置暂停图执行，并在继续之前等待外部输入。这使您能够实现需要外部输入才能继续的人机交互模式。当触发中断时，LangGraph 使用其 持久化 层保存图状态，并无限期等待您恢复执行。"
+---
+
+import LanggraphInterruptsResumeV2Py from '/langchain/snippets/code-samples/langgraph-interrupts-resume-v2-py.mdx';
+import LanggraphInterruptsMultiplePy from '/langchain/snippets/code-samples/langgraph-interrupts-multiple-py.mdx';
+import LanggraphInterruptsHitlStreamPy from '/langchain/snippets/code-samples/langgraph-interrupts-hitl-stream-py.mdx';
+import LanggraphInterruptsHitlStreamJs from '/langchain/snippets/code-samples/langgraph-interrupts-hitl-stream-js.mdx';
+import LanggraphInterruptsApprovalPy from '/langchain/snippets/code-samples/langgraph-interrupts-approval-py.mdx';
+import LanggraphInterruptsReviewPy from '/langchain/snippets/code-samples/langgraph-interrupts-review-py.mdx';
+import LanggraphInterruptsValidatePy from '/langchain/snippets/code-samples/langgraph-interrupts-validate-py.mdx';
+import LanggraphInterruptsValidateConditionalEdgePatternPy from '/langchain/snippets/code-samples/langgraph-interrupts-validate-conditional-edge-pattern-py.mdx';
+import LanggraphInterruptsValidateConditionalEdgePatternJs from '/langchain/snippets/code-samples/langgraph-interrupts-validate-conditional-edge-pattern-js.mdx';
+import LanggraphInterruptsValidateConditionalEdgeJs from '/langchain/snippets/code-samples/langgraph-interrupts-validate-conditional-edge-js.mdx';
+import LanggraphInterruptsValidateConditionalEdgePy from '/langchain/snippets/code-samples/langgraph-interrupts-validate-conditional-edge-py.mdx';
+
+中断允许您在特定位置暂停图执行，并在继续之前等待外部输入。这使您能够实现需要外部输入才能继续的人机交互模式。当触发中断时，LangGraph 使用其 [持久化](/langchain/oss/langgraph/persistence) 层保存图状态，并无限期等待您恢复执行。
+
+中断通过在您的图节点中的任何位置调用 `interrupt()` 函数来工作。该函数接受任何 JSON 可序列化的值，这些值会展示给调用者。当您准备好继续时，您通过重新调用图使用 `Command` 来恢复执行，然后它成为节点内部 `interrupt()` 调用的返回值。
+
+与静态断点（在特定节点之前或之后暂停）不同，中断是 **动态的**：它们可以放置在您的代码中的任何位置，并且可以根据您的应用程序逻辑进行条件性设置。
+
+:::python
+- **检查点保持您的位置**：检查点会写入确切的图状态，以便您稍后可以恢复，即使在错误状态下也是如此。
+- **`thread_id` 是您的指针**：设置 `config={"configurable": {"thread_id": ...}}` 以告诉检查点要加载哪个状态。
+- **中断有效载荷通过 `stream.interrupts` 展示**：在使用 [事件流](/langchain/oss/langgraph/event-streaming) (`graph.stream_events(..., version="v3")`) 时，您传递给 `interrupt()` 的值会出现在 `stream.interrupts` 上，并且 `stream.interrupted` 是 `True` 当运行因输入而暂停时。
+:::
+:::js
+- **检查点保持您的位置**：检查点会写入确切的图状态，以便您稍后可以恢复，即使在错误状态下也是如此。
+- **`thread_id` 是您的指针**：使用 `{ configurable: { thread_id: ... } }` 作为 `invoke` 方法的选项来告诉检查点要加载哪个状态。
+- **中断有效载荷作为 `__interrupt__` 展示**：您传递给 `interrupt()` 的值会以 `__interrupt__` 字段返回给调用者，以便您知道图正在等待什么。
+:::
+
+您选择的 `thread_id` 实际上是您的持久化游标。重复使用它将恢复相同的检查点；使用新值将启动一个具有空状态的新线程。
+
+## 使用 `interrupt` 暂停
+
+
+@[`interrupt`] 函数暂停图执行并返回值给调用者。当你在节点中调用 @[`interrupt`] 时，LangGraph 会保存当前图状态并等待你使用输入来恢复执行。
+
+要使用 @[`interrupt`]，你需要：
+1. 一个 **检查点器** 来持久化图状态（生产环境中使用持久检查点器）
+2. 配置中一个 **线程 ID**，以便运行时知道从哪个状态恢复
+3. 在你想暂停的位置调用 `interrupt()`（payload 必须是 JSON-可序列化的）
+
+:::python
+```python
+from langgraph.types import interrupt
+
+def approval_node(state: State):
+    # Pause and ask for approval
+    approved = interrupt("Do you approve this action?")
+
+    # When you resume, Command(resume=...) returns that value here
+    return {"approved": approved}
+```
+:::
+
+:::js
+```typescript
+import { interrupt } from "@langchain/langgraph";
+
+async function approvalNode(state: State) {
+    // Pause and ask for approval
+    const approved = interrupt("Do you approve this action?");
+
+    // Command({ resume: ... }) provides the value returned into this variable
+    return { approved };
+}
+```
+:::
+
+当你调用 @[`interrupt`] 时，会发生以下情况：
+
+1. **图执行在 @[`interrupt`] 调用的确切位置被挂起**
+2. **状态使用检查点器保存**，以便稍后可以恢复执行，在生产环境中，这应该是持久检查点器（例如，由数据库支持）
+:::python
+3. **值通过 `stream.interrupts` 返回给调用者**，当使用 [事件流](/langchain/oss/langgraph/event-streaming) (`graph.stream_events(..., version="v3")`) 或在 `__interrupt__` 下使用默认 `invoke()` API；可以是任何 JSON-可序列化的值（字符串、对象、数组等）
+:::
+:::js
+3. **值通过 `__interrupt__` 返回给调用者**；可以是任何 JSON-可序列化的值（字符串、对象、数组等）
+:::
+4. **图无限期等待**，直到你使用响应恢复执行
+5. **响应在你恢复时传递回节点**，成为 `interrupt()` 调用的返回值
+
+## 恢复中断
+
+中断暂停执行后，你通过再次调用图并使用包含恢复值的 `Command` 来恢复图。恢复值被传递回 `interrupt` 调用，允许节点使用外部输入继续执行。
+
+:::python
+推荐的方式是 [事件流](/langchain/oss/langgraph/event-streaming) — 它通过 `stream.interrupts` 和 `stream.interrupted` 表面中断，并通过 `stream.output` 暴露最终状态。
+
+<LanggraphInterruptsResumeV2Py />
+
+<Note>
+默认的 `graph.invoke(...)` API 仍然有效，并通过 `result["__interrupt__"]` 表面中断。当你不需要流式投影时使用它；否则优先使用 `graph.stream_events(..., version="v3")`。
+</Note>
+
+**关于恢复的关键点：**
+
+
+- 你在恢复时必须使用与中断发生时**相同的线程 ID**
+- 传递给 `Command(resume=...)` 的值成为 @[`interrupt`] 调用的返回值
+- 节点在恢复时从 @[`interrupt`] 被调用处的节点开头重新启动，因此 @[`interrupt`] 之前的任何代码都会再次运行
+- 你可以将任何 JSON 可序列化值作为恢复值，但当你指定一个类型的 `response_schema` 时，需要经过验证
+
+<Warning>
+
+`Command(resume=...)` 是作为输入传递给 `invoke()`/`stream()`/`stream_events()` 的**唯一** `Command` 模式。其他 `Command` 参数（`update`, `goto`, `graph`）是为 [从节点函数返回](/langchain/oss/langgraph/graph-api#command) 而设计的。不要将 `Command(update=...)` 作为输入来继续多轮对话——请传递一个普通的输入字典。
+
+</Warning>
+
+:::
+
+:::js
+```typescript
+import { Command } from "@langchain/langgraph";
+
+// Initial run - hits the interrupt and pauses
+// thread_id is the durable pointer back to the saved checkpoint
+const config = { configurable: { thread_id: "thread-1" } };
+const result = await graph.invoke({ input: "data" }, config);
+
+// Check what was interrupted
+// __interrupt__ mirrors every payload you passed to interrupt()
+console.log(result.__interrupt__);
+// [{ value: 'Do you approve this action?', ... }]
+
+// Resume with the human's response
+// Command({ resume }) returns that value from interrupt() in the node
+await graph.invoke(new Command({ resume: true }), config);
+```
+
+关于恢复的关键点：
+
+- 你在恢复时必须使用与中断发生时**相同的线程 ID**
+- 传递给 `new Command({ resume: ... })` 的值成为 @[`interrupt`] 调用的返回值
+- 节点在恢复时从 @[`interrupt`] 被调用处的节点开头重新启动，因此 @[`interrupt`] 之前的任何代码都会再次运行
+- 你可以将任何 JSON 可序列化值作为恢复值，但当你指定一个 Zod `responseSchema` 时，需要经过验证
+
+<Warning>
+
+`new Command({ resume: ... })` 是作为输入传递给 `invoke()`/`stream()`/`stream_events()` 的**唯一** `Command` 模式。其他 `Command` 参数（`update`, `goto`, `graph`）是为 [从节点函数返回](/langchain/oss/langgraph/graph-api#command) 而设计的。不要将 `new Command({ update: ... })` 作为输入来继续多轮对话——请传递一个普通的输入对象。
+
+</Warning>
+
+:::
+
+## 定义中断响应模式
+
+:::python
+@[`interrupt`] 的 `response_schema` 参数描述了你在恢复图时期望的输入。客户端可以使用该模式来渲染带类型的输入表单。
+
+<Note>
+中断响应模式需要 `langgraph>=1.2.12`。
+</Note>
+
+传递一个 Pydantic 模型类、来自 `typing_extensions` 的 `TypedDict`，或一个数据类来验证恢复值。LangGraph 将类型转换为 JSON Schema 并将其包含在 `Interrupt.response_schema` 中，与中断的 `value` 负载分开。该模式可在返回给调用者的中断和检查点任务中断中获取。
+
+此示例使用 LangGraph 中断测试中的批准模式：
+
+```python
+from typing import Any
+
+from pydantic import BaseModel
+from typing_extensions import TypedDict
+
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import START, StateGraph
+from langgraph.types import Command, interrupt
+
+
+class Decision(BaseModel):
+    approved: bool
+    note: str | None = None
+
+
+class State(TypedDict):
+    answer: Any
+
+
+def node(state: State) -> State:
+    answer = interrupt({"question": "approve?"}, response_schema=Decision)
+    return {"answer": answer}
+
+
+graph = (
+    StateGraph(State)
+    .add_node("node", node)
+    .add_edge(START, "node")
+    .compile(checkpointer=InMemorySaver())
+)
+config = {"configurable": {"thread_id": "1"}}
+
+result = graph.invoke({"answer": None}, config)
+pending = result["__interrupt__"][0]
+assert pending.response_schema == Decision.model_json_schema()
+
+result = graph.invoke(Command(resume={"approved": True}), config)
+assert result["answer"] == Decision(approved=True)
+```
+
+使用带类型的模式，`interrupt()` 返回验证后的对象：Pydantic 模型实例、`TypedDict` 的字典或数据类实例。Pydantic 的验证和强制规则适用。无效输入引发 `pydantic.ValidationError`；您可以使用相同的线程 ID 重试使用更正的 `Command(resume=...)`。
+
+您还可以将 JSON Schema 字典作为 `response_schema` 传递。LangGraph 原样暴露该字典，但**不**根据它验证恢复值。当您省略 `response_schema` 时，其值为 `None`，恢复值在未经模式验证的情况下通过。
+:::
+
+:::js
+@[`interrupt`] 的 `responseSchema` 选项描述了在您恢复图时预期的输入。客户端可以使用该模式来渲染带类型的输入表单。
+
+<Note>
+中断响应模式需要 `@langchain/langgraph` 版本 1.4.16 或更高版本。
+</Note>
+
+传递一个 Zod 模式来验证恢复值。LangGraph 将其转换为 JSON Schema 并将其包含在 `Interrupt.response_schema` 中，与中断的 `value` 负载分开。该模式可在返回给调用者的中断和检查点任务中断中获取。
+
+此示例使用 LangGraph 中断测试中的批准模式：
+
+```typescript
+import {
+  Annotation,
+  Command,
+  MemorySaver,
+  START,
+  StateGraph,
+  interrupt,
+} from "@langchain/langgraph";
+import { z } from "zod/v4";
+
+const Decision = z.object({
+  approved: z.boolean(),
+  note: z.string().default(""),
+});
+
+const State = Annotation.Root({
+  answer: Annotation<unknown>(),
+});
+
+const graph = new StateGraph(State)
+  .addNode("node", () => ({
+    answer: interrupt({ question: "approve?" }, { responseSchema: Decision }),
+  }))
+  .addEdge(START, "node")
+  .compile({ checkpointer: new MemorySaver() });
+
+const config = { configurable: { thread_id: "1" } };
+
+const result = await graph.invoke({ answer: null }, config);
+console.log(result.__interrupt__?.[0].response_schema);
+
+const resumed = await graph.invoke(
+  new Command({ resume: { approved: true } }),
+  config
+);
+console.log(resumed.answer);
+```
+
+使用 Zod 模式，`interrupt()` 返回解析后的值。在此示例中，结果是 `{ approved: true, note: "" }`，包括默认的 `note`。无效输入引发 `ZodError`；您可以使用相同的线程 ID 重试使用更正的 `new Command({ resume: ... })`。
+
+您还可以将 JSON Schema 对象作为 `responseSchema` 传递。LangGraph 原样暴露该对象，但**不**根据它验证恢复值。当您省略 `responseSchema` 时，中断没有 `response_schema` 字段，恢复值在未经模式验证的情况下通过。
+:::
+
+Studio 将中断响应模式渲染为带类型输入字段，而不是 JSON 编辑器。此 Studio 组件预览使用示例数据，包含批准、备注和数值金额字段。
+
+![带有批准切换、备注字段和数值金额设置为 125.50 的 Studio 中断表单](/images/langgraph-interrupt-response-schema.png)
+
+## 常见模式
+
+中断解锁的关键能力是暂停执行并等待外部输入。这在多种用例中很有用，包括：
+
+- <Icon icon="circle-check" /> [批准工作流](#批准或拒绝)：在执行关键操作（API 调用、数据库更改、金融交易）前暂停
+- <Icon icon="link" /> [处理多个中断](#处理多个中断)：在单个调用中恢复多个中断时，将中断 ID 与恢复值配对
+- <Icon icon="pencil" /> [审查和编辑](#审阅和编辑状态)：让人类审查和修改 LLM 输出或工具调用，然后再继续
+- <Icon icon="tool" /> [中断工具调用](#工具中的中断)：在执行工具调用前暂停，以审查和编辑工具调用
+- <Icon icon="shield-check" /> [验证人类输入](#验证人工输入)：在进入下一步之前暂停以验证人类输入
+
+### 带有人工参与（HITL）的中断流
+
+在构建带有人工参与工作流的中断智能体时，您可以使用 [事件流](/langchain/oss/langgraph/event-streaming) 来同时消费消息块和状态快照，同时处理中断。
+
+使用 `graph.stream_events(..., version="v3")` 返回的类型投影在循环中，直到运行完成：
+- 通过 `stream.messages` 以 Token 为单位流式输出 AI 响应
+- 通过 `stream.values` 观察每一步的状态快照
+- 通过 `stream.interrupted` 检测中断，并从 `stream.interrupts` 读取其有效载荷
+- 通过再次调用 `stream_events` 并传入 `Command(resume=...)` 来恢复执行，重复直到 `stream.interrupted` 为假
+
+:::python
+<LanggraphInterruptsHitlStreamPy />
+
+- **`stream.messages`**: 对话模型输出为内容块；迭代每个 `message.text` 获取 Token 差异。对于嵌套子图，从 `stream.subgraphs[*].messages` 读取消息块。
+- **`stream.values`**: 每步后的完整状态快照
+- **`stream.interrupted` / `stream.interrupts`**: 每次运行后，检查图是否暂停；从 `stream.interrupts` 读取有效载荷
+- **`Command(resume=...)`**: 传递为下一个 `stream_events` 输入以继续；循环直到运行完成且未中断
+:::
+
+:::js
+<LanggraphInterruptsHitlStreamJs />
+
+- **`stream.messages`**: 对话模型输出为内容块；迭代 `message.text` 获取 Token 差异。对于嵌套子图，从 `stream.subgraphs[*].messages` 读取消息块。
+- **`stream.values`**: 每步后的完整状态快照
+- **`stream.interrupted` / `stream.interrupts`**: 每次运行后，检查图是否暂停；从 `stream.interrupts` 读取有效载荷
+- **`Command(resume=...)`**: 传递为下一个 `streamEvents` 输入以继续；循环直到运行完成且未中断
+:::
+
+### 处理多个中断
+
+当并行分支同时中断（例如，分支到多个节点且每个节点调用 `interrupt()`）时，您可能需要在单个调用中恢复多个中断。
+当使用单个调用恢复多个中断时，将每个中断 ID 映射到其恢复值。
+这确保每个响应在运行时与正确的中断配对。
+
+:::python
+
+<LanggraphInterruptsMultiplePy />
+
+:::
+
+:::js
+```typescript
+import {
+  Annotation,
+  Command,
+  END,
+  INTERRUPT,
+  MemorySaver,
+  START,
+  StateGraph,
+  interrupt,
+  isInterrupted,
+} from "@langchain/langgraph";
+
+const State = Annotation.Root({
+  vals: Annotation<string[]>({
+    reducer: (left, right) =>
+      left.concat(Array.isArray(right) ? right : [right]),
+    default: () => [],
+  }),
+});
+
+function nodeA(_state: typeof State.State) {
+  const answer = interrupt("question_a") as string;
+  return { vals: [`a:${answer}`] };
+}
+
+function nodeB(_state: typeof State.State) {
+  const answer = interrupt("question_b") as string;
+  return { vals: [`b:${answer}`] };
+}
+
+const graph = new StateGraph(State)
+  .addNode("a", nodeA)
+  .addNode("b", nodeB)
+  .addEdge(START, "a")
+  .addEdge(START, "b")
+  .addEdge("a", END)
+  .addEdge("b", END)
+  .compile({ checkpointer: new MemorySaver() });
+
+const config = { configurable: { thread_id: "1" } };
+
+async function main() {
+  // Step 1: invoke - both parallel nodes hit interrupt() and pause
+  const interruptedResult = await graph.invoke({ vals: [] }, config);
+  console.log(interruptedResult);
+  /*
+  {
+    vals: [],
+    __interrupt__: [
+      { id: '...', value: 'question_a' },
+      { id: '...', value: 'question_b' }
+    ]
+  }
+  */
+
+  // Step 2: resume all pending interrupts at once
+  const resumeMap: Record<string, string> = {};
+  if (isInterrupted(interruptedResult)) {
+    for (const i of interruptedResult[INTERRUPT]) {
+      if (i.id != null) {
+        resumeMap[i.id] = `answer for ${i.value}`;
+      }
+    }
+  }
+  const result = await graph.invoke(new Command({ resume: resumeMap }), config);
+
+  console.log("Final state:", result);
+  //> Final state: { vals: ['a:answer for question_a', 'b:answer for question_b'] }
+}
+
+main().catch(console.error);
+```
+:::
+
+### 批准或拒绝
+
+中断最常见的用途之一是在关键操作前暂停并请求批准。例如，您可能需要请求人类批准 API 调用、数据库更改或任何其他重要决策。
+
+:::python
+```python
+from typing import Literal
+from langgraph.types import interrupt, Command
+
+def approval_node(state: State) -> Command[Literal["proceed", "cancel"]]:
+    # Pause execution; payload shows up on stream.interrupts (with stream_events) or result["__interrupt__"] (with invoke)
+    is_approved = interrupt({
+        "question": "Do you want to proceed with this action?",
+        "details": state["action_details"]
+    })
+
+    # Route based on the response
+    if is_approved:
+        return Command(goto="proceed")  # Runs after the resume payload is provided
+    else:
+        return Command(goto="cancel")
+```
+:::
+
+:::js
+```typescript
+import { interrupt, Command } from "@langchain/langgraph";
+
+const approvalNode: typeof State.Node = (state) => {
+  // Pause execution; payload surfaces in result.__interrupt__
+  const isApproved = interrupt({
+    question: "Do you want to proceed?",
+    details: state.actionDetails
+  });
+
+  // Route based on the response
+  if (isApproved) {
+    return new Command({ goto: "proceed" }); // Runs after the resume payload is provided
+  } else {
+    return new Command({ goto: "cancel" });
+  }
+}
+```
+:::
+
+:::python
+恢复图时，传递 `True` 批准或 `False` 拒绝：
+```python
+# To approve
+graph.stream_events(Command(resume=True), config=config, version="v3").output
+
+# To reject
+graph.stream_events(Command(resume=False), config=config, version="v3").output
+```
+:::
+
+:::js
+恢复图时，传递 `true` 批准或 `false` 拒绝：
+```typescript
+// To approve
+await graph.invoke(new Command({ resume: true }), config);
+
+// To reject
+await graph.invoke(new Command({ resume: false }), config);
+```
+:::
+
+<Accordion title="Full example">
+    :::python
+
+    <LanggraphInterruptsApprovalPy />
+
+    :::
+
+    :::js
+
+    ```typescript
+    import {
+      Command,
+      MemorySaver,
+      START,
+      END,
+      StateGraph,
+      StateSchema,
+      interrupt,
+    } from "@langchain/langgraph";
+    import * as z from "zod";
+
+    const State = new StateSchema({
+      actionDetails: z.string(),
+      status: z.enum(["pending", "approved", "rejected"]).nullable(),
+    });
+
+    const graphBuilder = new StateGraph(State)
+      .addNode("approval", async (state) => {
+        // Expose details so the caller can render them in a UI
+        const decision = interrupt({
+          question: "Approve this action?",
+          details: state.actionDetails,
+        });
+        return new Command({ goto: decision ? "proceed" : "cancel" });
+      }, { ends: ['proceed', 'cancel'] })
+      .addNode("proceed", () => ({ status: "approved" }))
+      .addNode("cancel", () => ({ status: "rejected" }))
+      .addEdge(START, "approval")
+      .addEdge("proceed", END)
+      .addEdge("cancel", END);
+
+    // Use a more durable checkpointer in production
+    const checkpointer = new MemorySaver();
+    const graph = graphBuilder.compile({ checkpointer });
+
+    const config = { configurable: { thread_id: "approval-123" } };
+    const initial = await graph.invoke(
+      { actionDetails: "Transfer $500", status: "pending" },
+      config,
+    );
+    console.log(initial.__interrupt__);
+    // [{ value: { question: ..., details: ... } }]
+
+    // Resume with the decision; true routes to proceed, false to cancel
+    const resumed = await graph.invoke(new Command({ resume: true }), config);
+    console.log(resumed.status); // -> "approved"
+    ```
+    :::
+
+</Accordion>
+
+### 审阅和编辑状态
+
+有时您希望让人类在继续之前审阅和编辑图的部分状态。这对于纠正 LLM、补充缺失信息或进行调整很有用。
+
+:::python
+```python
+from langgraph.types import interrupt
+
+def review_node(state: State):
+    # Pause and show the current content for review (payload surfaces on stream.interrupts)
+    edited_content = interrupt({
+        "instruction": "Review and edit this content",
+        "content": state["generated_text"]
+    })
+
+    # Update the state with the edited version
+    return {"generated_text": edited_content}
+```
+:::
+
+:::js
+```typescript
+import { interrupt } from "@langchain/langgraph";
+
+const reviewNode: typeof State.Node = (state) => {
+  // Pause and show the current content for review (surfaces in result.__interrupt__)
+  const editedContent = interrupt({
+    instruction: "Review and edit this content",
+    content: state.generatedText
+  });
+
+  // Update the state with the edited version
+  return { generatedText: editedContent };
+}
+```
+:::
+
+:::python
+```python
+graph.stream_events(
+    Command(resume="The edited and improved text"),  # Value becomes the return from interrupt()
+    config=config,
+    version="v3",
+).output
+```
+:::
+
+:::js
+```typescript
+await graph.invoke(
+  new Command({ resume: "The edited and improved text" }), // Value becomes the return from interrupt()
+  config
+);
+```
+:::
+
+<Accordion title="Full example">
+    :::python
+
+    <LanggraphInterruptsReviewPy />
+
+    :::
+
+    :::js
+
+    ```typescript
+    import {
+      Command,
+      MemorySaver,
+      START,
+      END,
+      StateGraph,
+      StateSchema,
+      interrupt,
+    } from "@langchain/langgraph";
+    import * as z from "zod";
+
+    const State = new StateSchema({
+      generatedText: z.string(),
+    });
+
+    const builder = new StateGraph(State)
+      .addNode("review", async (state) => {
+        // Ask a reviewer to edit the generated content
+        const updated = interrupt({
+          instruction: "Review and edit this content",
+          content: state.generatedText,
+        });
+        return { generatedText: updated };
+      })
+      .addEdge(START, "review")
+      .addEdge("review", END);
+
+    const checkpointer = new MemorySaver();
+    const graph = builder.compile({ checkpointer });
+
+    const config = { configurable: { thread_id: "review-42" } };
+    const initial = await graph.invoke({ generatedText: "Initial draft" }, config);
+    console.log(initial.__interrupt__);
+    // [{ value: { instruction: ..., content: ... } }]
+
+    // Resume with the edited text from the reviewer
+    const finalState = await graph.invoke(
+      new Command({ resume: "Improved draft after review" }),
+      config,
+    );
+    console.log(finalState.generatedText); // -> "Improved draft after review"
+    ```
+    :::
+
+</Accordion>
+
+### 工具中的中断
+
+你也可以直接在工具函数内部放置中断。这会使工具在每次被调用时暂停以等待审批，并允许在执行之前对工具调用进行人工审查和编辑。
+
+首先，定义一个使用 @[`interrupt`] 的工具：
+
+:::python
+```python
+from langchain.tools import tool
+from langgraph.types import interrupt
+
+@tool
+def send_email(to: str, subject: str, body: str):
+    """Send an email to a recipient."""
+
+    # Pause before sending; payload surfaces on stream.interrupts when using event streaming
+    response = interrupt({
+        "action": "send_email",
+        "to": to,
+        "subject": subject,
+        "body": body,
+        "message": "Approve sending this email?"
+    })
+
+    if response.get("action") == "approve":
+        # Resume value can override inputs before executing
+        final_to = response.get("to", to)
+        final_subject = response.get("subject", subject)
+        final_body = response.get("body", body)
+        return f"Email sent to {final_to} with subject '{final_subject}'"
+    return "Email cancelled by user"
+```
+:::
+
+:::js
+```typescript
+import { tool } from "@langchain/core/tools";
+import { interrupt } from "@langchain/langgraph";
+import * as z from "zod";
+
+const sendEmailTool = tool(
+  async ({ to, subject, body }) => {
+    // Pause before sending; payload surfaces in result.__interrupt__
+    const response = interrupt({
+      action: "send_email",
+      to,
+      subject,
+      body,
+      message: "Approve sending this email?",
+    });
+
+    if (response?.action === "approve") {
+      // Resume value can override inputs before executing
+      const finalTo = response.to ?? to;
+      const finalSubject = response.subject ?? subject;
+      const finalBody = response.body ?? body;
+      return `Email sent to ${finalTo} with subject '${finalSubject}'`;
+    }
+    return "Email cancelled by user";
+  },
+  {
+    name: "send_email",
+    description: "Send an email to a recipient",
+    schema: z.object({
+      to: z.string(),
+      subject: z.string(),
+      body: z.string(),
+    }),
+  },
+);
+```
+:::
+
+这种方法在你希望审批逻辑与工具本身共存时很有用，使其可以在图的不同部分重复使用。大型语言模型可以自然地调用该工具，而中断将在工具被调用时暂停执行，允许你审批、编辑或取消操作。
+
+<Accordion title="Full example">
+    :::python
+
+    ```python
+    import sqlite3
+    import operator
+    from typing import TypedDict, Annotated, Literal
+    from langchain.tools import tool
+    from langchain_anthropic import ChatAnthropic
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    from langgraph.graph import StateGraph, START, END
+    from langgraph.types import Command, interrupt
+    from langchain.messages import AnyMessage, SystemMessage, ToolMessage
+
+
+    class AgentState(TypedDict):
+        messages: Annotated[list[AnyMessage], operator.add]
+
+
+    @tool
+    def send_email(to: str, subject: str, body: str):
+        """Send an email to a recipient."""
+
+        # Pause before sending; payload surfaces on stream.interrupts when using event streaming
+        response = interrupt({
+            "action": "send_email",
+            "to": to,
+            "subject": subject,
+            "body": body,
+            "message": "Approve sending this email?",
+        })
+
+        if response.get("action") == "approve":
+            final_to = response.get("to", to)
+            final_subject = response.get("subject", subject)
+            final_body = response.get("body", body)
+
+            # Actually send the email (your implementation here)
+            print(f"[send_email] to={final_to} subject={final_subject} body={final_body}")
+            return f"Email sent to {final_to}"
+
+        return "Email cancelled by user"
+
+
+    model = ChatAnthropic(model="claude-sonnet-4-6").bind_tools([send_email])
+    tools_by_name = {"send_email": send_email}
+
+
+    def agent_node(state: AgentState):
+        # LLM may decide to call the tool; interrupt pauses before sending
+        result = model.invoke(state["messages"])
+        return {"messages": [result]}
+
+    def tool_node(state: AgentState):
+        """Performs the tool call"""
+        result = []
+        for tool_call in state["messages"][-1].tool_calls:
+            tool = tools_by_name[tool_call["name"]]
+            observation = tool.invoke(tool_call["args"])
+            result.append(ToolMessage(content=observation, tool_call_id=tool_call["id"]))
+        return {"messages": result}
+
+    def should_continue(state: AgentState) -> Literal["tool_node", END]:
+        """Decide if we should continue the loop or stop based upon whether the LLM made a tool call"""
+        messages = state["messages"]
+        last_message = messages[-1]
+
+        if last_message.tool_calls:
+            return "tool_node"
+        return END
+
+    builder = StateGraph(AgentState)
+    builder.add_node("agent", agent_node)
+    builder.add_node("tool_node", tool_node)
+
+    builder.add_edge(START, "agent")
+    builder.add_conditional_edges("agent", should_continue, ["tool_node", END])  # Routes to "tools" or END
+    builder.add_edge("tool_node", "agent")  # Loop back after tools
+
+    checkpointer = SqliteSaver(
+        sqlite3.connect("tool-approval.db", check_same_thread=False)
+    )
+    graph = builder.compile(checkpointer=checkpointer)
+
+    config = {"configurable": {"thread_id": "email-workflow"}}
+    initial = graph.stream_events(
+        {
+            "messages": [
+                {"role": "user", "content": "Send an email to alice@example.com about the meeting"}
+            ]
+        },
+        config=config,
+        version="v3",
+    )
+    initial.output  # drive the stream to completion
+    print(initial.interrupts)  # -> (Interrupt(value={'action': 'send_email', ...}),)
+
+    # Resume with approval and optionally edited arguments
+    resumed = graph.stream_events(
+        Command(resume={"action": "approve", "subject": "Updated subject"}),
+        config=config,
+        version="v3",
+    )
+    print(resumed.output["messages"][-1])  # -> Tool result returned by send_email
+    ```
+    :::
+
+    :::js
+
+    ```typescript
+    import { tool } from "@langchain/core/tools";
+    import { ChatAnthropic } from "@langchain/anthropic";
+    import {
+      Command,
+      MemorySaver,
+      START,
+      END,
+      StateGraph,
+      StateSchema,
+      MessagesValue,
+      interrupt,
+    } from "@langchain/langgraph";
+    import { ToolNode } from "@langchain/langgraph/prebuilt";
+    import { AIMessage } from "@langchain/core/messages";
+    import * as z from "zod";
+
+    const sendEmailTool = tool(
+      async ({ to, subject, body }) => {
+        // Pause before sending; payload surfaces in result.__interrupt__
+        const response = interrupt({
+          action: "send_email",
+          to,
+          subject,
+          body,
+          message: "Approve sending this email?",
+        });
+
+        if (response?.action === "approve") {
+          const finalTo = response.to ?? to;
+          const finalSubject = response.subject ?? subject;
+          const finalBody = response.body ?? body;
+          console.log("[sendEmailTool]", finalTo, finalSubject, finalBody);
+          return `Email sent to ${finalTo}`;
+        }
+        return "Email cancelled by user";
+      },
+      {
+        name: "send_email",
+        description: "Send an email to a recipient",
+        schema: z.object({
+          to: z.string(),
+          subject: z.string(),
+          body: z.string(),
+        }),
+      },
+    );
+
+    const model = new ChatAnthropic({ model: "claude-sonnet-4-6" }).bindTools([sendEmailTool]);
+    const toolNode = new ToolNode([sendEmailTool]);
+
+    const State = new StateSchema({
+      messages: MessagesValue,
+    });
+
+    const agent: typeof State.Node = async (state) => {
+      // LLM may decide to call the tool; interrupt pauses before sending
+      const response = await model.invoke(state.messages);
+      return { messages: [response] };
+    };
+
+    const shouldContinue = (state: typeof State.State) => {
+      // Route to the tools node if the LLM made a tool call
+      const lastMessage = state.messages.at(-1);
+      if (AIMessage.isInstance(lastMessage) && lastMessage.tool_calls?.length) {
+        return "tools";
+      }
+      return END;
+    };
+
+    const graphBuilder = new StateGraph(State)
+      .addNode("agent", agent)
+      .addNode("tools", toolNode)
+      .addEdge(START, "agent")
+      .addConditionalEdges("agent", shouldContinue, ["tools", END])
+      .addEdge("tools", "agent"); // Loop back after tools
+
+    const checkpointer = new MemorySaver();
+    const graph = graphBuilder.compile({ checkpointer });
+
+    const config = { configurable: { thread_id: "email-workflow" } };
+    const initial = await graph.invoke(
+      {
+        messages: [
+          { role: "user", content: "Send an email to alice@example.com about the meeting" },
+        ],
+      },
+      config,
+    );
+    console.log(initial.__interrupt__); // -> [{ value: { action: 'send_email', ... } }]
+
+    // Resume with approval and optionally edited arguments
+    const resumed = await graph.invoke(
+      new Command({
+        resume: { action: "approve", subject: "Updated subject" },
+      }),
+      config,
+    );
+    console.log(resumed.messages.at(-1)); // -> Tool result returned by send_email
+    ```
+    :::
+
+</Accordion>
+
+### 验证人工输入
+
+有时你需要验证来自人类的输入，如果值无效则重新提示。推荐的方法是 `interrupt()` **每个节点调用一次**，从节点返回时将错误消息存储在状态中，并使用 **条件边** 循环回节点，直到提供有效值。
+
+<Warning>
+
+**避免在单个节点内使用 `while True` + `interrupt()` 循环。** 由于节点在每次恢复时从头开始重新运行（参见 [中断规则](#中断（interrupts）的规则)），调用 `interrupt()` 多次的循环会导致每次恢复重播所有之前的迭代：第一次恢复重播 1 次迭代，第二次重播 2 次，以此类推。结果是循环体内任何代码的指数级重新执行。
+
+</Warning>
+
+:::python
+正确的模式：
+
+1. 将重新提示的问题存储在状态中（例如 `pending_question`）。
+2. 在节点中，调用 `interrupt()` **恰好一次**，传递状态中的当前问题。
+3. 如果答案无效，返回更新的 `pending_question`，以便下次调用重新提示。
+4. 使用 `add_conditional_edges` 将流程路由回节点，直到收集到有效值。
+
+<LanggraphInterruptsValidateConditionalEdgePatternPy />
+
+每个简历（resume）恰好调用一次 `get_age_node`，执行一次 `interrupt()` 调用，然后退出。当答案无效时，条件边会回环，下一个中断会使用更新后的问题重新提示。每个简历中没有任何代码会被执行超过一次。
+
+:::
+
+:::js
+正确的模式：
+
+1. 将重新提示的问题存储在状态中（例如 `pendingQuestion`）。
+2. 在节点中，恰好调用一次 `interrupt()`，并将状态中的当前问题传递给它。
+3. 如果答案无效，返回更新的 `pendingQuestion`，以便下一个调用重新提示。
+4. 使用 `addConditionalEdges` 将流程路由回节点，直到收集到有效值。
+
+<LanggraphInterruptsValidateConditionalEdgePatternJs />
+
+每个简历（resume）恰好调用一次 `getAgeNode`，执行一次 `interrupt()` 调用，然后退出。当答案无效时，条件边会回环，下一个中断会使用更新后的问题重新提示。
+
+:::
+
+<Accordion title="Full example">
+    :::python
+
+    <LanggraphInterruptsValidateConditionalEdgePy />
+
+    :::
+
+    :::js
+
+    ```typescript
+    import {
+      Command,
+      MemorySaver,
+      START,
+      END,
+      StateGraph,
+      StateSchema,
+      interrupt,
+    } from "@langchain/langgraph";
+    import * as z from "zod";
+
+    const State = new StateSchema({
+      age: z.number().nullable(),
+      pendingQuestion: z.string().nullable(),
+    });
+
+    const builder = new StateGraph(State)
+      .addNode("collectAge", (state) => {
+        const question = state.pendingQuestion ?? "What is your age?";
+        const answer = interrupt(question); // called exactly once per invocation
+
+        if (typeof answer === "number" && answer > 0) {
+          return { age: answer, pendingQuestion: null };
+        }
+        return { pendingQuestion: `'${answer}' is not a valid age. Please enter a positive number.` };
+      })
+      .addEdge(START, "collectAge")
+      .addConditionalEdges("collectAge", (state) =>
+        state.age !== null ? END : "collectAge"
+      );
+
+    const checkpointer = new MemorySaver();
+    const graph = builder.compile({ checkpointer });
+
+    const config = { configurable: { thread_id: "form-1" } };
+    const first = await graph.invoke({ age: null, pendingQuestion: null }, config);
+    console.log(first.__interrupt__); // -> [{ value: "What is your age?", ... }]
+
+    // Provide invalid data; the node re-prompts via the conditional edge
+    const retry = await graph.invoke(new Command({ resume: "thirty" }), config);
+    console.log(retry.__interrupt__); // -> [{ value: "'thirty' is not a valid age...", ... }]
+
+    // Provide valid data; route returns END and the graph finishes
+    const final = await graph.invoke(new Command({ resume: 30 }), config);
+    console.log(final.age); // -> 30
+    ```
+    :::
+
+</Accordion>
+
+## 中断（interrupts）的规则
+
+当你在节点中调用 @[`interrupt`] 时，LangGraph 会通过抛出异常来暂停执行，该异常会通知运行时暂停。这个异常会沿着调用栈向上传播，并由运行时捕获，运行时会通知图（graph）保存当前状态并等待外部输入。
+
+当执行恢复（在你提供所需输入后），运行时会从头开始重新启动整个节点——它不会从 @[`interrupt`] 被调用的确切行恢复。这意味着在 @[`interrupt`] 之前的任何代码都会再次执行。由于这个原因，在使用中断时需要遵循一些重要的规则，以确保它们按预期工作。
+
+:::python
+### 不要将 `interrupt` 调用包裹在 try/except 中
+
+@[`interrupt`] 暂停执行的方式是在调用点抛出一个特殊异常。如果你将 @[`interrupt`] 调用包裹在 try/except 块中，你会捕获这个异常，中断将不会传递回图。
+
+* ✅ 将 @[`interrupt`] 调用与易出错的代码分开
+* ✅ 在 try/except 块中使用特定的异常类型
+
+<CodeGroup>
+```python Separating logic
+def node_a(state: State):
+    # ✅ Good: interrupting first, then handling
+    # error conditions separately
+    interrupt("What's your name?")
+    try:
+        fetch_data()  # This can fail
+    except Exception as e:
+        print(e)
+    return state
+```
+```python Explicit exception handling
+def node_a(state: State):
+    # ✅ Good: catching specific exception types
+    # will not catch the interrupt exception
+    try:
+        name = interrupt("What's your name?")
+        fetch_data()  # This can fail
+    except NetworkException as e:
+        print(e)
+    return state
+```
+</CodeGroup>
+
+* 🔴 不要用裸的 try/except 块包裹 @[`interrupt`] 调用
+
+```python
+def node_a(state: State):
+    # ❌ Bad: wrapping interrupt in bare try/except
+    # will catch the interrupt exception
+    try:
+        interrupt("What's your name?")
+    except Exception as e:
+        print(e)
+    return state
+```
+:::
+
+:::js
+### 不要用 try/catch 包裹 `interrupt` 调用
+
+@[`interrupt`] 在调用点暂停执行的方式是通过抛出一个特殊异常。如果你用 try/catch 块包裹 @[`interrupt`] 调用，你会捕获这个异常，中断将不会被传递回图。
+
+* ✅ 将 @[`interrupt`] 调用与易出错的代码分离
+* ✅ 如有必要，条件性地捕获错误
+
+<CodeGroup>
+```typescript Separating logic
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: interrupting first, then handling error conditions separately
+  const name = interrupt("What's your name?");
+  try {
+    await fetchData(); // This can fail
+  } catch (err) {
+    console.error(error);
+  }
+  return state;
+}
+```
+```typescript Conditionally handling errors
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: re-throwing the exception will
+  // allow the interrupt to be passed back to
+  // the graph
+  try {
+    const name = interrupt("What's your name?");
+    await fetchData(); // This can fail
+  } catch (err) {
+    if (error instanceof NetworkError) {
+      console.error(error);
+    }
+    throw error;
+  }
+  return state;
+}
+```
+</CodeGroup>
+
+* 🔴 不要用裸的 try/catch 块包裹 @[`interrupt`] 调用
+
+```typescript
+async function nodeA(state: State) {
+    // ❌ Bad: wrapping interrupt in bare try/catch will catch the interrupt exception
+    try {
+        const name = interrupt("What's your name?");
+    } catch (err) {
+        console.error(error);
+    }
+    return state;
+}
+```
+:::
+
+### 不要重排节点内的 `interrupt` 调用
+
+在单个节点中使用多个中断是很常见的，但如果处理不当，可能会导致意外行为。
+
+当节点包含多个中断调用时，LangGraph 会为执行节点的任务维护一个特定的恢复值列表。每次执行恢复时，它都会从节点的开头开始。对于遇到的中断，LangGraph 会检查任务恢复列表中是否存在匹配的值。匹配是**严格基于索引的**，因此节点内中断调用的顺序很重要。
+
+* ✅ 在节点执行过程中保持 @[`interrupt`] 调用一致
+
+:::python
+```python
+def node_a(state: State):
+    # ✅ Good: interrupt calls happen in the same order every time
+    name = interrupt("What's your name?")
+    age = interrupt("What's your age?")
+    city = interrupt("What's your city?")
+
+    return {
+        "name": name,
+        "age": age,
+        "city": city
+    }
+```
+:::
+:::js
+```typescript
+async function nodeA(state: State) {
+    // ✅ Good: interrupt calls happen in the same order every time
+    const name = interrupt("What's your name?");
+    const age = interrupt("What's your age?");
+    const city = interrupt("What's your city?");
+
+    return {
+        name,
+        age,
+        city
+    };
+}
+```
+:::
+
+* 🔴 不要在节点内条件性地跳过 @[`interrupt`] 调用
+* 🔴 不要用跨执行不确定的逻辑循环 @[`interrupt`] 调用，包括 `while True` 验证循环。使用条件边代替（参见 [验证人类输入](#验证人工输入)）
+
+:::python
+<CodeGroup>
+```python Skipping interrupts
+def node_a(state: State):
+    # ❌ Bad: conditionally skipping interrupts changes the order
+    name = interrupt("What's your name?")
+
+    # On first run, this might skip the interrupt
+    # On resume, it might not skip it - causing index mismatch
+    if state.get("needs_age"):
+        age = interrupt("What's your age?")
+
+    city = interrupt("What's your city?")
+
+    return {"name": name, "city": city}
+```
+```python Looping interrupts
+def node_a(state: State):
+    # ❌ Bad: looping based on non-deterministic data
+    # The number of interrupts changes between executions
+    results = []
+    for item in state.get("dynamic_list", []):  # List might change between runs
+        result = interrupt(f"Approve {item}?")
+        results.append(result)
+
+    return {"results": results}
+```
+</CodeGroup>
+:::
+:::js
+<CodeGroup>
+```typescript Skipping interrupts
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ❌ Bad: conditionally skipping interrupts changes the order
+  const name = interrupt("What's your name?");
+
+  // On first run, this might skip the interrupt
+  // On resume, it might not skip it - causing index mismatch
+  if (state.needsAge) {
+    const age = interrupt("What's your age?");
+  }
+
+  const city = interrupt("What's your city?");
+
+  return { name, city };
+}
+```
+```typescript Looping interrupts
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ❌ Bad: looping based on non-deterministic data
+  // The number of interrupts changes between executions
+  const results = [];
+  for (const item of state.dynamicList || []) {  // List might change between runs
+    const result = interrupt(`Approve ${item}?`);
+    results.push(result);
+  }
+
+  return { results };
+}
+```
+</CodeGroup>
+:::
+
+### 不要在 `interrupt` 调用中返回复杂值
+
+根据使用的检查点器，复杂值可能不可序列化（例如，你不能序列化一个函数）。为了使你的图适应任何部署，最佳实践是只使用可以合理序列化的值。
+
+* ✅ 将简单、JSON 可序列化类型传递给 @[`interrupt`]
+* ✅ 传递具有简单值的字典/对象
+
+:::python
+<CodeGroup>
+```python Simple values
+def node_a(state: State):
+    # ✅ Good: passing simple types that are serializable
+    name = interrupt("What's your name?")
+    count = interrupt(42)
+    approved = interrupt(True)
+
+    return {"name": name, "count": count, "approved": approved}
+```
+```python Structured data
+def node_a(state: State):
+    # ✅ Good: passing dictionaries with simple values
+    response = interrupt({
+        "question": "Enter user details",
+        "fields": ["name", "email", "age"],
+        "current_values": state.get("user", {})
+    })
+
+    return {"user": response}
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```typescript Simple values
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: passing simple types that are serializable
+  const name = interrupt("What's your name?");
+  const count = interrupt(42);
+  const approved = interrupt(true);
+
+  return { name, count, approved };
+}
+```
+```typescript Structured data
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: passing objects with simple values
+  const response = interrupt({
+    question: "Enter user details",
+    fields: ["name", "email", "age"],
+    currentValues: state.user || {}
+  });
+
+  return { user: response };
+}
+```
+</CodeGroup>
+
+* 🔴 不要将函数、类实例或其他复杂对象传递给 @[`interrupt`]
+
+:::python
+<CodeGroup>
+```python Functions
+def validate_input(value):
+    return len(value) > 0
+
+def node_a(state: State):
+    # ❌ Bad: passing a function to interrupt
+    # The function cannot be serialized
+    response = interrupt({
+        "question": "What's your name?",
+        "validator": validate_input  # This will fail
+    })
+    return {"name": response}
+```
+```python Class instances
+class DataProcessor:
+    def __init__(self, config):
+        self.config = config
+
+def node_a(state: State):
+    processor = DataProcessor({"mode": "strict"})
+
+    # ❌ Bad: passing a class instance to interrupt
+    # The instance cannot be serialized
+    response = interrupt({
+        "question": "Enter data to process",
+        "processor": processor  # This will fail
+    })
+    return {"result": response}
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```typescript Functions
+function validateInput(value: string): boolean {
+    return value.length > 0;
+}
+
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ❌ Bad: passing a function to interrupt
+  // The function cannot be serialized
+  const response = interrupt({
+    question: "What's your name?",
+    validator: validateInput  // This will fail
+  });
+  return { name: response };
+}
+```
+```typescript Class instances
+class DataProcessor {
+    constructor(private config: any) {}
+}
+
+const nodeA: GraphNode<typeof State> = async (state) => {
+  const processor = new DataProcessor({ mode: "strict" });
+
+  // ❌ Bad: passing a class instance to interrupt
+  // The instance cannot be serialized
+  const response = interrupt({
+    question: "Enter data to process",
+    processor: processor  // This will fail
+  });
+  return { result: response };
+}
+```
+</CodeGroup>
+:::
+
+### 在 `interrupt` 之前调用的副作用必须是幂等的
+
+因为中断是通过重新运行它们被调用的节点来工作的，所以在 @[`interrupt`] 之前调用的副作用应该（理想情况下）是幂等的。从上下文来看，幂等性意味着相同的操作可以多次应用，而结果不会超出初始执行后的变化。
+
+例如，你可能在节点内部有一个更新记录的 API 调用。如果 @[`interrupt`] 在该调用之后被调用，当节点恢复时，它将被多次重新运行，可能会覆盖初始更新或创建重复的记录。
+
+* ✅ 在 @[`interrupt`] 之前使用幂等操作
+* ✅ 将副作用放在 @[`interrupt`] 调用之后
+* ✅ 尽可能将副作用分离到单独的节点中
+
+:::python
+<CodeGroup>
+```python Idempotent operations
+def node_a(state: State):
+    # ✅ Good: using upsert operation which is idempotent
+    # Running this multiple times will have the same result
+    db.upsert_user(
+        user_id=state["user_id"],
+        status="pending_approval"
+    )
+
+    approved = interrupt("Approve this change?")
+
+    return {"approved": approved}
+```
+```python Side effects after interrupt
+def node_a(state: State):
+    # ✅ Good: placing side effect after the interrupt
+    # Approval gates this side effect; retries still need idempotency
+    approved = interrupt("Approve this change?")
+
+    if approved:
+        db.create_audit_log(
+            user_id=state["user_id"],
+            action="approved"
+        )
+
+    return {"approved": approved}
+```
+```python Separating into different nodes
+def approval_node(state: State):
+    # ✅ Good: only handling the interrupt in this node
+    approved = interrupt("Approve this change?")
+
+    return {"approved": approved}
+
+def notification_node(state: State):
+    # ✅ Good: side effect happens in a separate node
+    # Approval gates this side effect; retries still need idempotency
+    if (state.approved):
+        send_notification(
+            user_id=state["user_id"],
+            status="approved"
+        )
+
+    return state
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```typescript Idempotent operations
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: using upsert operation which is idempotent
+  // Running this multiple times will have the same result
+  await db.upsertUser({
+    userId: state.userId,
+    status: "pending_approval"
+  });
+
+  const approved = interrupt("Approve this change?");
+
+  return { approved };
+}
+```
+```typescript Side effects after interrupt
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: placing side effect after the interrupt
+  // Approval gates this side effect; retries still need idempotency
+  const approved = interrupt("Approve this change?");
+
+  if (approved) {
+    await db.createAuditLog({
+      userId: state.userId,
+      action: "approved"
+    });
+  }
+
+  return { approved };
+}
+```
+```typescript Separating into different nodes
+const approvalNode: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: only handling the interrupt in this node
+  const approved = interrupt("Approve this change?");
+
+  return { approved };
+}
+
+const notificationNode: GraphNode<typeof State> = async (state) => {
+  // ✅ Good: side effect happens in a separate node
+  // Approval gates this side effect; retries still need idempotency
+  if (state.approved) {
+    await sendNotification({
+      userId: state.userId,
+      status: "approved",
+    });
+  }
+
+  return state;
+}
+```
+</CodeGroup>
+:::
+
+* 🔴 在 @[`interrupt`] 之前不要执行非幂等操作
+* 🔴 在创建新记录之前不要检查它们是否存在
+
+:::python
+<CodeGroup>
+```python Creating records
+def node_a(state: State):
+    # ❌ Bad: creating a new record before interrupt
+    # This will create duplicate records on each resume
+    audit_id = db.create_audit_log({
+        "user_id": state["user_id"],
+        "action": "pending_approval",
+        "timestamp": datetime.now()
+    })
+
+    approved = interrupt("Approve this change?")
+
+    return {"approved": approved, "audit_id": audit_id}
+```
+```python Appending to lists
+def node_a(state: State):
+    # ❌ Bad: appending to a list before interrupt
+    # This will add duplicate entries on each resume
+    db.append_to_history(state["user_id"], "approval_requested")
+
+    approved = interrupt("Approve this change?")
+
+    return {"approved": approved}
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```typescript Creating records
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ❌ Bad: creating a new record before interrupt
+  // This will create duplicate records on each resume
+  const auditId = await db.createAuditLog({
+    userId: state.userId,
+    action: "pending_approval",
+    timestamp: new Date()
+  });
+
+  const approved = interrupt("Approve this change?");
+
+  return { approved, auditId };
+}
+```
+```typescript Appending to arrays
+const nodeA: GraphNode<typeof State> = async (state) => {
+  // ❌ Bad: appending to an array before interrupt
+  // This will add duplicate entries on each resume
+  await db.appendToHistory(state.userId, "approval_requested");
+
+  const approved = interrupt("Approve this change?");
+
+  return { approved };
+}
+```
+</CodeGroup>
+:::
+
+## 与作为函数调用的子图一起使用
+
+当在节点内调用子图时，父图将从子图被调用并触发 @[`interrupt`] 的节点的**开头**恢复执行。同样，**子图**也将从 @[`interrupt`] 被调用节点的开头恢复。
+
+:::python
+```python
+def node_in_parent_graph(state: State):
+    some_code()  # <-- This will re-execute when resumed
+    # Invoke a subgraph as a function.
+    # The subgraph contains an `interrupt` call.
+    subgraph_result = subgraph.invoke(some_input)
+    # ...
+
+def node_in_subgraph(state: State):
+    some_other_code()  # <-- This will also re-execute when resumed
+    result = interrupt("What's your name?")
+    # ...
+```
+:::
+:::js
+```typescript
+async function nodeInParentGraph(state: State) {
+    someCode(); // <-- This will re-execute when resumed
+    // Invoke a subgraph as a function.
+    // The subgraph contains an `interrupt` call.
+    const subgraphResult = await subgraph.invoke(someInput);
+    // ...
+}
+
+async function nodeInSubgraph(state: State) {
+    someOtherCode(); // <-- This will also re-execute when resumed
+    const result = interrupt("What's your name?");
+    // ...
+}
+```
+:::
+
+## 使用中断进行调试
+
+:::python
+要调试和测试图，您可以使用静态断点来逐个节点地单步执行图。静态断点在节点执行之前或之后定义的点上被触发。您可以通过在编译图时指定 `interrupt_before` 和 `interrupt_after` 来设置这些断点。
+:::
+:::js
+要调试和测试图，您可以使用静态断点来逐个节点地单步执行图。静态断点在节点执行之前或之后定义的点上被触发。您可以通过在编译图时指定 `interruptBefore` 和 `interruptAfter` 来设置这些断点。
+:::
+
+<Note>
+    建议不要在人类参与的工作流程中使用静态断点。请使用 @[`interrupt`] 函数代替。
+</Note>
+
+<Tabs>
+    <Tab title="At compile time">
+        :::python
+        ```python
+        graph = builder.compile(
+            interrupt_before=["node_a"],  # [!code highlight]
+            interrupt_after=["node_b", "node_c"],  # [!code highlight]
+            checkpointer=checkpointer,
+        )
+
+        # Pass a thread ID to the graph
+        config = {
+            "configurable": {
+                "thread_id": "some_thread"
+            }
+        }
+
+        # Run the graph until the breakpoint
+        graph.invoke(inputs, config=config)  # [!code highlight]
+
+        # Resume the graph
+        graph.invoke(None, config=config)  # [!code highlight]
+        ```
+
+        1. 断点是在 `compile` 期间设置的。
+        2. `interrupt_before` 指定了在节点执行前应暂停的节点。
+        3. `interrupt_after` 指定了在节点执行后应暂停的节点。
+        4. 需要一个检查点器才能启用断点。
+        5. 图表运行直到遇到第一个断点。
+        6. 通过传递 `None` 作为输入来恢复图表。这将运行图表直到遇到下一个断点。
+        :::
+        :::js
+        ```typescript
+        const graph = builder.compile({
+            interruptBefore: ["node_a"],  // [!code highlight]
+            interruptAfter: ["node_b", "node_c"],  // [!code highlight]
+            checkpointer,
+        });
+
+        // Pass a thread ID to the graph
+        const config = {
+            configurable: {
+                thread_id: "some_thread"
+            }
+        };
+
+        // Run the graph until the breakpoint
+        await graph.invoke(inputs, config);# [!code highlight]
+
+        await graph.invoke(null, config);  # [!code highlight]
+        ```
+
+        1. 断点是在 `compile` 期间设置的。
+        2. `interruptBefore` 指定了在节点执行前应暂停的节点。
+        3. `interruptAfter` 指定了在节点执行后应暂停的节点。
+        4. 需要一个检查点器才能启用断点。
+        5. 图表运行直到遇到第一个断点。
+        6. 通过传递 `null` 作为输入来恢复图表。这将运行图表直到遇到下一个断点。
+        :::
+    </Tab>
+    <Tab title="At run time">
+        :::python
+        ```python
+        config = {
+            "configurable": {
+                "thread_id": "some_thread"
+            }
+        }
+
+        # Run the graph until the breakpoint
+        graph.invoke(
+            inputs,
+            interrupt_before=["node_a"],  # [!code highlight]
+            interrupt_after=["node_b", "node_c"],  # [!code highlight]
+            config=config,
+        )
+
+        # Resume the graph
+        graph.invoke(None, config=config)  # [!code highlight]
+        ```
+
+        1. `graph.invoke` 被调用，带有 `interrupt_before` 和 `interrupt_after` 参数。这是一个运行时配置，并且可以为每次调用更改。
+        2. `interrupt_before` 指定了在节点执行前应暂停的节点。
+        3. `interrupt_after` 指定了在节点执行后应暂停的节点。
+        4. 图表运行直到遇到第一个断点。
+        5. 通过传递 `None` 作为输入来恢复图表。这将运行图表直到遇到下一个断点。
+        :::
+        :::js
+        ```typescript
+        // Run the graph until the breakpoint
+        graph.invoke(inputs, {
+            interruptBefore: ["node_a"],  // [!code highlight]
+            interruptAfter: ["node_b", "node_c"],  // [!code highlight]
+            configurable: {
+                thread_id: "some_thread"
+            }
+        });
+
+        // Resume the graph
+        await graph.invoke(null, config);  // [!code highlight]
+        ```
+
+        1. `graph.invoke` 被调用，带有 `interruptBefore` 和 `interruptAfter` 参数。这是一个运行时配置，并且可以为每次调用更改。
+        2. `interruptBefore` 指定了在节点执行前应暂停的节点。
+        3. `interruptAfter` 指定了在节点执行后应暂停的节点。
+        4. 图表运行直到遇到第一个断点。
+        5. 通过传递 `null` 作为输入来恢复图表。这将运行图表直到遇到下一个断点。
+        :::
+    </Tab>
+</Tabs>
+
+<Tip>
+要调试您的中断，请使用 [LangSmith](https://docs.langchain.com/langsmith/observability)。
+</Tip>
+
+### 使用 LangSmith Studio
+
+您可以使用 [LangSmith Studio](https://docs.langchain.com/langsmith/studio) 在运行图之前通过 UI 在您的图中设置静态中断。您还可以使用 UI 在执行过程中的任何一点检查图状态。
+
+![image](/langchain/oss/images/static-interrupt.png)
+
+---
+
+> 官方原文：[src/oss/langgraph/interrupts.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/interrupts.mdx) · 译文由 AI 生成，以英文原文为准。

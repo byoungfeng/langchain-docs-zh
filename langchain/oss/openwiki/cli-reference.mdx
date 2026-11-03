@@ -1,0 +1,169 @@
+---
+title: "命令参考"
+sidebarTitle: "CLI 参考"
+description: "OpenWiki 命令行使用、标志和连接器子命令"
+---
+
+OpenWiki 以单个 `openwiki` 二进制程序形式提供，用于交互式聊天和一次性文档运行。有关安装和首次使用，请参阅 [快速入门](/langchain/oss/openwiki/quickstart)。
+
+## 核心命令
+
+```bash
+# Interactive chat in code mode (current repository)
+openwiki
+openwiki "Please generate documentation for this repository"
+
+# Personal mode
+openwiki personal
+openwiki personal --init
+openwiki personal --update
+
+# Explicit code mode
+openwiki code --init
+openwiki code --update
+openwiki code --update --print
+
+# Defaults to code mode and specify a language
+openwiki --init
+openwiki --update
+openwiki --init --language ko
+
+# One-shot print mode
+openwiki -p "Summarize what you can do"
+
+# Explore the wiki locally or export a static visualizer
+openwiki visualize
+openwiki visualize openwiki --port 4400 --no-open
+openwiki visualize openwiki --export docs/openwiki-visualizer
+
+# Link repository wikis into a workspace
+openwiki link
+openwiki workspace use payments
+openwiki workspace current
+openwiki workspace clear
+
+# Coding-agent integrations
+openwiki integrations list
+openwiki integrations install codex
+openwiki integrations install omp
+openwiki integrations install antigravity
+openwiki integrations uninstall codex
+
+# Help
+openwiki --help
+```
+
+### 常用标志
+
+| 标志 | 描述 |
+| --- | --- |
+| `--init` | 生成初始文档。默认为代码模式。重新运行时，会从零开始重新生成仓库维基，同时保留 `openwiki/INSTRUCTIONS.md`。在没有 `--print` 的 TTY 中，会流式输出智能体输出并在成功时自动退出。`--init` 和 `--update` 不能组合使用。 |
+| `--update` | 更新现有文档。默认为代码模式。在没有 `--print` 的 TTY 中，会流式输出智能体输出并在成功时自动退出。`--init` 和 `--update` 不能组合使用。 |
+| `-l`, `--language <locale>` | 在给定的 BCP-47 语言环境中生成维基文档，例如 `ko`、`zh-CN` 或 `pt-BR`。不识别的值将被拒绝。 |
+| `--mode <personal\|code>` | 选择个人大脑或仓库文档。 |
+| `-p`, `--print` | 运行一次，打印最终助手输出并退出。提供消息或命令。没有 `--print` 的交互式聊天会保持打开状态以供后续操作。 |
+| `--modelId` / `--model-id` | 选择运行使用的模型 ID。 |
+| `--debug` | 打印更详细的失败信息，包括嵌套错误（如“连接错误”）背后的根本原因。 |
+| `--telemetry-file=<path>` | 将运行中的遥测有效负载也写入本地 JSON 文件。 |
+| `-h`, `--help` | 打印使用说明。 |
+
+## 可视化
+
+您可以将生成的维基作为交互式节点图和实时 Markdown 阅读器进行可视化，或导出静态站点以供托管：
+
+```bash
+openwiki visualize
+openwiki visualize openwiki --port 4400 --no-open
+openwiki visualize openwiki --export docs/openwiki-visualizer
+openwiki visualize ~/.openwiki/wiki
+```
+
+有关详细信息，请参阅 [可视化您的维基](/langchain/oss/openwiki/visualize)。
+
+## 搜索和链接
+
+分组相关的仓库维基并管理活动搜索工作区：
+
+```bash
+openwiki link [directory]
+openwiki workspace use <name>
+openwiki workspace current
+openwiki workspace clear
+```
+
+有关 MCP 搜索和读取工具、工作区作用域规则和示例，请参阅 [搜索和链接维基](/langchain/oss/openwiki/search-and-link)。
+
+## 编码智能体集成
+
+将 OpenWiki 安装到主机编码智能体中，以便主机模型和仓库工具驱动生成，而 OpenWiki 拥有持久的页面任务生命周期：
+
+```bash
+openwiki integrations list [--project [path]]
+openwiki integrations install <codex|claude|opencode|cursor|bob|kiro|omp|antigravity> [--force] [--project [path]]
+openwiki integrations uninstall <codex|claude|opencode|cursor|bob|kiro|omp|antigravity> [--project [path]]
+```
+
+有关详细信息，请参阅 [编码智能体集成](/langchain/oss/openwiki/integrations)。
+
+原生 CLI 运行可以通过 `OPENWIKI_PAGE_CONCURRENCY`（`1` 到 `8`，默认 `1`）提高页面工作器并发性。请参阅 [并行页面工作器](/langchain/oss/openwiki/code-mode#并行页面工作者)。
+
+## 身份验证和连接器
+
+```bash
+# List supported auth providers and status
+openwiki auth
+
+# Browser OAuth; save tokens to ~/.openwiki/.env and create connector config when possible
+openwiki auth gmail
+openwiki auth notion
+openwiki auth slack
+openwiki auth x
+
+# Regenerate connector config from saved auth env vars
+openwiki auth configure <provider> [--force]
+
+# List live MCP tools for MCP-backed providers
+openwiki auth tools <provider>
+
+# Run source-specific connector ingestion
+openwiki ingest <source|source-instance|all>
+
+# HTTPS tunnel for Slack OAuth; saves OPENWIKI_HTTPS_OAUTH_REDIRECT_URI
+openwiki ngrok start [url] [--port <port>]
+```
+
+## Cron (macOS)
+
+管理 [个人模式](/langchain/oss/openwiki/personal-mode) 源的可选连接器计划。在 macOS 上，OpenWiki 可以将计划安装为用户 LaunchAgents，以定期刷新源（例如 Gmail 或网络搜索）。使用以下命令列出、暂停、恢复或删除它们：
+
+```bash
+openwiki cron list
+openwiki cron pause <source|all>
+openwiki cron resume <source|all>
+openwiki cron delete <source|all>
+```
+
+`cron delete` 删除保存的计划并卸载其 LaunchAgent。它不会删除身份验证、连接器配置、原始数据或维基内容。
+
+## 切割命令 (交互式)
+
+在交互式聊天模式下，您可以使用以下命令：
+
+- `/api-key`：更新当前提供者 API 密钥（掩码提示）
+- `/langsmith-key`：更新或清除 LangSmith 跟踪凭证（掩码提示）
+- `/provider` 和 `/model`：更改会话的提供者或模型（持久化到 `~/.openwiki/.env`）
+- `/effort`：为支持的 OpenAI GPT-5.6、NVIDIA NIM、Gemini 和已选入 openai 兼容模型的推理工作设置难度，或 `/effort default` 以恢复提供者默认值
+- `/init` 和 `/update`：从会话启动初始化或更新
+- `/exit`：退出应用程序
+
+## 参见
+
+- [编码智能体集成](/langchain/oss/openwiki/integrations)
+- [搜索和链接维基](/langchain/oss/openwiki/search-and-link)
+- [个人模式](/langchain/oss/openwiki/personal-mode)
+- [模型提供者](/langchain/oss/openwiki/providers)
+- [自动化更新](/langchain/oss/openwiki/automate-updates)
+
+---
+
+> 官方原文：[src/oss/openwiki/cli-reference.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/cli-reference.mdx) · 译文由 AI 生成，以英文原文为准。

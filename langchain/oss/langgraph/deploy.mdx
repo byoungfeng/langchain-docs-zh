@@ -1,0 +1,158 @@
+---
+title: "部署"
+description: "使用 LangSmith Cloud 或 JavaScript 框架和托管平台将 LangGraph 智能体部署到生产环境。"
+sidebarTitle: "部署"
+---
+
+import DeployFrameworksPlatformsReference from '/langchain/snippets/langsmith/deploy-frameworks-platforms-reference.mdx';
+
+当您准备好将您的 LangGraph 智能体部署到生产环境时，选择一个适合您技术栈的托管模型。**[LangSmith 云端](https://docs.langchain.com/langsmith/deploy-to-cloud)** 提供完全托管的基础设施，适用于具有持久状态和后台执行的状态持久型、长时间运行的智能体。
+
+:::js
+您也可以使用相同的 [智能体流式传输协议](https://github.com/langchain-ai/agent-protocol/tree/main/streaming) 在 **JavaScript 框架和平台**（如 Next.js、SvelteKit、Nuxt、Cloudflare Workers 和 Deno Deploy）上部署。
+
+<DeployFrameworksPlatformsReference />
+:::
+
+<Tip>
+LangSmith 提供了云之外的多种部署选项，包括 [混合](https://docs.langchain.com/langsmith/hybrid)、[独立服务器](https://docs.langchain.com/langsmith/deploy-standalone-server) 和 [带控制平面的自托管](https://docs.langchain.com/langsmith/deploy-with-control-plane)。有关更多信息，请参阅 [LangSmith 部署概述](https://docs.langchain.com/langsmith/deployment)。
+</Tip>
+
+## LangSmith 云端
+
+本节将指导您从 GitHub 仓库将智能体部署到 LangSmith 云端。LangSmith 处理基础设施、扩展和运维问题。
+
+### 前置条件
+
+开始之前，请确保您已准备好以下内容：
+
+- 一个 [GitHub 账户](https://github.com/)
+- 一个 [LangSmith 账户](https://smith.langchain.com)（免费注册）
+
+### 部署您的智能体
+
+#### 1. 在 GitHub 上创建一个仓库
+
+您的应用程序代码必须存储在 GitHub 仓库中才能在 LangSmith 上部署。支持公共和私有仓库。对于此快速入门，首先确保您的应用程序与 LangGraph 兼容，方法是按照 [本地服务器设置指南](/langchain/oss/langgraph/studio#设置本地智能体服务器) 操作。然后，将您的代码推送到仓库。
+
+#### 2. 部署到 LangSmith
+
+<Steps>
+<Step title="Navigate to LangSmith Deployment">
+    登录到 [LangSmith](https://smith.langchain.com)。在左侧边栏中，选择 **部署**。
+</Step>
+<Step title="Create new deployment">
+    点击 **+ 新部署** 按钮。将打开一个面板，您可以在其中填写所需字段。
+</Step>
+<Step title="Link repository">
+    如果您是首次使用或添加一个之前未连接的私有仓库，请点击 **添加新账户** 按钮，并按照说明连接您的 GitHub 账户。
+</Step>
+<Step title="Deploy repository">
+    选择您的应用程序的仓库。点击 **提交** 以部署。这可能需要大约 15 分钟才能完成。您可以在 **部署详情** 视图中查看状态。
+</Step>
+</Steps>
+
+#### 3. 在 Studio 中测试您的应用程序
+
+部署您的应用程序后：
+
+1. 选择您刚刚创建的部署以查看更多详细信息。
+2. 点击右上角的 **Studio** 按钮。Studio 将打开以显示您的图。
+
+#### 4. 获取您的部署的 API URL
+
+1. 在 LangGraph 的 **部署详情** 视图中，点击 **API URL** 以将其复制到剪贴板。
+2. 点击 `URL` 以将其复制到剪贴板。
+
+#### 5. 测试 API
+
+现在您可以测试 API：
+
+<Tabs>
+:::python
+<Tab title="Python">
+1. 安装 LangGraph SDK:
+```shell
+pip install langgraph-sdk
+```
+2. 向智能体发送消息:
+```python
+from langgraph_sdk import get_sync_client # or get_client for async
+
+client = get_sync_client(url="your-deployment-url", api_key="your-langsmith-api-key")
+
+for chunk in client.runs.stream(
+    None,    # Threadless run
+    "agent", # Name of agent. Defined in langgraph.json.
+    input={
+        "messages": [{
+            "role": "human",
+            "content": "What is LangGraph?",
+        }],
+    },
+    stream_mode="updates",
+):
+    print(f"Receiving new event of type: {chunk.event}...")
+    print(chunk.data)
+    print("\n\n")
+```
+</Tab>
+:::
+:::js
+<Tab title="TypeScript">
+1. 安装 LangGraph SDK:
+```shell
+npm install @langchain/langgraph-sdk
+```
+2. 向智能体发送消息:
+```ts
+import { Client } from "@langchain/langgraph-sdk";
+
+const client = new Client({ apiUrl: "your-deployment-url", apiKey: "your-langsmith-api-key" });
+
+const streamResponse = client.runs.stream(
+  null,    // Threadless run
+  "agent", // Name of agent. Defined in langgraph.json.
+  {
+    input: {
+      "messages": [
+        { "role": "user", "content": "What is LangGraph?"}
+      ]
+    },
+    streamMode: "messages",
+  }
+);
+
+for await (const chunk of streamResponse) {
+  console.log(`Receiving new event of type: ${chunk.event}...`);
+  console.log(JSON.stringify(chunk.data));
+  console.log("\n\n");
+}
+```
+</Tab>
+:::
+<Tab title="Rest API">
+```bash
+curl -s --request POST \
+    --url <DEPLOYMENT_URL>/runs/stream \
+    --header 'Content-Type: application/json' \
+    --header "X-Api-Key: <LANGSMITH API KEY> \
+    --data "{
+        \"assistant_id\": \"agent\", `# Name of agent. Defined in langgraph.json.`
+        \"input\": {
+            \"messages\": [
+                {
+                    \"role\": \"human\",
+                    \"content\": \"What is LangGraph?\"
+                }
+            ]
+        },
+        \"stream_mode\": \"updates\"
+    }"
+```
+</Tab>
+</Tabs>
+
+---
+
+> 官方原文：[src/oss/langgraph/deploy.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/deploy.mdx) · 译文由 AI 生成，以英文原文为准。

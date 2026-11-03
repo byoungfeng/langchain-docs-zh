@@ -1,0 +1,126 @@
+---
+title: "工具"
+description: "将深度智能体连接到自定义函数、API、数据库和任何 MCP 服务器"
+---
+
+import CustomizationToolsPy from '/langchain/snippets/code-samples/customization-tools-py.mdx';
+import CustomizationToolsJs from '/langchain/snippets/code-samples/customization-tools-js.mdx';
+import ToolsPassToolsPy from '/langchain/snippets/code-samples/tools-pass-tools-py.mdx';
+import ToolsPassToolsJs from '/langchain/snippets/code-samples/tools-pass-tools-js.mdx';
+import ToolsMcpPy from '/langchain/snippets/code-samples/deepagents-mcp-tools-py.mdx';
+import ToolsMcpJs from '/langchain/snippets/code-samples/tools-mcp-js.mdx';
+
+深度智能体可以调用任何工具，包括[LangChain工具](/langchain/oss/langchain/tools)和来自任意[MCP服务器](#mcp工具)的工具。
+通过`tools=`参数将它们与[built-in harness tools](/langchain/oss/deepagents/overview#执行环境)（文件管理和子智能体创建工具）一同传递给`create_deep_agent`。
+
+:::python
+
+<ToolsPassToolsPy />
+
+:::
+
+:::js
+
+<ToolsPassToolsJs />
+
+:::
+
+## 自定义工具
+
+直接将可调用对象（如普通函数、LangChain `@tool`装饰的函数或工具字典）传递给`tools=`。
+深度智能体会根据函数签名和文档字符串推断工具 schema，因此大多数情况下无需单独定义 schema。
+
+:::python
+<CustomizationToolsPy />
+:::
+
+:::js
+<CustomizationToolsJs />
+:::
+
+关于定义和使用LangChain工具（工具字典、`StructuredTool`、返回值类型、错误处理等）的完整细节，请参阅[工具](/langchain/oss/langchain/tools)。
+
+## MCP工具
+
+<Note>
+  深度智能体完全支持[模型上下文协议（MCP）](/langchain/oss/langchain/mcp)，这是连接智能体到外部服务的开放标准。从任意MCP服务器加载工具并直接传递给`create_deep_agent`。
+</Note>
+
+MCP是一个开放协议，使智能体能够通过标准接口连接数据库、API、文件系统、浏览器等日益增长的生态系统服务。无需为每个服务编写定制集成代码，只需将深度智能体指向MCP服务器，即可获取该服务器提供的所有工具。
+
+:::python
+通过添加`mcp`扩展连接MCP服务器：
+
+<CodeGroup>
+```bash pip
+pip install "langchain[mcp]"
+```
+
+```bash uv
+uv add "langchain[mcp]"
+```
+</CodeGroup>
+
+<ToolsMcpPy />
+:::
+
+:::js
+通过安装`@langchain/mcp-adapters`连接MCP服务器：
+
+```bash
+npm install @langchain/mcp-adapters
+```
+
+<ToolsMcpJs />
+:::
+
+关于完整配置选项（包括标准IO服务器、OAuth认证、工具过滤、会话状态管理）的详细信息，请参阅[MCP指南](/langchain/oss/langchain/mcp)。
+
+## 内置harness工具
+
+除您提供的工具外，每个深度智能体都包含来自harness的内置工具集：
+
+:::python
+
+| 工具 | 描述 |
+| ---- | ----------- |
+| `ls` | 列出目录中的文件。 |
+| `read_file` | 读取文件内容（支持分页和多模态）。 |
+| `write_file` | 创建新文件或覆盖现有文件。 |
+| `edit_file` | 在文件中执行精确字符串替换。 |
+| `delete` | 删除文件或递归删除目录及其内容。`delete`工具需要`deepagents>=0.7`。 |
+| `glob` | 按模式匹配查找文件。 |
+| `grep` | 搜索文件内容。 |
+| `execute` | 运行Shell命令（仅限沙盒后端）。 |
+| `task` | 创建子智能体处理委派任务。 |
+
+:::
+
+:::js
+
+| 工具 | 描述 |
+| ---- | ----------- |
+| `ls` | 列出目录中的文件。 |
+| `read_file` | 读取文件内容（支持分页和多模态）。 |
+| `write_file` | 创建新文件。 |
+| `edit_file` | 在文件中执行精确字符串替换。 |
+| `glob` | 按模式匹配查找文件。 |
+| `grep` | 搜索文件内容。 |
+| `execute` | 运行Shell命令（仅限沙盒后端）。 |
+| `task` | 创建子智能体处理委派任务。 |
+
+:::
+
+通过启用`write_todos`实现结构化任务规划，使用@`TodoListMiddleware`进行勾选。请参阅[任务规划](/langchain/oss/deepagents/overview#任务规划)。
+
+要了解每个内置工具的详细功能，请查阅[harness概述](/langchain/oss/deepagents/overview#执行环境)。
+
+## 多模态工具输出
+
+自定义工具可以返回纯文本或[标准内容块](/langchain/oss/langchain/messages#标准内容块)（文本、图像、音频、视频和文件），前提是所选模型支持多模态工具结果。内置的`read_file`工具也会为支持的非文本文件类型返回多模态块。
+
+对于纯文本结果返回字符串，对于包含媒体或交错多模态输出的结果返回有序列表。请参阅[Multimodal](/langchain/oss/deepagents/multimodal)和[工具返回值](/langchain/oss/langchain/tools#返回多模态内容)以获取示例和上下文压缩注意事项。
+
+---
+
+> 官方原文：[src/oss/deepagents/tools.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/tools.mdx) · 译文由 AI 生成，以英文原文为准。

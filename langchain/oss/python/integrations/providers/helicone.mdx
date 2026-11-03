@@ -1,0 +1,56 @@
+---
+title: "Helicone 集成"
+description: "使用 LangChain Python 集成 Helicone。"
+---
+
+本页面介绍了如何在 LangChain 中使用 [Helicone](https://helicone.ai) 生态系统。
+
+## 什么是 helicone？
+
+Helicone 是一个 [开源](https://github.com/Helicone/helicone) 可观测性平台，它可以代理您的 OpenAI 流量，并提供有关您的支出、延迟和使用的关键洞察。
+
+## 快速入门
+
+在您的 LangChain 环境中，只需添加以下参数即可。
+
+```bash
+export OPENAI_API_BASE="https://oai.hconeai.com/v1"
+```
+
+现在前往 [helicone.ai](https://www.helicone.ai/signup) 创建您的账户，并在我们的仪表板中添加您的 OpenAI API 密钥，以查看您的日志。
+
+## 如何启用 helicone 缓存
+
+```python
+from langchain_openai import OpenAI
+import openai
+openai.api_base = "https://oai.hconeai.com/v1"
+
+llm = OpenAI(temperature=0.9, headers={"Helicone-Cache-Enabled": "true"})
+text = "What is a helicone?"
+print(llm.invoke(text))
+```
+
+[Helicone 缓存文档](https://docs.helicone.ai/features/advanced-usage/caching)
+
+## 如何使用 helicone 自定义属性
+
+```python
+from langchain_openai import OpenAI
+import openai
+openai.api_base = "https://oai.hconeai.com/v1"
+
+llm = OpenAI(temperature=0.9, headers={
+        "Helicone-Property-Session": "24",
+        "Helicone-Property-Conversation": "support_issue_2",
+        "Helicone-Property-App": "mobile",
+      })
+text = "What is a helicone?"
+print(llm.invoke(text))
+```
+
+[Helicone 属性文档](https://docs.helicone.ai/features/advanced-usage/custom-properties)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/helicone.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/helicone.mdx) · 译文由 AI 生成，以英文原文为准。

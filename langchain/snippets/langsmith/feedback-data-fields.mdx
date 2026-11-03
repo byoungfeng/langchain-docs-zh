@@ -1,0 +1,17 @@
+| 字段名称                | 类型     | 描述                                                                                            |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `id`                        | UUID     | 记录本身的唯一标识符                                                                |
+| `created_at`               | datetime | 记录创建的时间戳                                                                  |
+| `modified_at`              | datetime | 记录最后修改的时间戳                                                            |
+| `session_id`               | UUID     | 运行所属的实验或追踪项目的唯一标识符。在为运行创建反馈时必填。 |
+| `run_id`                   | UUID     | 会话内特定运行的唯一标识符                                                  |
+| `start_time`               | datetime | 反馈所针对的运行开始时间。可选，但提供它可以让 LangSmith 更快处理反馈。 |
+| `key`                       | string   | 描述反馈标准的键，例如 `'correctness'`                                        |
+| `score`                     | number   | 与反馈键关联的数值评分                                                       |
+| `value`                     | string   | 用于存储与评分关联的值的保留字段。适用于分类反馈。               |
+| `comment`                   | string   | 与记录关联的任何评论或注释。这可以是给出评分的理由。                 |
+| `correction`                | object   | 用于存储更正详情的保留字段，如果有的话                                                        |
+| `feedback_source`          | object   | 包含反馈来源信息的对象                                                |
+| `feedback_source.type`     | string   | 反馈来源的类型，例如 `'api'`, `'app'`, `'evaluator'`                         |
+| `feedback_source.metadata` | object   | 用于附加元数据的保留字段，目前                                                            |
+| `feedback_source.user_id` | UUID     | 提供反馈的用户唯一标识符

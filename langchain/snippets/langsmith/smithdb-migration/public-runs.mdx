@@ -1,0 +1,139 @@
+import SmithdbPublicRunsBeforePy from '/langchain/snippets/code-samples/smithdb-migration/public-runs-before-py.mdx';
+import SmithdbPublicRunsAfterPy from '/langchain/snippets/code-samples/smithdb-migration/public-runs-after-py.mdx';
+import SmithdbPublicRunsBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/public-runs-before-js.mdx';
+import SmithdbPublicRunsAfterJs from '/langchain/snippets/code-samples/smithdb-migration/public-runs-after-js.mdx';
+import SmithdbPublicRunsBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/public-runs-before-sh.mdx';
+import SmithdbPublicRunsAfterSh from '/langchain/snippets/code-samples/smithdb-migration/public-runs-after-sh.mdx';
+
+## 分享与读取公共运行
+
+分享追踪、移除其公共访问权限，或读取公开共享的运行。v2方法使用显式的SmithDB坐标并返回选择驱动的运行对象。
+
+公共读取方法不需要LangSmith API密钥。将分享令牌视为机密，因为持有令牌的人可以读取共享追踪。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | Before | After |
+    |---|---|
+    | `client.share_run()` | `client.runs.share.create()` |
+    | `client.unshare_run()` | `client.runs.share.delete()` |
+    | `client.list_shared_runs()` | `client.public.runs.query()` |
+    | `client.read_shared_run()` | `client.public.runs.retrieve()` |
+    | `client.read_run_shared_link()` | `client.runs.retrieve(selects=["SHARE_URL"])` |
+
+    <Note>
+    v2资源方法是异步的。使用 `await` 调用它们。
+    </Note>
+  </Tab>
+  <Tab title="TypeScript">
+    | Before | After |
+    |---|---|
+    | `client.shareRun()` | `client.runs.share.create()` |
+    | `client.unshareRun()` | `client.runs.share.delete()` |
+    | `client.listSharedRuns()` | `client.public.runs.query()` |
+    | `client.listSharedRuns({ runIds: [...] })` | `client.public.runs.retrieve()` |
+    | `client.readRunSharedLink()` | `client.runs.retrieve({ selects: ["SHARE_URL"] })` |
+
+    TypeScript没有Python的 `read_shared_run` 的直接等价。过滤 `listSharedRuns` 调用迁移到点读方法。
+  </Tab>
+  <Tab title="Java">
+    Java SDK没有遗留的便利方法用于迁移。使用 [`ShareService`](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/runs/ShareService.html) 和公共的 [`RunService`](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/public_/RunService.html) 获取v2访问。
+    Kotlin使用Java SDK；没有独立的Kotlin参考站点。
+  </Tab>
+  <Tab title="Go">
+    Go SDK没有遗留的便利方法用于迁移。使用 [`RunShareService`](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#RunShareService) 和 [`PublicRunService`](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#PublicRunService) 获取v2访问。
+  </Tab>
+  <Tab title="cURL">
+    | 操作 | Before | After |
+    |---|---|---|
+    | 分享 | `PUT /api/v1/runs/{run_id}/share` | `POST /api/v2/runs/{run_id}/share` |
+    | 取消分享 | `DELETE /api/v1/runs/{run_id}/share` | `DELETE /api/v2/runs/{trace_id}/share` |
+    | 查询公共运行 | `POST /api/v1/public/{share_token}/runs/query` | `POST /api/v2/public/{share_token}/runs/query` |
+    | 获取公共运行 | `GET /api/v1/public/{share_token}/run/{run_id}` | `GET /api/v2/public/{share_token}/run/{run_id}` |
+    | 读取分享状态 | `GET /api/v1/runs/{run_id}/share` | `GET /api/v2/runs/{run_id}?selects=SHARE_URL` |
+
+    遗留的 `GET /api/v1/public/{share_token}/run` 端点（无运行ID）没有直接的v2等价。
+  </Tab>
+</Tabs>
+
+#### 分享与取消分享参数
+
+<Tabs>
+  <Tab title="Python">
+    - `runs.share.create` 接收运行ID作为位置参数。传递 `session_id`（追踪项目UUID）和 `trace_id`（根追踪UUID）。
+    - `runs.share.delete` 接收根追踪ID，而非任意子运行ID。传递追踪项目UUID作为 `session_id`。
+    - `share_id` 已移除。服务器生成分享令牌。
+  </Tab>
+  <Tab title="TypeScript">
+    - `runs.share.create` 接收运行ID作为位置参数。传递 `session_id` 和选项对象中的根 `trace_id`。
+    - `runs.share.delete` 接收根追踪ID和包含 `session_id` 的选项对象。
+    - `shareId` 已移除。服务器生成分享令牌。
+  </Tab>
+  <Tab title="cURL">
+    - v2分享请求体包含 `session_id` 和 `trace_id`。
+    - v2取消分享路径标识根追踪。其请求体包含 `session_id`。
+    - v2取消分享操作是幂等且返回 `204 No Content`。
+  </Tab>
+</Tabs>
+
+尽管生成的参数类型可能标记这些坐标为可选，但在分享时提供 `session_id` 和 `trace_id`，取消分享时提供 `session_id`。SmithDB使用这些坐标进行查找。
+
+#### 公共读取参数
+
+- `public.runs.query` 接收分享令牌和 `selects` 列表。令牌将查询限制在完整共享追踪。遗留的运行ID过滤和游标响应已移除。
+- `public.runs.retrieve` 需要 run ID、分享令牌、精确运行 `start_time`，以及 `selects` 列表。从 `public.runs.query` 获取精确存储的起始时间。
+- 公共点读仅返回选定字段。使用 `ID`、`NAME`、`RUN_TYPE`、`STATUS` 和 `START_TIME` 进行以下示例。
+- 要获取认证运行的公共URL，调用 `runs.retrieve` 并传递 `selects=["SHARE_URL"]`，然后读取 `run.share_url`。提供 `start_time` 可使SmithDB进行高效查找。
+
+不要从API原点构造公共URL。使用 `share_url` 的部署配置的应用原点，适用于云和自托管部署。
+
+#### 响应
+
+| 操作 | Before | After |
+|---|---|---|
+| 分享 | 运行ID、共享追踪ID和分享令牌 | `share_token` |
+| 取消分享 | `{"message": "Run unshared"}` | `204 No Content` |
+| 查询公共运行 | `runs` 和 `cursors` | `items` |
+| 获取公共运行 | 遗留运行 | 选择驱动运行对象 |
+| 读取分享状态 | 分享状态对象或 `null` | 共享运行对象包含 `share_url` 当已共享 |
+
+### 示例
+
+示例在点读前查询公共追踪，因为 `public.runs.retrieve` 需要运行的精确存储 `start_time`。
+
+<Tabs>
+  <Tab title="Python">
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbPublicRunsBeforePy />
+      </Tab>
+      <Tab title="After">
+        <SmithdbPublicRunsAfterPy />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbPublicRunsBeforeJs />
+      </Tab>
+      <Tab title="After">
+        <SmithdbPublicRunsAfterJs />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="cURL">
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbPublicRunsBeforeSh />
+      </Tab>
+      <Tab title="After">
+        <SmithdbPublicRunsAfterSh />
+      </Tab>
+    </Tabs>
+  </Tab>
+</Tabs>

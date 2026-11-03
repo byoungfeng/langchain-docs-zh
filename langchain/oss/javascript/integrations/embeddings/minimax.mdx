@@ -1,0 +1,41 @@
+---
+title: "Minimax集成"
+description: "集成 Minimax 嵌入模型，使用 LangChain JavaScript"
+integration:
+  name: Minimax
+---
+
+
+`MinimaxEmbeddings` 类使用 Minimax API 为给定文本生成嵌入。
+
+# 设置
+
+要使用 Minimax 模型，您需要一个 Minimax 账户、一个 API 密钥和一个 Group ID。
+
+# 使用
+
+```typescript
+import { MinimaxEmbeddings } from "@langchain/classic/embeddings/minimax";
+
+export const run = async () => {
+  /* Embed queries */
+  const embeddings = new MinimaxEmbeddings();
+  const res = await embeddings.embedQuery("Hello world");
+  console.log(res);
+  /* Embed documents */
+  const documentRes = await embeddings.embedDocuments([
+    "Hello world",
+    "Bye bye",
+  ]);
+  console.log({ documentRes });
+};
+```
+
+## 相关
+
+- 嵌入模型 [概念指南](/langchain/oss/python/integrations/embeddings)
+- 嵌入模型 [使用指南](/langchain/oss/python/integrations/embeddings)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/embeddings/minimax.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/embeddings/minimax.mdx) · 译文由 AI 生成，以英文原文为准。

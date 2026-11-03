@@ -1,0 +1,379 @@
+---
+title: "Microsoft Foundry 工具（前身为 Azure AI 服务）工具集成"
+description: "使用 LangChain Python 集成 Microsoft Foundry 工具（原 Azure AI Services）。"
+integration:
+  name: Microsoft Foundry Tools (formerly Azure AI Services) tools
+  pypi: langchain-azure-ai
+---
+
+Microsoft Foundry Tools（原名Azure AI服务工具包）为智能体工具封装了Azure AI服务API。这些工具位于`langchain-azure-ai`包中，导出自`langchain_azure_ai.tools`，可单独实例化或与`AzureAIServicesToolkit`一起加载。
+
+使用这些工具时，当需要LangChain智能体通过Azure托管服务分析文档、图像或医疗文本时。
+
+## 概述
+
+| 工具 | 描述 |
+|------------|-------------|
+| [`AzureAIContentUnderstandingTool`](#azureaicontentunderstandingtool) | 从文档、图像、音频和视频中提取结构化内容。 |
+| [`AzureAIDocumentIntelligenceTool`](#azureaidocumentintelligencetool) | 将文档解析为OCR文本、表格和键值对。 |
+| [`AzureAIImageAnalysisTool`](#azureaiimageanalysistool) | 执行OCR、字幕、标签、目标检测及相关图像分析。 |
+| [`AzureAISpeechToTextTool`](#azureaispeechtotexttool) | 将音频文件转录为支持多语言的文本。 |
+| [`AzureAITextToSpeechTool`](#azureaitexttospeechtool) | 将文本合成多语言支持的声音音频。 |
+| [`AzureAITextAnalyticsHealthTool`](#azureaitextanalyticshealthtool) | 从医疗文本中提取实体。 |
+
+### 功能特性
+
+- 所有服务工具共享认证和端点处理机制。
+- 支持Azure AI Foundry项目端点和直接Azure AI服务端点。
+- 提供多模态内容提取、文档解析、图像分析、语音转文本、文本转语音合成及医疗文本分析等独立工具。
+- `AzureAIServicesToolkit`用于一次性加载所有服务工具。
+- 自动检测本地文件和远程URL作为音频源。
+- 使用BCP-47语言代码支持多语言语音识别与合成。
+- 生成合成语音的WAV文件输出。
+
+## 安装配置
+
+安装集成包，配置Azure AI Foundry项目端点或直接Azure AI服务端点，并提供凭证。
+
+### 安装方式
+
+使用`tools`额外安装包：
+
+<CodeGroup>
+    ```bash pip
+    pip install -U "langchain-azure-ai[tools]"
+    ```
+    ```bash uv
+    uv add "langchain-azure-ai[tools]"
+    ```
+</CodeGroup>
+
+该额外包安装了`azure-ai-documentintelligence`、`azure-ai-vision-imageanalysis`、`azure-cognitiveservices-speech`和`azure-ai-textanalytics`等特定服务依赖，基础包包含`azure-ai-contentunderstanding`。
+
+### 凭证配置
+
+通过`credential`参数传递`DefaultAzureCredential()`或API密钥字符串。若使用Foundry项目端点，需使用Microsoft Entra ID凭证如`DefaultAzureCredential()`。
+
+```python Initialize credential icon="shield-lock"
+from azure.identity import DefaultAzureCredential
+
+credential = DefaultAzureCredential()
+```
+
+### 端点配置
+
+服务工具支持两种端点格式：
+
+- Azure AI Foundry项目端点：通过`project_endpoint`或`AZURE_AI_PROJECT_ENDPOINT`配置
+- 直接Azure AI服务端点：通过`endpoint`或`AZURE_AI_INFERENCE_ENDPOINT`配置
+
+当两者均可用时，优先使用`project_endpoint`自动解析Foundry工作流的后端服务端点。
+
+```bash Configure endpoint icon="key"
+export AZURE_AI_PROJECT_ENDPOINT="https://<resource>.services.ai.azure.com/api/projects/<project>"
+```
+
+### 工具实例化
+
+若`AZURE_AI_PROJECT_ENDPOINT`已配置，通常无需额外指定`project_endpoint`。
+
+```python Initialize tool icon="arrows-shuffle"
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIContentUnderstandingTool
+
+tool = AzureAIContentUnderstandingTool(
+    credential=DefaultAzureCredential(),
+)
+
+result = tool.invoke(
+    {"source": "https://example.com/invoice.pdf", "source_type": "url"}
+)
+print(result)
+```
+
+## 与智能体集成
+
+向@[`create_agent`]传递一个或多个工具。
+
+```python Agent with tools icon="robot"
+from azure.identity import DefaultAzureCredential
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain_azure_ai.tools import (
+    AzureAIDocumentIntelligenceTool,
+    AzureAIImageAnalysisTool,
+)
+
+credential = DefaultAzureCredential()
+tools = [
+    AzureAIDocumentIntelligenceTool(credential=credential),
+    AzureAIImageAnalysisTool(credential=credential),
+]
+
+agent = create_agent(
+    model=init_chat_model("azure_ai:gpt-4.1", credential=credential),
+    tools=tools,
+    system_prompt=(
+        "You are a document and image analysis assistant. Use tools when the "
+        "user asks you to inspect files or images."
+    ),
+)
+```
+
+## 使用工具集
+
+通过`AzureAIServicesToolkit`获取共享凭证和端点配置的所有服务工具。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIServicesToolkit
+
+toolkit = AzureAIServicesToolkit(credential=DefaultAzureCredential())
+tools = toolkit.get_tools()
+```
+
+## 工具列表
+
+### AzureAIContentUnderstandingTool
+
+`AzureAIContentUnderstandingTool` 提取文档、图像、音频和视频中的结构化内容，返回类似Markdown的提取内容，并可以从选定的分析器中提取结构化字段。
+
+该工具默认使用 `analyzer_id="prebuilt-documentSearch"`。您可以为其他模态切换分析器（如 `prebuilt-audioSearch` 或 `prebuilt-videoSearch`），并在分析器依赖自定义模型部署名称时提供 `model_deployments`。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIContentUnderstandingTool
+
+tool = AzureAIContentUnderstandingTool(
+    credential=DefaultAzureCredential(),
+    analyzer_id="prebuilt-documentSearch",
+)
+
+result = tool.invoke(
+    {"source": "https://example.com/contract.pdf", "source_type": "url"}
+)
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="source" type="str">
+        待分析输入。可传递公共URL、本地文件路径或base64编码载荷。
+    </ParamField>
+
+    <ParamField body="source_type" type="Literal['url', 'path', 'base64']" default="url">
+        控制工具对 `source` 的解析方式。
+    </ParamField>
+
+    <ParamField body="analyzer_id" type="str" default="prebuilt-documentSearch">
+        要运行的Content Understanding分析器。
+    </ParamField>
+
+    <ParamField body="model_deployments" type="dict[str, str] | None">
+        自定义分析器所需的模型名称到部署名称的映射（可选）。
+    </ParamField>
+</Accordion>
+
+### AzureAIDocumentIntelligenceTool
+
+`AzureAIDocumentIntelligenceTool` 从文档中提取OCR文本、表格和键值对。适用于发票、表单、收据、合同等文档密集型工作流，需结构化输出而非纯文本的场景。
+
+该工具默认使用 `model_id="prebuilt-layout"`。其公共输入 schema 支持 `url`、`path` 和 `base64` 来源。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAIDocumentIntelligenceTool
+
+tool = AzureAIDocumentIntelligenceTool(
+    credential=DefaultAzureCredential(),
+    model_id="prebuilt-layout",
+)
+
+result = tool.invoke(
+    {"source": "https://example.com/invoice.pdf", "source_type": "url"}
+)
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="source" type="str">
+        文档输入。可传递公共URL、本地文件路径或base64编码载荷。
+    </ParamField>
+
+    <ParamField body="source_type" type="Literal['url', 'path', 'base64']" default="url">
+        控制工具对 `source` 的解析方式。
+    </ParamField>
+
+    <ParamField body="model_id" type="str" default="prebuilt-layout">
+        要运行的Document Intelligence模型。
+    </ParamField>
+</Accordion>
+
+### AzureAIImageAnalysisTool
+
+`AzureAIImageAnalysisTool` 分析图像并返回JSON格式的摘要，包含标题、OCR文本、标签、对象、人物和智能裁剪（启用时）。
+
+默认启用广泛的视觉特征，包括 `TAGS`、`OBJECTS`、`CAPTION`、`DENSE_CAPTIONS`、`READ`、`SMART_CROPS` 和 `PEOPLE`。
+
+```python
+from azure.identity import DefaultAzureCredential
+from azure.ai.vision.imageanalysis.models import VisualFeatures
+from langchain_azure_ai.tools import AzureAIImageAnalysisTool
+
+tool = AzureAIImageAnalysisTool(
+    credential=DefaultAzureCredential(),
+    visual_features=[
+        VisualFeatures.CAPTION,
+        VisualFeatures.READ,
+        VisualFeatures.TAGS,
+    ],
+)
+
+result = tool.invoke(
+    {"source": "https://example.com/whiteboard.png", "source_type": "url"}
+)
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="source" type="str">
+        图像输入。可传递公共URL、本地文件路径或base64编码载荷。
+    </ParamField>
+
+    <ParamField body="source_type" type="Literal['url', 'path', 'base64']">
+        控制工具对 `source` 的解析方式。
+    </ParamField>
+
+    <ParamField body="visual_features" type="list[VisualFeatures] | None">
+        可选的图像分析特征列表。省略则使用默认特征集。
+    </ParamField>
+</Accordion>
+
+### AzureAITextAnalyticsHealthTool
+
+`AzureAITextAnalyticsHealthTool` 从医疗文本中提取健康实体。适用于临床笔记、患者摘要、预检表单和研究中需要医疗实体而非自由文本总结的场景。
+
+该工具接受纯文本 `query`，并支持通过 `language` 和 `country_hint` 配置默认值。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAITextAnalyticsHealthTool
+
+tool = AzureAITextAnalyticsHealthTool(
+    credential=DefaultAzureCredential(),
+    language="en",
+    country_hint="us",
+)
+
+result = tool.invoke(
+    "The patient reports chest pain and was prescribed aspirin after the visit."
+)
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="query" type="str">
+        待分析的医疗文本。
+    </ParamField>
+
+    <ParamField body="language" type="str | None">
+        输入文本的默认语言（可选）。
+    </ParamField>
+
+    <ParamField body="country_hint" type="str | None">
+        由底层Text Analytics客户端使用的国家提示（可选）。
+    </ParamField>
+</Accordion>
+
+### AzureAISpeechToTextTool
+
+`AzureAISpeechToTextTool` 使用Azure AI Speech服务将音频文件转写为文本。支持广泛音频格式，可处理本地文件和远程音频URL。
+
+该工具自动判断输入是本地文件路径还是远程URL，并按需下载远程文件。适用于需要将语音转写为书面文本的工作流。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAISpeechToTextTool
+
+tool = AzureAISpeechToTextTool(
+    credential=DefaultAzureCredential(),
+    endpoint="https://eastus.api.cognitive.microsoft.com/",
+    speech_language="en-US",
+)
+
+result = tool.invoke("path/to/audio.wav")
+print(result)
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="query" type="str">
+        本地音频文件路径或指向音频文件的URL。支持WAV、MP3、OGG、FLAC等常见音频格式。
+    </ParamField>
+
+    <ParamField body="speech_language" type="str" default="en-US">
+        语音语言的BCP-47格式（例如`"en-US"`、`"es-ES"`、`"fr-FR"`）。默认为`"en-US"`。
+    </ParamField>
+
+    <ParamField body="endpoint" type="str">
+        Azure AI语音服务端点。例如`https://eastus.api.cognitive.microsoft.com/`。可通过`AZURE_AI_INFERENCE_ENDPOINT`环境变量设置，或从`AZURE_AI_PROJECT_ENDPOINT`解析。
+    </ParamField>
+
+    <ParamField body="credential" type="str | TokenCredential">
+        使用凭证。可以是订阅密钥字符串，或任何`TokenCredential`（例如`DefaultAzureCredential`）。
+    </ParamField>
+</Accordion>
+
+### AzureAITextToSpeechTool
+
+`AzureAITextToSpeechTool`将文本转换为语音合成，使用Azure AI语音服务。它会合成提供的文本，并返回包含合成的语音文件的本地WAV音频文件路径。
+
+该工具支持BCP-47语言代码的多语言合成，适用于智能体需要从文本生成音频旁白、配音内容或音频通知的工作流。
+
+```python
+from azure.identity import DefaultAzureCredential
+from langchain_azure_ai.tools import AzureAITextToSpeechTool
+
+tool = AzureAITextToSpeechTool(
+    credential=DefaultAzureCredential(),
+    endpoint="https://eastus.api.cognitive.microsoft.com/",
+    speech_language="en-US",
+)
+
+result = tool.invoke("Hello, this is a test of text to speech synthesis.")
+print(result)  # Returns path to generated WAV file
+```
+
+<Accordion title="Configuration options">
+    <ParamField body="query" type="str">
+        要转换为语音的文本。
+    </ParamField>
+
+    <ParamField body="speech_language" type="str" default="en-US">
+        语音合成的语言BCP-47格式（例如`"en-US"`、`"es-ES"`、`"fr-FR"`）。默认为`"en-US"`。
+    </ParamField>
+
+    <ParamField body="endpoint" type="str">
+        Azure AI语音服务端点。例如`https://eastus.api.cognitive.microsoft.com/`。可通过`AZURE_AI_INFERENCE_ENDPOINT`环境变量设置，或从`AZURE_AI_PROJECT_ENDPOINT`解析。
+    </ParamField>
+
+    <ParamField body="credential" type="str | TokenCredential">
+        使用凭证。可以是订阅密钥字符串，或任何`TokenCredential`（例如`DefaultAzureCredential`）。
+    </ParamField>
+</Accordion>
+
+## API 参考
+
+```python
+from langchain_azure_ai.tools import (
+    AzureAIServicesToolkit,
+    AzureAIContentUnderstandingTool,
+    AzureAIDocumentIntelligenceTool,
+    AzureAIImageAnalysisTool,
+    AzureAISpeechToTextTool,
+    AzureAITextToSpeechTool,
+    AzureAITextAnalyticsHealthTool,
+)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/azure_ai_services.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/azure_ai_services.mdx) · 译文由 AI 生成，以英文原文为准。

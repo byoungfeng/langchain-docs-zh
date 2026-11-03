@@ -1,0 +1,441 @@
+---
+title: "贡献文档"
+sidebarTitle: "文档"
+description: "我们欢迎为 LangChain 文档做出贡献，包括新功能、集成，以及现有文档的改进。"
+---
+
+import ConnectDocsMcpPrompt from '/langchain/snippets/connect-docs-mcp-prompt.mdx';
+import InstallLangchainSkillsPrompt from '/langchain/snippets/install-langchain-skills-prompt.mdx';
+
+我们欢迎为 LangChain 文档做出贡献，包括新功能、[集成](/langchain/oss/contributing/publish-langchain)，以及现有文档的改进。
+
+## 快速入门 - 本地开发
+
+要运行本地文档预览：
+
+```bash
+git clone https://github.com/langchain-ai/docs.git
+```
+
+```bash
+cd docs
+```
+
+使用 [mise](https://mise.jdx.dev/getting-started.html) 安装固定工具链，它会从 `.mise.toml` 读取 Python、Node.js、uv、Vale 和 Mintlify CLI 的版本，并安装仓库的 git 钩子：
+
+```bash
+mise trust && mise install
+```
+
+```bash
+make install
+```
+
+```bash
+make dev
+```
+
+这会在 `http://localhost:3000` 启动开发服务器并启用热重载。在 `src/` 中编辑文件，即可立即看到更改。
+
+<Tip>
+    **使用 AI 编码智能体？**
+
+    - 安装 [LangChain 文档 MCP 服务器](/use-these-docs)，以让您的智能体访问最新的 LangChain 文档和示例。
+
+      <ConnectDocsMcpPrompt />
+    - 安装 [LangChain 技能](https://github.com/langchain-ai/langchain-skills)，以提高您的智能体在 LangChain 生态系统任务上的性能，然后点击此页面右上角的 **复制页面** 按钮，并将原始内容粘贴到您的智能体中，让它自动设置您的环境。
+
+      <InstallLangchainSkillsPrompt />
+    - 此仓库在 `.agents/skills/` 中自带其自身的作者技能，涵盖页面创建、导航位置和重定向。大多数智能体会直接读取该路径。对于 Claude Code，运行 `make skills` 以链接它们。
+</Tip>
+
+<Tip>
+如果您在本地预览时遇到问题，请尝试运行 `mint update` 以确保您使用的是最新版本的 Mintlify。
+</Tip>
+
+<Accordion title="Prerequisites">
+    **推荐：** 运行 `mise trust && mise install` 以一次性获取所有固定版本。`.mise.toml` 是工具链的规范固定版本，其 postinstall 钩子会连接 pre-commit 和 pre-push 钩子。
+
+    **必需：**
+    - Python 3.13+
+    - [uv](https://docs.astral.sh/uv/) 0.9.26 或更高版本 - Python 包管理器
+    - [Node.js](https://nodejs.org/en) 22.x 和 npm。Mintlify 不支持 Node 25 或更高版本
+    - [Make](https://www.gnu.org/software/make/)
+    - [Git](https://git-scm.com/)
+
+    **可选：**
+    - [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli) - `npm install -g markdownlint-cli`
+    - [Mintlify MDX VSCode 扩展](https://www.mintlify.com/blog/mdx-vscode-extension)
+</Accordion>
+
+## 编辑文档
+
+<Accordion title="Quick edits on GitHub">
+    对于拼写错误或小更改，无需本地设置即可直接在 GitHub 上编辑：
+
+    1. 点击任何页面底部的 **在 GitHub 上编辑此页面**。
+    1. 将其 fork 到您的个人账户。
+    1. 在 GitHub 的网络编辑器中做出更改。
+    1. 创建一个拉取请求。
+</Accordion>
+
+<Note>
+    **仅编辑 `src/` 中的文件**-- `build/` 目录是自动生成的。
+</Note>
+
+1. 按照我们的 [写作标准](#写作标准) 在 `src/` 中编辑文件。
+1. 提交前运行 [质量检查](#运行质量检查)。
+1. 创建拉取请求以供审核。
+
+<Note>
+    所有拉取请求都必须链接到一个已获维护者批准解决方案的问题或讨论。请参阅我们的 [拉取请求要求](/langchain/oss/contributing/overview#pull-request-requirements)。
+</Note>
+
+<Accordion title="Create a sharable preview build (LangChain team only)">
+    当您创建或更新拉取请求时，会自动生成一个 [预览分支/ID](https://github.com/langchain-ai/docs/actions/workflows/create-preview-branch.yml)。会在拉取请求上留下一个包含 ID 的评论。
+
+    1. 从评论中复制预览分支的 ID
+    2. 在 [Mintlify 控制面板](https://dashboard.mintlify.com/langchain-5e9cc07a/langchain-5e9cc07a?section=previews) 中，点击 **创建预览部署**
+    3. 输入预览分支的 ID 并点击 **创建部署**
+    4. 选择预览并点击 **访问** 以查看
+
+    要使用最新更改重新部署，请点击控制面板上的 **重新部署**。
+</Accordion>
+
+### 运行质量检查
+
+在提交更改前，确保您的代码通过格式化和 linting 检查：
+
+```bash
+# Check broken links and anchors
+make broken-links-with-anchors
+
+# Format code automatically
+make format
+
+# Check for linting issues
+make lint
+
+# Fix markdown issues
+make lint_md_fix
+
+# Run tests to ensure your changes don't break existing functionality
+make test
+```
+
+更多详情，请参阅 `README` 中的 [可用命令](https://github.com/langchain-ai/docs?tab=readme-ov-file#available-commands) 部分。
+
+<Important>
+    所有拉取请求都会通过 CI/CD 自动检查。相同的 linting 和格式化标准将被强制执行，如果这些检查失败，则无法合并 PR。
+</Important>
+
+## 文档类型
+
+所有文档都属于以下四个类别之一：
+
+<CardGroup cols={2}>
+
+    <Card title="How-to guides" icon="tool" href="#how-to-guides">
+        面向任务的说明，适用于知道要完成什么的人。
+    </Card>
+
+    <Card title="Conceptual guides" icon="bulb" href="#conceptual-guides">
+        提供更深入理解和见解的解释。
+    </Card>
+
+    <Card title="Reference" icon="book" href="#reference">
+        API 和实现细节的技术描述。
+    </Card>
+
+    <Card title="Tutorials" icon="school" href="#tutorials">
+        指导用户通过实际活动构建理解的课程。
+    </Card>
+
+</CardGroup>
+
+<Note>
+    如适用，所有文档都必须包含 Python 和 JavaScript/TypeScript 内容。更多详情，请参阅 [将 Python 和 JavaScript/TypeScript 内容并置](#同时放置-python-和-javascript/typescript-内容) 部分。
+</Note>
+
+### 如何指南
+
+如何指南是面向任务的说明，适用于知道要完成什么的人。如何指南的示例位于 [LangChain](/langchain/oss/langchain/overview) 和 [LangGraph](/langchain/oss/langgraph/overview) 标签页上。
+
+<AccordionGroup>
+    <Accordion title="Characteristics">
+        - **任务导向**：专注于特定任务或问题
+        - **分步**：将任务分解为更小的步骤
+        - **动手实践**：提供具体的示例和代码片段
+    </Accordion>
+
+    <Accordion title="Tips">
+        - 关注 **如何** 而不是 **为什么**
+        - 使用具体的示例和代码片段
+        - 将任务分解为更小的步骤
+        - 链接到相关的概念指南和参考
+    </Accordion>
+
+    <Accordion title="Examples">
+        - [消息](/langchain/oss/langchain/messages)
+        - [工具](/langchain/oss/langchain/tools)
+        - [流式输出](/langchain/oss/langgraph/streaming)
+    </Accordion>
+</AccordionGroup>
+
+### 概念指南
+
+概念指南抽象地涵盖核心概念，提供深入理解。
+
+<AccordionGroup>
+    <Accordion title="Characteristics">
+        - **理解导向**：解释事物为何如此工作
+        - **宏观视角**：比其他类型更广阔和更高层次
+        - **设计导向**：解释决策和权衡
+        - **内容丰富**：使用类比和比较
+    </Accordion>
+
+    <Accordion title="Tips">
+        - 关注 **为什么** 而不是 **如何**
+        - 提供补充信息，这些信息可能并非使用功能所必需
+        - 可以使用类比并参考替代方案
+        - 避免过多混合参考内容
+        - 链接到相关的教程和如何指南
+    </Accordion>
+
+    <Accordion title="Examples">
+        - [记忆](/langchain/oss/concepts/memory)
+        - [上下文](/langchain/oss/concepts/context)
+        - [图 API](/langchain/oss/langgraph/graph-api)
+        - [函数 API](/langchain/oss/langgraph/functional-api)
+    </Accordion>
+</AccordionGroup>
+
+### 参考
+
+参考文档包含详细的低级信息，描述了确切存在哪些功能以及如何使用它们。
+
+<CardGroup cols={2}>
+    <Card title="Python reference" href="https://reference.langchain.com/python/" icon="brand-python" arrow />
+    <Card title="JavaScript/TypeScript reference" href="https://reference.langchain.com/javascript/" icon="brand-javascript" arrow />
+</CardGroup>
+
+一份好的参考文档应该：
+- 描述现有内容（所有参数、选项、返回值）
+- 保持全面且结构化，便于查找
+- 作为技术细节的权威来源
+
+<AccordionGroup>
+    <Accordion title="Contributing to references">
+        生成的 API 参考文档位于 [reference.langchain.com](https://reference.langchain.com/python/)，该文档是在此代码库外部构建和部署的。若要报告其中的错误、缺失的包或损坏的页面，请 [打开参考文档问题](https://github.com/langchain-ai/docs/issues/new?template=04-reference-docs.yml)。
+    </Accordion>
+
+    <Accordion title="LangChain reference best practices">
+        - **保持一致性**；遵循特定提供者的文档现有模式
+        - 包含基本用法（代码片段）和常见边缘情况/失败模式
+        - 注明何时需要特定版本的功能
+    </Accordion>
+
+    <Accordion title="When to create new reference documentation">
+        - 满足 [hosted-guide 资格标准](/langchain/oss/contributing/publish-langchain#主机指南的资格) 的新集成（月下载量 50,000+ 或被重点推荐）
+        - 复杂的配置选项需要详细说明
+        - API 变更引入新参数或行为
+        - 社区频繁询问特定功能的问题
+    </Accordion>
+</AccordionGroup>
+
+### 教程
+
+教程是较长的逐步指南，逐步构建知识，引导用户通过特定实践活动来建立理解。教程通常位于 [Learn](/langchain/oss/learn) 标签页下。
+
+<Note>
+    我们通常不会在没有迫切需求的情况下合并来自外部贡献者的新教程。如果您认为文档中缺少某个主题或覆盖不足，请 [打开新问题](https://github.com/langchain-ai/docs/issues)。
+</Note>
+
+<AccordionGroup>
+    <Accordion title="Characteristics">
+        - **实用**：专注于实践活动以建立理解
+        - **逐步**：将活动分解为更小的步骤
+        - **动手实践**：提供顺序、可运行的代码片段
+        - **补充**：提供额外的上下文和信息，这些信息不一定需要用于功能使用
+    </Accordion>
+
+    <Accordion title="Tips">
+        - 代码片段应按顺序排列且可运行，前提是用户按步骤顺序执行
+        - 为活动提供一些上下文，但将相关的概念指南和参考链接到更详细的信息。
+    </Accordion>
+
+    <Accordion title="Examples">
+        - [语义搜索](/langchain/oss/langchain/knowledge-base)
+        - [RAG 智能体](/langchain/oss/deepagents/rag)
+    </Accordion>
+</AccordionGroup>
+
+## 写作标准
+
+<Note>
+    [reference.langchain.com](https://reference.langchain.com/python/) 上的页面标准与该站点的构建流程相关，而非在此代码库中。关于生成 API 参考文档内容的疑问或修复，请使用 [参考文档问题模板](https://github.com/langchain-ai/docs/issues/new?template=04-reference-docs.yml)。
+</Note>
+
+### Mintlify 组件
+
+使用 [Mintlify 组件](https://mintlify.com/docs/text) 增强可读性：
+
+<Tabs>
+    <Tab title="Callouts">
+    - `<Note>` 用于有用的补充信息
+    - `<Warning>` 用于重要的注意事项和破坏性变更
+    - `<Tip>` 用于最佳实践和建议
+    - `<Info>` 用于中性的上下文信息
+    - `<Check>` 用于成功确认
+</Tab>
+
+<Tab title="Structure">
+    - `<Steps>` 用于顺序流程的概述。**不**用于长步骤列表或教程。
+    - `<Tabs>` 用于平台特定内容。
+    - `<AccordionGroup>` 和 `<Accordion>` 用于可默认折叠的“锦上添花”信息（例如，完整代码示例）。
+    - `<CardGroup>` 和 `<Card>` 用于突出显示内容。
+</Tab>
+
+<Tab title="Code">
+    - `<CodeGroup>` 用于多语言示例。
+    - 始终在代码片段中指定语言标签（例如，` ```python`, ` ```javascript`）。
+    - 代码片段的标题（例如. `Success`, `Error Response`）
+    </Tab>
+</Tabs>
+
+### Mermaid 图表
+
+添加 Mermaid 图表时，使用 LangChain 品牌调色板对节点进行样式化。从任何现有图表中复制 `classDef` 行，或使用 [`AGENTS.md`](https://github.com/langchain-ai/docs/blob/main/AGENTS.md#mermaid-diagram-styling) 中的参考表。
+
+| 角色 | 填充 | 描边 | 文本 |
+|------|------|--------|------|
+| process | `#E5F4FF` | `#006DDD` | `#030710` |
+| trigger | `#F6FFDB` | `#6E8900` | `#2E3900` |
+| decision | `#FDF3FF` | `#7E65AE` | `#504B5F` |
+| output | `#EBD0F0` | `#885270` | `#441E33` |
+| alert | `#F8E8E6` | `#B27D75` | `#634643` |
+| neutral | `#F2FAFF` | `#40668D` | `#2F4B68` |
+
+不要使用 Tailwind 默认值、Material Design 颜色或其他非品牌调色板。
+
+### 页面结构
+
+每个文档页面必须以 YAML 前置符开始：
+
+```yaml
+---
+title: "Clear, specific title"
+sidebarTitle: "Short title for the sidebar (optional)"
+---
+```
+
+### 同时放置 Python 和 JavaScript/TypeScript 内容
+
+所有文档必须尽可能同时使用 Python 和 JavaScript/TypeScript 编写。为此，我们使用自定义的行内语法来区分应在一种或两种语言中显示的章节：
+
+```mdx
+\:::python
+Python-specific content. In real docs, the preceding backslash (before `python`) is omitted.
+\:::
+
+\:::js
+JavaScript/TypeScript-specific content. In real docs, the preceding backslash (before `js`) is omitted.
+\:::
+
+Content for both languages (not wrapped)
+```
+
+这将生成两个输出（每种语言一个）在 `/oss/python/concepts/foo.mdx` 和 `/oss/javascript/concepts/foo.mdx`。每个输出的页面都需要添加到 `/src/docs.json` 文件中，才能包含在导航中。
+
+<Note>
+    我们不希望内容的缺失阻碍贡献。如果某个功能仅在一种语言中可用，可以仅在该语言中提供文档，直到另一种语言赶上。在这种情况下，请添加一条注释，说明该功能在另一种语言中尚未可用。
+
+    如果您需要在 Python 和 JavaScript/TypeScript 之间翻译内容，请到 [社区 Slack](https://www.langchain.com/join-community) 中提问，或在您的 PR 中标记维护者。
+</Note>
+
+## 质量标准
+
+### 一般指南
+
+<AccordionGroup>
+    <Accordion title="Avoid duplication">
+        多个页面覆盖相同内容难以维护并造成混淆。每个概念或功能应只有一个权威页面。链接到其他指南而不是重复解释。
+    </Accordion>
+
+    <Accordion title="Link frequently">
+        文档章节并非孤立存在。频繁链接到其他章节，以便用户学习不熟悉的主题。这包括链接到 API 参考文档和概念章节。
+    </Accordion>
+
+    <Accordion title="Be concise">
+        采用少即是多的方法。如果另一个章节有良好的解释，请链接到它而不是重复解释，除非您的内容提供了新的角度。
+    </Accordion>
+</AccordionGroup>
+
+### 无障碍要求
+
+确保文档对所有用户都无障碍：
+
+- 使用标题和列表构建内容结构，便于扫描
+- 使用具体的、可操作的链接文本，而不是“点击这里”
+- 为所有图像和图表提供描述性替代文本
+
+### 交叉引用
+
+使用一致的交叉引用将文档与 API 参考文档连接起来。
+
+**从文档到 API 参考文档：**
+
+使用 `@[]` 语法链接到 API 参考文档页面：
+
+```mdx
+See \@[`ChatAnthropic`] for all configuration options.
+
+The \@[`bind_tools`][ChatAnthropic.bind_tools] method accepts...
+```
+
+构建流程会根据当前语言范围（Python 或 JavaScript）将这些内容转换为标准的 Markdown 链接。例如，`\@[ChatAnthropic]` 会根据正在构建的文档版本，变成指向 Python 或 JS API 参考页面的链接，**但前提是 `link_map.py` 文件中存在对应的条目！** 详细信息请见下文。
+
+<Accordion title="How autolinks work">
+
+`@[]` 语法由 [`handle_auto_links.py`](https://github.com/langchain-ai/docs/blob/main/pipeline/preprocessors/handle_auto_links.py) 处理。它会查询 [`link_map.py`](https://github.com/langchain-ai/docs/blob/main/pipeline/preprocessors/link_map.py) 中的链接键，该文件包含了 Python 和 JavaScript 范围的字典映射。
+
+**支持的格式：**
+
+| 语法 | 结果 |
+|------|------|
+| `\@[ChatAnthropic]` | 显示文本为 "ChatAnthropic" 的链接 |
+| `` \@[`ChatAnthropic`] `` | Link with `` `ChatAnthropic` ``（代码格式化）作为文本 |
+| `\@[text][ChatAnthropic]` | 链接文本为 "text"，链接映射中的键为 `ChatAnthropic` |
+| `\\@[ChatAnthropic]` | 转义：渲染为字面值 `\@[ChatAnthropic]`（无链接——本页正在使用的就是这个功能！） |
+
+**添加新链接：**
+
+如果映射中找不到链接，它将在输出中保持原样。要添加新的自动链接：
+
+1. 打开 `pipeline/preprocessors/link_map.py`
+2. 在 `LINK_MAPS` 中为适当的范围（`python` 或 `js`）添加条目
+3. 键是用于 `\@[key]` 或 `\@[text][key]` 中的链接名称，值是相对于参考主机的路径
+
+</Accordion>
+
+:::python
+**从 API 参考占位符到 OSS 文档：**
+
+已发布的 Python API 参考中的交叉链接和深度锚点是在此仓库外部生成的。如果来自 reference.langchain.com 到 docs.langchain.com 的链接错误或过时，请 [打开问题](https://github.com/langchain-ai/docs/issues/new?template=04-reference-docs.yml) 并提供源 URL 和目标 URL。
+:::
+
+### 本地化
+
+如果一个功能同时存在于 SDK 中，请为 [Python 和 JavaScript/TypeScript 一起](#同时放置-python-和-javascript/typescript-内容) 编写文档。如果目前只支持一种语言，请确保该功能及其引用仅对该语言可见。
+
+### 代码内文档
+
+示例必须正确、尽可能可复制粘贴，并在打开拉取请求前**经过测试**。将不可运行的代码片段明确标记出来（例如，伪代码或说明性片段）。
+
+## 获取帮助
+
+我们的目标是实现最简单的开发者设置。如果您在设置过程中遇到任何困难，请在 [社区 Slack](https://www.langchain.com/join-community) 中提问或打开 [论坛帖子](https://forum.langchain.com/)。内部团队成员可以通过 [#documentation](https://langchain.slack.com/archives/C04GWPE38LV) Slack 频道联系。
+
+---
+
+> 官方原文：[src/oss/contributing/documentation.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/contributing/documentation.mdx) · 译文由 AI 生成，以英文原文为准。

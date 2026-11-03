@@ -1,0 +1,231 @@
+---
+title: "嵌入模型集成"
+sidebarTitle: "嵌入模型"
+description: "集成嵌入模型，使用LangChain Python。"
+keywords: ["embedding", "embeddings", "embedding model"]
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/python-embeddings-downloads.mdx';
+import IntegrationFeatured from '/langchain/snippets/oss/python-embeddings-featured.mdx';
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+## 概述
+
+<Note>
+本概述涵盖 **基于文本的嵌入模型**。LangChain 目前不支持多模态嵌入。
+
+参见 [顶级嵌入模型](#顶级集成)。
+</Note>
+
+嵌入模型将原始文本（如句子、段落或推文）转换为固定长度的数字向量，该向量捕获其 **语义意义**。这些向量使机器能够根据意义而不是确切词语来比较和搜索文本。
+
+在实践中，这意味着具有相似想法的文本在向量空间中会被放置在一起。例如，嵌入模型不仅可以匹配 *"机器学习"* 这个短语，还可以在措辞不同的情况下提取讨论相关概念的文档。
+
+<PythonIntegrationComponentMap active="embeddings" />
+
+### 工作原理
+
+1. **向量化**：模型将每个输入字符串编码为高维向量。
+2. **相似度评分**：使用数学指标比较向量，以衡量底层文本的关联程度。
+
+### 相似度指标
+
+通常使用以下指标来比较嵌入：
+
+* **余弦相似度**：测量两个向量之间的夹角。
+* **欧几里得距离**：测量两点之间的直线距离。
+* **点积**：测量一个向量在另一个向量上的投影程度。
+
+以下是计算两个向量之间余弦相似度的示例：
+
+```python
+import numpy as np
+
+def cosine_similarity(vec1, vec2):
+    dot = np.dot(vec1, vec2)
+    return dot / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
+similarity = cosine_similarity(query_embedding, document_embedding)
+print("Cosine Similarity:", similarity)
+```
+
+## 接口
+
+LangChain 通过 @[Embeddings] 接口为文本嵌入模型（如 OpenAI、Cohere、Hugging Face）提供标准接口。
+
+提供两种主要方法：
+
+* `embed_documents(texts: List[str]) → List[List[float]]`：嵌入文档列表。
+* `embed_query(text: str) → List[float]`：嵌入单个查询。
+
+<Note>
+该接口允许使用不同的策略嵌入查询和文档，尽管在实践中大多数提供商会以相同的方式处理它们。
+</Note>
+
+## 顶级集成
+
+<IntegrationFeatured />
+
+### 常见的部署模式
+
+在实践中，大多数团队会采用以下四种模式之一：
+
+1. 托管旗舰：OpenAI `text-embedding-3-large`、Cohere `embed-english-v3`、Google `gemini-embedding-001`、Voyage `voyage-3`。一个 API 调用，开箱即用的最佳质量，无需本地基础设施。按调用付费，存在数据外传依赖。
+2. 本地开源：`BAAI/bge-*`、`mixedbread-ai/mxbai-embed-*`、`Qwen/Qwen3-Embedding-*`、`nomic-ai/modernbert-embed-*`、`sentence-transformers/all-*`。下载一次，随处运行。无按调用付费，数据不会离开您的环境。在 CPU 上规模较小的情况下可能比托管 API 慢；使用 GPU 时具有竞争力或更快。
+3. 本地开源，专业型：针对您的特定领域、语言或任务进行微调的模型。从强大的开源基础（例如 `BAAI/bge-m3`）开始，并在数千个领域内查询/文档对上进行微调，通常在检索准确性方面优于该领域的托管旗舰。
+4. 生产规模自托管：通过 [文本嵌入推理 (TEI)](https://github.com/huggingface/text-embeddings-inference) 或 Ollama 服务的相同开源模型（基础或微调）。您获得本地推理的经济效益，以及托管提供者的水平扩展和 API 便利性。
+
+LangChain 对这四种模式一视同仁：您实例化一个 `Embeddings` 子类，并将其交给您的向量存储或检索器。模式 (2) 和 (3) 使用 `HuggingFaceEmbeddings`；模式 (4) 使用 `OpenAIEmbeddings` 对 TEI 的 OpenAI 兼容端点，或 `OllamaEmbeddings`。
+
+### 需要权衡的因素
+
+#### 质量
+
+从 [MTEB 排行榜](https://huggingface.co/spaces/mteb/leaderboard) 开始。MTEB 跨检索、聚类、分类和重新排序任务对嵌入模型进行基准测试，是事实上的行业参考。按您的语言和任务（检索是最常见的 RAG 任务）进行筛选。
+
+排行榜数字并不总是能直接转换，因此在承诺之前，请在自己的数据上运行小型评估。LangSmith 提供了用于此目的的工具；参见 [评估指南](https://docs.langchain.com/langsmith/evaluation-concepts)。
+
+#### 成本
+
+托管嵌入通常按百万 Token 几分钱到 ~$0.15 的价格定价。对于一次嵌入并每天查询数千次的语料库，成本通常由查询端主导。
+
+本地推理没有按调用成本，但需要 CPU（慢）或 GPU（资本或云成本）。交叉点取决于工作负载：低容量的个人项目在 CPU 上几乎免费；对于中等容量的生产环境，通过 TEI 服务的单个 GPU 本地模型通常在单位经济性上优于托管服务。
+
+#### 延迟
+
+托管嵌入 API 每个请求大约增加 50-200ms 的网络延迟。CPU 上的本地模型对于包含小模型的短查询（`all-MiniLM-L6-v2`-类）需要 10-100ms，而对于较大的模型需要 50-500ms。在 GPU 上，本地推理通常比往返托管 API 更快。
+
+对于批量索引，每个请求的延迟不如吞吐量重要。TEI 和多进程本地推理会激进地批量处理。在 GPU 上运行时，考虑 `encode_kwargs={"batch_size": 64}` 或更高的 `HuggingFaceEmbeddings`。
+
+#### 维度
+
+嵌入维度影响向量存储存储和查询计算。典型大小：
+
+- 384（小 Sentence Transformers 模型，`all-MiniLM-L6-v2`）
+- 768（中等 Sentence Transformers 模型，`all-mpnet-base-v2`、`bge-base`）
+- 1024（`bge-large`、Cohere v3、Voyage）
+- 1536（OpenAI `text-embedding-3-small`、Qwen3-Embedding-0.6B）
+- 3072+（OpenAI `text-embedding-3-large`、Qwen3-Embedding-4B/8B）
+
+较大的向量通常更准确，但会消耗更多存储和查询计算。一些现代模型（OpenAI `text-embedding-3-*`、`mixedbread-ai/mxbai-embed-large-v1`、Matryoshka 训练的 Sentence Transformers 模型、Qwen3-Embedding）支持 **截断**：将向量切片到更小的维度，同时优雅地降低质量。这对于将更多向量拟合到更小的索引中很有用。
+
+#### 上下文长度
+
+大多数经典嵌入模型在 512 个 Token（`all-mpnet-base-v2`、经典 BGE）上达到上限。更新的模型支持更长的上下文：
+
+- `nomic-ai/modernbert-embed-base`：8192 个 Token
+- `Alibaba-NLP/gte-multilingual-base`：8192 个 Token
+- `BAAI/bge-m3`：8192 个 Token
+- OpenAI `text-embedding-3-*`：8191 个 Token
+
+如果您的片段很长（全页技术文档、法律段落），请优先选择长上下文模型。对于短片段，512 个 Token 的限制很少具有约束性。
+
+#### 多语言支持
+
+对于多语言检索，请选择在您的语言上训练的模型。强大的默认选项：
+
+- 开源：`BAAI/bge-m3`、`intfloat/multilingual-e5-*`、`Alibaba-NLP/gte-multilingual-*`、`Qwen/Qwen3-Embedding-*`（通过 `HuggingFaceEmbeddings`）
+- 托管：Cohere `embed-multilingual-v3`、OpenAI `text-embedding-3-*`
+
+#### 查询和文档提示
+
+几个现代开源模型（E5、BGE、Qwen3-嵌入、GTE）在查询和文档上使用不同的文本前缀进行训练。在查询时使用错误的前缀是一个常见的质量退化问题。当使用 `HuggingFaceEmbeddings` 时，请显式传递提示词：
+
+```python
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="intfloat/e5-large-v2",
+    encode_kwargs={"prompt": "passage: "},
+    query_encode_kwargs={"prompt": "query: "},
+)
+```
+
+检查 Hugging Face 上的每个模型的卡片以获取推荐的提示词字符串。
+
+#### 许可证
+
+大多数流行的开源嵌入模型采用宽松的许可证（Apache 2.0、MIT）。一些最近的专用模型在生产使用时需要商业许可证。在发布前请检查每个模型的许可证。
+
+### 超越单个向量密集嵌入
+
+每个片段一个密集向量是默认选项，但不是唯一选项。
+
+#### 稀疏和混合检索
+
+密集嵌入不如基于关键词的索引处理精确匹配查询（产品代码、命名实体、代码标识符）那么好。混合检索结合了密集索引与 BM25 或稀疏神经索引（SPLADE、`BAAI/bge-m3` 的稀疏输出）来覆盖这两种情况。
+
+#### 晚交互和多向量
+
+ColBERT 风格的模型为每个标记而不是每个片段生成一个向量，然后通过晚交互对查询进行评分。这在处理复杂查询时通常比单个向量密集检索更准确，但代价是更高的存储需求和更复杂的索引。这个领域的当前开源模型包括 `jinaai/jina-colbert-v2`、`answerdotai/answerai-colbert-small-v1` 以及新的晚交互变体如 `lightonai/LateOn`。LangChain 的内置检索器针对单个向量嵌入；晚交互通常需要一个专用索引（Vespa、Qdrant 的多向量支持或 PyLate）。
+
+### 启动点
+
+如果你只需要一个工作的起点：
+
+- 快速原型，托管：`OpenAIEmbeddings(model="text-embedding-3-small")`
+- 快速原型，本地，无 API 密钥：`HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2", encode_kwargs={"normalize_embeddings": True})`
+- 生产，托管，质量优先：`VoyageAIEmbeddings(model="voyage-3")` 或 `OpenAIEmbeddings(model="text-embedding-3-large")`
+- 生产，开源，质量优先：`HuggingFaceEmbeddings(model_name="BAAI/bge-m3", encode_kwargs={"normalize_embeddings": True})` 通过 TEI 提供
+- 多语言，开源：`HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")`，配置查询和文档提示词
+
+在你的数据上测量检索质量，然后进行迭代。
+
+## 缓存
+
+嵌入可以存储或临时缓存以避免需要重新计算它们。
+
+使用 `CacheBackedEmbeddings` 可以进行嵌入缓存。这个包装器将嵌入存储在键值存储中，其中文本被哈希，哈希值用作缓存中的键。
+
+初始化 `CacheBackedEmbeddings` 的主要支持方式是 `from_bytes_store`。它接受以下参数：
+
+- **`underlying_embedder`**：用于嵌入的嵌入器。
+- **`document_embedding_cache`**：任何 [`ByteStore`](/langchain/oss/python/integrations/stores/) 用于缓存文档嵌入。
+- **`batch_size`**：（可选，默认为 `None`）在存储更新之间嵌入的文档数量。
+- **`namespace`**：（可选，默认为 `""`）用于文档缓存的命名空间。有助于避免冲突（例如，将其设置为嵌入模型名称）。
+- **`query_embedding_cache`**：（可选，默认为 `None`）用于缓存查询嵌入的 [`ByteStore`](/langchain/oss/python/integrations/stores/)，或 `True` 以重用与 `document_embedding_cache` 相同的存储。
+
+<Important>
+- 使用不同的嵌入模型时，始终设置 `namespace` 参数以避免冲突。
+- `CacheBackedEmbeddings` 默认不缓存查询嵌入。要启用此功能，请指定一个 `query_embedding_cache`。
+</Important>
+
+```python
+import time
+from langchain_classic.embeddings import CacheBackedEmbeddings  # [!code highlight]
+from langchain_classic.storage import LocalFileStore # [!code highlight]
+from langchain_core.vectorstores import InMemoryVectorStore
+
+# Create your underlying embeddings model
+underlying_embeddings = ... # e.g., OpenAIEmbeddings(), HuggingFaceEmbeddings(), etc.
+
+# Store persists embeddings to the local filesystem
+# This isn't for production use, but is useful for local
+store = LocalFileStore("./cache/") # [!code highlight]
+
+cached_embedder = CacheBackedEmbeddings.from_bytes_store(
+    underlying_embeddings,
+    store,
+    namespace=underlying_embeddings.model
+)
+
+# Example: caching a query embedding
+tic = time.time()
+print(cached_embedder.embed_query("Hello, world!"))
+print(f"First call took: {time.time() - tic:.2f} seconds")
+
+# Subsequent calls use the cache
+tic = time.time()
+print(cached_embedder.embed_query("Hello, world!"))
+print(f"Second call took: {time.time() - tic:.2f} seconds")
+```
+
+在生产环境中，你通常会使用更健壮的持久存储，例如数据库或云存储。请参阅 [stores integrations](/langchain/oss/python/integrations/stores/) 获取选项。
+
+## 所有嵌入模型
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/index.mdx) · 译文由 AI 生成，以英文原文为准。

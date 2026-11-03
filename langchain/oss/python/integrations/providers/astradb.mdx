@@ -1,0 +1,194 @@
+---
+title: "Astra DB 集成"
+description: "使用 LangChain Python 集成 Astra DB。"
+---
+  
+> [DataStax Astra DB](https://docs.datastax.com/en/astra-db-serverless/index.html) 是基于 `Apache Cassandra®` 构建的 serverless AI-ready 服务器数据库，可通过易于使用的 JSON API 方便获取。  
+
+查看 DataStax 提供的 [教程](https://docs.datastax.com/en/astra/astra-db-vector/tutorials/chatbot.html)。  
+
+## 安装与配置  
+
+安装以下 Python 包：  
+<CodeGroup>  
+```bash pip
+pip install "langchain-astradb>=0.6,<0.7"
+```
+  
+```bash uv
+uv add langchain-astradb>=0.6,<0.7
+```
+</CodeGroup>  
+
+（若需）创建数据库并获取 [连接密钥](https://docs.datastax.com/en/astra-db-serverless/get-started/quickstart.html#create-a-database-and-store-your-credentials)。  
+设置以下变量：  
+
+```python
+ASTRA_DB_API_ENDPOINT="API_ENDPOINT"
+ASTRA_DB_APPLICATION_TOKEN="TOKEN"
+```
+  
+
+## 向量存储  
+
+以下是几种典型的初始化模式示例：  
+
+```python
+from langchain_astradb import AstraDBVectorStore
+
+vector_store = AstraDBVectorStore(
+    embedding=my_embedding,
+    collection_name="my_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+)
+
+
+from astrapy.info import VectorServiceOptions
+
+vector_store_vectorize = AstraDBVectorStore(
+    collection_name="my_vectorize_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+    collection_vector_service_options=VectorServiceOptions(
+        provider="nvidia",
+        model_name="NV-Embed-QA",
+    ),
+)
+
+
+from astrapy.info import (
+    CollectionLexicalOptions,
+    CollectionRerankOptions,
+    RerankServiceOptions,
+    VectorServiceOptions,
+)
+
+vector_store_hybrid = AstraDBVectorStore(
+    collection_name="my_hybrid_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+    collection_vector_service_options=VectorServiceOptions(
+        provider="nvidia",
+        model_name="NV-Embed-QA",
+    ),
+    collection_lexical=CollectionLexicalOptions(analyzer="standard"),
+    collection_rerank=CollectionRerankOptions(
+        service=RerankServiceOptions(
+            provider="nvidia",
+            model_name="nvidia/llama-3.2-nv-rerankqa-1b-v2",
+        ),
+    ),
+)
+```
+  
+
+`AstraDBVectorStore` 类的显著特性包括：  
+- 原生异步 API；  
+- 搜索中的元数据过滤；  
+- MMR（最大边际相关性）搜索；  
+- Astra DB 术语中的服务器端嵌入计算（["vectorize"](https://docs.datastax.com/en/astra-db-serverless/databases/embedding-generation.html)）；  
+- 可从现有预填充的 Astra DB 集合自动检测配置；  
+- [混合搜索](https://docs.datastax.com/en/astra-db-serverless/databases/hybrid-search.html#the-hybrid-search-process)（向量 + BM25 后的重新排序步骤）；  
+- 支持非 Astra 数据 API（例如自托管 [HCD](https://docs.datastax.com/en/hyper-converged-database/1.1/get-started/get-started-hcd.html) 部署）。  
+
+更多详情请参考 [示例笔记本](/langchain/oss/python/integrations/vectorstores/astradb)。  
+
+查看 DataStax 提供的 [示例](https://docs.datastax.com/en/astra/astra-db-vector/integrations/langchain.html)。  
+
+## LLM 缓存  
+
+```python
+from langchain_core.globals import set_llm_cache
+from langchain_astradb import AstraDBCache
+
+set_llm_cache(AstraDBCache(
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+))
+```
+  
+
+## 语义 LLM 缓存  
+```python
+from langchain_core.globals import set_llm_cache
+from langchain_astradb import AstraDBSemanticCache
+
+set_llm_cache(AstraDBSemanticCache(
+    embedding=my_embedding,
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+))
+```
+  
+
+## 文档加载器  
+
+```python
+from langchain_astradb import AstraDBLoader
+
+loader = AstraDBLoader(
+    collection_name="my_collection",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+)
+```
+  
+
+更多详情请参考 [示例笔记本](/langchain/oss/python/integrations/document_loaders/astradb)。  
+
+## 自查询检索器  
+
+```python
+from langchain_astradb import AstraDBVectorStore
+from langchain_classic.retrievers.self_query.base import SelfQueryRetriever
+
+vector_store = AstraDBVectorStore(
+    embedding=my_embedding,
+    collection_name="my_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+)
+
+retriever = SelfQueryRetriever.from_llm(
+    my_llm,
+    vector_store,
+    document_content_description,
+    metadata_field_info
+)
+```
+  
+
+## 存储  
+
+```python
+from langchain_astradb import AstraDBStore
+
+store = AstraDBStore(
+    collection_name="my_kv_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+)
+```
+  
+
+查看 [AstraDBStore](https://reference.langchain.com/python/langchain-astradb/storage/AstraDBStore) 的 API 参考文档。  
+
+## 字节存储  
+
+```python
+from langchain_astradb import AstraDBByteStore
+
+store = AstraDBByteStore(
+    collection_name="my_kv_store",
+    api_endpoint=ASTRA_DB_API_ENDPOINT,
+    token=ASTRA_DB_APPLICATION_TOKEN,
+)
+```
+  
+
+查看 [AstraDBByteStore](https://reference.langchain.com/python/langchain-astradb/storage/AstraDBByteStore) 的 API 参考文档。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/astradb.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/astradb.mdx) · 译文由 AI 生成，以英文原文为准。

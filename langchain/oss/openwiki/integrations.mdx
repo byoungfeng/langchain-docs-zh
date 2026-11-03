@@ -1,0 +1,83 @@
+---
+title: "编码代理集成"
+sidebarTitle: "集成"
+description: "使用主机模型和工具在 Codex、Claude Code、GitHub Copilot、OpenCode、Cursor、IBM Bob、Kiro、Oh My Pi 或 Antigravity 中运行 OpenWiki"
+---
+
+OpenWiki 可以在现有的编程智能体中运行，而非启动自己的模型。该智能体会调查仓库，规划维基，并使用原生仓库工具撰写分配的每一页。OpenWiki 管理持久化页面任务的整个生命周期，包括声明验证与持久化、源漂移处理，以及最终确定的确定性。
+
+宿主驱动的运行仅支持仓库 [代码模式](/langchain/oss/openwiki/code-mode) 维基，不支持 [个人模式](/langchain/oss/openwiki/personal-mode)。它们使用编程智能体的认证模型会话，因此不需要 OpenWiki 提供者凭据。包括 LangSmith 在内的连接器源上下文在此路径上尚未支持。宿主驱动的页面编写是顺序的；[并行页面工作者](/langchain/oss/openwiki/code-mode#并行页面工作者) 仅适用于原生 CLI。
+
+## 安装集成
+
+支持的宿主包括 **Codex**、**Claude Code**、**GitHub Copilot**、**OpenCode**、**Cursor**、**IBM Bob**（Bob Shell）、**Kiro**、**Oh My Pi**（`omp`）和 **Antigravity CLI**。安装默认在用户级别，因此从任何 Git 仓库均可使用单一安装：
+
+```bash
+openwiki integrations install codex
+openwiki integrations install claude
+openwiki integrations install copilot
+openwiki integrations install opencode
+openwiki integrations install cursor
+openwiki integrations install bob
+openwiki integrations install kiro
+openwiki integrations install omp
+openwiki integrations install antigravity
+```
+
+安装后重启编程智能体。然后打开仓库并询问：
+
+```txt
+Initialize this repository's OpenWiki from the current source and tests.
+```
+
+对于现有维基，请询问：
+
+```txt
+Update this repository's OpenWiki for changes since its last successful run.
+```
+
+安装的集成还暴露了 [搜索与读取工具](/langchain/oss/openwiki/search-and-link)，使宿主无需启动生成运行即可查询现有维基。
+
+### 检查或卸载
+
+```bash
+openwiki integrations list
+openwiki integrations uninstall <codex|claude|copilot|opencode|cursor|bob|kiro|omp|antigravity>
+```
+
+向 `list`、`install` 或 `uninstall` 添加 `--project [path]` 以实现仓库级状态。项目路径会解析为 Git 仓库根目录。
+
+宿主特定的用户级位置：
+
+- **OpenCode**: `~/.config/opencode`
+- **IBM Bob / Bob Shell**: `~/.agents/skills` 和 `~/.bob/settings/mcp.json`（项目级使用 `.agents/skills` 和 `.bob/mcp.json`）
+- **Kiro**: `~/.kiro/skills` 和 `~/.kiro/settings/mcp.json`
+- **Oh My Pi**: `~/.omp/agent` 用于默认配置。使用 `--project` 或迁移的 `PI_CODING_AGENT_DIR` 表示命名配置
+- **Antigravity CLI**: `~/.gemini/antigravity-cli/skills` 和 `~/.gemini/config/mcp_config.json`
+
+## Pi 包
+
+Pi 从 npm 包加载 OpenWiki 的技能和生命周期工具：
+
+```bash
+pi install npm:openwiki
+```
+
+使用 `pi install --local npm:openwiki` 进行项目级安装。Pi 扩展通过 Node 启动 OpenWiki CLI，因此 `openwiki` 无需位于 `PATH`。Pi 不作为 `openwiki integrations install` 的目标。
+
+## 宿主驱动运行的工作原理
+
+宿主驱动运行遵循与原生 `openwiki --init` 和 `openwiki --update` 相同的可恢复页面任务生命周期。编程智能体驱动仓库研究及页面编写；OpenWiki 验证每次完成结果，持久化 [Grounded Claims](/langchain/oss/openwiki/code-mode#有据可依的断言)，并通过 MCP 最终化元数据。
+
+在每页中，宿主提交稀疏声明决策（确认、修订、添加或撤回）。OpenWiki 保留未受影响的声明，应用显式决策，并拒绝完成直到最终声明状态持久化。宿主在需要当前页完整声明集时可调用 `openwiki_inspect_page_claims`。
+
+## 参考文档
+
+- [搜索与链接维基](/langchain/oss/openwiki/search-and-link)
+- [代码模式](/langchain/oss/openwiki/code-mode)
+- [CLI 参考文档](/langchain/oss/openwiki/cli-reference)
+- [快速上手](/langchain/oss/openwiki/quickstart)
+
+---
+
+> 官方原文：[src/oss/openwiki/integrations.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/integrations.mdx) · 译文由 AI 生成，以英文原文为准。

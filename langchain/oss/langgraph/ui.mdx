@@ -1,0 +1,28 @@
+---
+title: "代理聊天界面"
+description: "Agent Chat UI 可以连接到 本地 和 已部署的智能体。"
+---
+
+import agent_chat_ui from '/langchain/snippets/oss/agent-chat-ui.mdx';
+
+<agent_chat_ui />
+
+### 连接到你的智能体
+
+Agent Chat UI 可以连接到 [本地](/langchain/oss/langgraph/studio#设置本地智能体服务器) 和 [已部署的智能体](/langchain/oss/langgraph/deploy)。
+
+启动 Agent Chat UI 后，你需要配置它以连接到你的智能体：
+
+1. **图 ID**：输入你的图名称（在 `graphs` 下的 `langgraph.json` 文件中找到）
+2. **部署 URL**：你的智能体服务器的端点（例如，`http://localhost:2024` 用于本地开发，或你的已部署智能体的 URL）
+3. **LangSmith API 密钥（可选）**：添加你的 LangSmith API 密钥（如果你使用本地智能体服务器则无需此密钥）
+
+配置完成后，Agent Chat UI 将自动获取并显示来自你的智能体的任何中断的线程。
+
+<Tip>
+  Agent Chat UI 对渲染工具调用和工具结果消息提供开箱即用的支持。要自定义显示的消息，请参阅 [在聊天中隐藏消息](https://github.com/langchain-ai/agent-chat-ui?tab=readme-ov-file#hiding-messages-in-the-chat)。
+</Tip>
+
+---
+
+> 官方原文：[src/oss/langgraph/ui.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/ui.mdx) · 译文由 AI 生成，以英文原文为准。

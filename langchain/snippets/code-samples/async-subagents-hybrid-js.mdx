@@ -1,0 +1,22 @@
+```ts
+import type { AsyncSubAgent } from "deepagents";
+
+const asyncSubagents: AsyncSubAgent[] = [
+  {
+    name: "researcher",
+    description: "Research agent",
+    graphId: "researcher",
+    // No url → same Agent Server
+  },
+  {
+    name: "coder",
+    description: "Coding agent",
+    graphId: "coder",
+    url: "https://coder-deployment.langsmith.dev",
+    // url present → HTTP (remote)
+  },
+];
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 ID：['0']；意外的额外 ID：[]。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。

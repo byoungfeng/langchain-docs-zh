@@ -1,0 +1,186 @@
+---
+title: "Node VFS"
+sidebarTitle: "Node VFS"
+description: "使用 Node.js VFS 沙盒后端与 deepagents 配合，用于本地开发与测试"
+---
+
+VFS 沙盒完全在本地运行，使用内存中的虚拟文件系统。无需云服务、Docker 或外部依赖——非常适合开发和测试。
+
+它使用 [node-vfs-polyfill](https://github.com/vercel-labs/node-vfs-polyfill)，该库实现了即将推出的 Node.js VFS 功能 ([nodejs/node#61478](https://github.com/nodejs/node/pull/61478))。
+
+## 安装
+
+<CodeGroup>
+    ```bash npm
+    npm install @langchain/node-vfs
+    ```
+
+    ```bash yarn
+    yarn add @langchain/node-vfs
+    ```
+
+    ```bash pnpm
+    pnpm add @langchain/node-vfs
+    ```
+</CodeGroup>
+
+无需认证。
+
+## 与 deepagents 一起使用
+
+:::js
+```typescript
+import { createDeepAgent } from "deepagents";
+import { ChatAnthropic } from "@langchain/anthropic";
+import { VfsSandbox } from "@langchain/node-vfs";
+
+const sandbox = await VfsSandbox.create({
+  initialFiles: {
+    "/src/index.js": "console.log('Hello from VFS!')",
+  },
+});
+
+try {
+  const agent = createDeepAgent({
+    model: new ChatAnthropic({ model: "claude-sonnet-4-6" }),
+    systemPrompt: "You are a coding assistant with VFS access.",
+    backend: sandbox,
+  });
+
+  const result = await agent.invoke({
+    messages: [{ role: "user", content: "Run the index.js file" }],
+  });
+} finally {
+  await sandbox.stop();
+}
+```
+:::
+
+## 独立使用
+
+:::js
+```typescript
+import { VfsSandbox } from "@langchain/node-vfs";
+
+const sandbox = await VfsSandbox.create({
+  initialFiles: {
+    "/src/index.js": "console.log('Hello from VFS!')",
+  },
+});
+
+const result = await sandbox.execute("node /src/index.js");
+console.log(result.output); // "Hello from VFS!"
+
+await sandbox.stop();
+```
+:::
+
+## 配置
+
+| 选项 | 类型 | 默认值 | 描述 |
+|------|------|---------|-------------|
+| `mountPath` | `string` | `"/vfs"` | 虚拟文件系统的挂载路径 |
+| `timeout` | `number` | `30000` | 命令执行的超时时间（毫秒） |
+| `initialFiles` | `Record<string, string \| Uint8Array>` | - | 初始化时填充 VFS 的初始文件 |
+
+## 工作原理
+
+VFS 采用混合方法以实现最大兼容性：
+
+1. **文件存储**：文件使用虚拟文件系统存储在内存中
+2. **命令执行**：执行命令时，文件同步到临时目录，命令运行后，更改同步回 VFS
+3. **回退模式**：如果 node-vfs-polyfill 不可用，则回退到使用临时目录进行存储和执行
+
+这提供了内存存储（隔离性、速度）的好处，同时保持完整的 Shell 命令执行支持。
+
+## 文件操作
+
+:::js
+```typescript
+// Upload files
+const encoder = new TextEncoder();
+await sandbox.uploadFiles([
+  ["src/app.js", encoder.encode("console.log('Hi')")],
+  ["package.json", encoder.encode('{"name": "test"}')],
+]);
+
+// Download files
+const results = await sandbox.downloadFiles(["src/app.js"]);
+for (const result of results) {
+  if (result.content) {
+    console.log(new TextDecoder().decode(result.content));
+  }
+}
+```
+:::
+
+## 工厂函数
+
+:::js
+```typescript
+import { createVfsSandboxFactory, createVfsSandboxFactoryFromSandbox } from "@langchain/node-vfs";
+
+// Create new sandbox per invocation
+const factory = createVfsSandboxFactory({
+  initialFiles: { "/README.md": "# Hello" },
+});
+
+// Or reuse an existing sandbox across invocations
+const sandbox = await VfsSandbox.create();
+const reuseFactory = createVfsSandboxFactoryFromSandbox(sandbox);
+```
+:::
+
+## 错误处理
+
+```typescript
+import { VfsSandboxError } from "@langchain/node-vfs";
+
+try {
+  await sandbox.execute("some-command");
+} catch (error) {
+  if (error instanceof VfsSandboxError) {
+    switch (error.code) {
+      case "NOT_INITIALIZED":
+        // Handle uninitialized sandbox
+        break;
+      case "COMMAND_TIMEOUT":
+        // Handle timeout
+        break;
+    }
+  }
+}
+```
+
+### 错误代码
+
+| 代码 | 描述 |
+|------|-------------|
+| `NOT_INITIALIZED` | 沙盒未初始化 |
+| `ALREADY_INITIALIZED` | 沙盒已初始化 |
+| `INITIALIZATION_FAILED` | VFS 初始化失败 |
+| `COMMAND_TIMEOUT` | 命令执行超时 |
+| `COMMAND_FAILED` | 命令执行失败 |
+| `FILE_OPERATION_FAILED` | 文件操作失败 |
+| `NOT_SUPPORTED` | 环境不支持 VFS |
+
+## 何时使用 VFS
+
+**最适合：**
+- 本地开发和测试
+- 没有 Docker 的 CI/CD 管道
+- 无需云设置的快速原型设计
+- 没有可用外部服务的环境
+
+**不太适合：**
+- 需要真正容器隔离的生产工作负载
+- 跨会话的持久存储
+- 重型计算任务（无资源限制）
+
+## 未来：原生 Node.js VFS
+
+此包使用 [node-vfs-polyfill](https://github.com/vercel-labs/node-vfs-polyfill)，该库实现了正在 [nodejs/node#61478](https://github.com/nodejs/node/pull/61478) 开发的 Node.js VFS 功能。当官方 `node:vfs` 模块在 Node.js 中发布时，此包将更新为使用原生实现。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/node-vfs.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/node-vfs.mdx) · 译文由 AI 生成，以英文原文为准。

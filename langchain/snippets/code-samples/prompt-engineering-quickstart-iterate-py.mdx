@@ -1,0 +1,16 @@
+```python Python
+from langsmith import Client
+from langchain_core.prompts import ChatPromptTemplate
+
+client = Client()
+
+new_prompt = ChatPromptTemplate([
+    ("system", "You are a helpful chatbot. Respond in Spanish."),
+    ("user", "{question}"),
+])
+
+client.push_prompt("prompt-quickstart", object=new_prompt)
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 ID：['0']；意外的额外 ID：['1', '2', '3']。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）在原始位置，且仅出现一次。

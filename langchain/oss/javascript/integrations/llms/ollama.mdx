@@ -1,0 +1,132 @@
+---
+title: "Ollama 集成"
+description: "使用 LangChain JavaScript 集成 Ollama LLM。"
+integration:
+  name: Ollama
+  npm: '@langchain/ollama'
+---
+
+<Warning>
+**您当前所在的页面正在记录 Ollama 模型作为文本完成模型的使用方法。Ollama 上许多流行的模型是 [对话完成模型](/langchain/oss/langchain/models)。**
+
+您可能需要查找 [这个页面](/langchain/oss/python/integrations/chat/ollama/)。
+</Warning>
+
+这将帮助您使用 LangChain 开始使用 Ollama 文本完成模型（LLM）。有关 `Ollama` 功能和配置选项的详细文档，请参阅 [API 参考](https://reference.langchain.com/javascript/langchain-ollama/Ollama)。
+
+## 概述
+
+### 集成细节
+
+[Ollama](https://ollama.ai/) 允许您在本地运行开源大型语言模型（LLM），例如 Llama 3。
+
+Ollama 将模型权重、配置和数据捆绑到一个包中，由 Modelfile 定义。它优化了设置和配置细节，包括 GPU 使用情况。
+
+本示例介绍了如何使用 LangChain 与运行的 Ollama Llama 2 7b 实例进行交互。
+有关支持模型和模型变体的完整列表，请参阅 [Ollama 模型库](https://github.com/jmorganca/ollama#model-library)。
+
+| 类别 | 包 | 本地 | 可序列化 | [PY 支持](/langchain/oss/python/integrations/llms/ollama) | 下载 | 版本 |
+| :--- | :--- | :---: | :---: |  :---: | :---: | :---: |
+| [`Ollama`](https://reference.langchain.com/javascript/langchain-ollama/Ollama) | [`@langchain/ollama`](https://npmjs.com/@langchain/ollama) | ✅ | ❌ | ✅ | ![NPM - 下载](https://img.shields.io/npm/dm/@langchain/ollama?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/ollama?style=flat-square&label=%20&) |
+
+## 设置
+
+要访问 Ollama LLM 模型，请按照 [这些说明](https://github.com/ollama/ollama) 安装 Ollama，然后安装 `@langchain/ollama` 集成包。
+
+### 凭证
+
+如果您希望自动跟踪您的模型调用，您也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```bash
+# export LANGSMITH_TRACING="true"
+# export LANGSMITH_API_KEY="your-api-key"
+```
+
+### 安装
+
+LangChain Ollama 集成位于 `@langchain/ollama` 包中：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/ollama @langchain/core
+```
+```bash yarn
+yarn add @langchain/ollama @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/ollama @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成对话完成：
+
+```typescript
+import { Ollama } from "@langchain/ollama"
+
+const llm = new Ollama({
+  model: "llama3", // Default value
+  temperature: 0,
+  maxRetries: 2,
+  // other params...
+})
+```
+
+## 调用
+
+```typescript
+const inputText = "Ollama is an AI company that "
+
+const completion = await llm.invoke(inputText)
+completion
+```
+
+```text
+I think you meant to say "Olivia" instead of "Ollama". Olivia is not a well-known AI company, but there are several other AI companies with similar names. Here are a few examples:
+
+* Oliva AI: A startup that uses artificial intelligence to help businesses optimize their operations and improve customer experiences.
+* Olivia Technologies: A company that develops AI-powered solutions for industries such as healthcare, finance, and education.
+* Olivia.ai: A platform that uses AI to help businesses automate their workflows and improve productivity.
+
+If you meant something else by "Ollama", please let me know and I'll do my best to help!
+```
+
+## 多模态模型
+
+Ollama 支持从 0.1.15 版本开始的开源多模态模型，例如 [LLaVA](https://ollama.ai/library/llava)。
+您可以将 base64 编码的图像数据绑定到多模态模型上，用作上下文，如下所示：
+
+```typescript
+import { Ollama } from "@langchain/ollama";
+import * as fs from "node:fs/promises";
+
+const imageData = await fs.readFile("../../../../../examples/hotdog.jpg");
+
+const model = new Ollama({
+  model: "llava",
+}).bind({
+  images: [imageData.toString("base64")],
+});
+
+const res = await model.invoke("What's in this image?");
+console.log(res);
+```
+
+```text
+ The image shows a hot dog placed inside what appears to be a bun that has been specially prepared to resemble a hot dog bun. This is an example of a creative or novelty food item, where the bread used for the bun looks similar to a cooked hot dog itself, playing on the name "hot dog." The image also shows the typical garnishes like ketchup and mustard on the side.
+```
+
+## 相关
+
+- [模型指南](/langchain/oss/langchain/models)
+
+---
+
+## API 参考
+
+有关所有 `Ollama` 功能和配置的详细文档，请前往 [API 参考](https://reference.langchain.com/javascript/langchain-ollama/Ollama)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/llms/ollama.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/llms/ollama.mdx) · 译文由 AI 生成，以英文原文为准。

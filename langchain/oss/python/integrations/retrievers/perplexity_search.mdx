@@ -1,0 +1,147 @@
+---
+title: "PerplexitySearch 集成"
+description: "使用 LangChain Python 集成 PerplexitySearchRetriever。"
+integration:
+  name: PerplexitySearchRetriever
+  pypi: langchain-perplexity
+  self_host: false
+  cloud_offering: true
+  package_md: '[`langchain-perplexity`](https://reference.langchain.com/python/langchain-perplexity/retrievers/PerplexitySearchRetriever)'
+---
+
+
+>[困惑度搜索](https://docs.perplexity.ai/docs/search/quickstart) 是一个网页搜索 API，它返回排序的、带有来源归因的结果，专为大型语言模型和智能体设计。[搜索 API 端点](https://docs.perplexity.ai/api-reference/search-post) 返回为 Perplexity 的答案引擎提供支持的底层网页结果。
+
+我们可以将其用作 [检索器](/langchain/oss/deepagents/retrieval)。它将展示特定于此集成的功能。通过学习后，可以探索 [相关用例页面](/langchain/oss/deepagents/rag)，了解如何将此检索器作为更大链的一部分使用。
+
+## 设置
+
+### 安装
+
+该集成位于 `langchain-perplexity` 包中：
+
+```python
+pip install -qU langchain-perplexity
+```
+
+### 凭证
+
+要使用此集成，您需要一个 Perplexity API 密钥。在 [Perplexity API 密钥控制面板](https://www.perplexity.ai/account/api/keys) 中创建一个，然后将其设置为 `PPLX_API_KEY` 环境变量（该集成也接受 `PERPLEXITY_API_KEY`）。
+
+```python
+import getpass
+import os
+
+if not os.environ.get("PPLX_API_KEY"):
+    os.environ["PPLX_API_KEY"] = getpass.getpass("Perplexity API key:\n")
+```
+
+如果您想从单个查询中获得自动跟踪，您也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+# os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+# os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+## 实例化
+
+`PerplexitySearchRetriever` 接受以下构造函数参数：
+
+- `k` — 最大结果数量（1–20）。默认值为 `10`。
+- `max_tokens` — 所有结果的最大总 Token 数。
+- `max_tokens_per_page` — 每个结果页面的最大 Token 数。
+- `country` — ISO 国家代码，用于偏差结果（例如 `"US"`）。
+- `search_domain_filter` — 要包含或排除的域名列表（最多 20 个）。在域名前缀 `-` 以排除它。请参阅 [域名过滤文档](https://docs.perplexity.ai/docs/search/filters/domain-filter)。
+- `search_recency_filter` — 之一为 `"day"`, `"week"`, `"month"`, `"year"`。请参阅 [日期和时间过滤文档](https://docs.perplexity.ai/docs/search/filters/date-time-filters)。
+- `search_after_date` / `search_before_date` — 按 `MM/DD/YYYY` 格式的日期字符串。
+
+```python
+from langchain_perplexity import PerplexitySearchRetriever
+
+retriever = PerplexitySearchRetriever(k=3)
+```
+
+## 使用
+
+```python
+query = "what year was breath of the wild released?"
+
+retriever.invoke(query)
+```
+
+每个返回的 @[`Document`] 都将其结果 `snippet` 作为其 `page_content`，还包括 `title`, `url`, `date`, 和 `last_updated` 在 `metadata` 中。
+
+### 过滤使用
+
+您可以使用 Perplexity 搜索 API 支持的相同过滤器来约束搜索：
+
+```python
+from langchain_perplexity import PerplexitySearchRetriever
+
+retriever = PerplexitySearchRetriever(
+    k=5,
+    country="US",
+    search_recency_filter="week",
+    search_domain_filter=["nytimes.com", "reuters.com", "-pinterest.com"],
+)
+
+retriever.invoke("US Federal Reserve interest rate decisions")
+```
+
+```python
+from langchain_perplexity import PerplexitySearchRetriever
+
+# Restrict results to a specific date range
+retriever = PerplexitySearchRetriever(
+    k=5,
+    search_after_date="01/01/2025",
+    search_before_date="06/30/2025",
+)
+
+retriever.invoke("US Federal Reserve interest rate decisions")
+```
+
+## 在链中使用
+
+我们可以轻松地将此检索器组合到链中，以构建一个简单的 RAG 管道。
+
+```python
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_openai import ChatOpenAI
+
+prompt = ChatPromptTemplate.from_template(
+    """Answer the question based only on the context provided.
+
+Context: {context}
+
+Question: {question}"""
+)
+
+llm = ChatOpenAI(model="gpt-5.5")
+
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+chain.invoke("What were the major outcomes of the most recent Federal Reserve meeting?")
+```
+
+---
+
+## API 参考
+
+有关 Perplexity 搜索 API 及其所有选项的详细文档，请参阅 [搜索 API 参考](https://docs.perplexity.ai/api-reference/search-post) 和 [Perplexity API 文档](https://docs.perplexity.ai)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/retrievers/perplexity_search.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/retrievers/perplexity_search.mdx) · 译文由 AI 生成，以英文原文为准。

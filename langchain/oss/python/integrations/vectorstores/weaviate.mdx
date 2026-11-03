@@ -1,0 +1,516 @@
+---
+title: "Weaviate 集成"
+description: "使用 LangChain Python 与 Weaviate 向量存储集成。"
+integration:
+  name: Weaviate
+  pypi: langchain-weaviate
+  featured: true
+  delete_by_id: true
+  filtering: true
+  search_by_vector: true
+  search_with_score: true
+  async_api: true
+  passes_standard_tests: false
+  multi_tenancy: true
+  ids_in_add_documents: true
+---
+
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+本笔记本介绍如何在LangChain中使用Weaviate向量存储，需通过`langchain-weaviate`包实现。
+
+> [Weaviate](https://weaviate.io/)是开源向量数据库。它允许您存储您喜爱的机器学习模型的数据对象和向量嵌入，并无缝扩展至数十亿级数据对象。
+
+使用此集成需已运行Weaviate数据库实例。
+
+## 最小版本
+
+本模块要求Weaviate `1.23.7`或更高版本。但建议使用最新版Weaviate。
+
+## 连接到weaviate
+
+本笔记本假设您已运行本地Weaviate实例（[`http://localhost:8080`端口50051开放gRPC流量](https://weaviate.io/blog/grpc-performance-improvements)），并通过以下方式连接：
+
+```python
+weaviate_client = weaviate.connect_to_local()
+```
+
+### 其他部署选项
+
+[Weaviate支持多种部署方式](https://weaviate.io/developers/weaviate/starter-guides/which-weaviate)，如[Weaviate云服务（WCS）](https://console.weaviate.cloud)、[Docker](https://weaviate.io/developers/weaviate/installation/docker-compose)或[Kubernetes](https://weaviate.io/developers/weaviate/installation/kubernetes)。
+
+若采用其他部署方式，可[此处阅读更多](https://weaviate.io/developers/weaviate/client-libraries/python#instantiate-a-client)了解连接方法。您可以使用不同[辅助函数](https://weaviate.io/developers/weaviate/client-libraries/python#python-client-v4-helper-functions)或[创建自定义实例](https://weaviate.io/developers/weaviate/client-libraries/python#python-client-v4-explicit-connection)。
+
+> 注意需要`v4`客户端API，将创建`weaviate.WeaviateClient`对象。
+
+### 认证
+
+部分Weaviate实例（如WCS部署）启用认证机制，如API密钥或用户名+密码认证。
+
+请参考[客户端认证指南](https://weaviate.io/developers/weaviate/client-libraries/python#authentication)及[深度认证配置页面](https://weaviate.io/developers/weaviate/configuration/authentication)获取详细信息。
+
+### 连接到现有集合（复用索引）
+
+若本地Weaviate已创建集合，可直接连接：
+
+```python
+from langchain_weaviate import WeaviateVectorStore
+
+store = WeaviateVectorStore(
+    client=weaviate_client,
+    index_name="Test",
+    text_key="text",
+)
+```
+
+## 安装
+
+```python
+# install package
+# pip install -Uqq langchain-weaviate
+# pip install openai tiktoken langchain
+```
+
+## 环境配置
+
+本笔记本通过`OpenAIEmbeddings`调用OpenAI API。建议获取OpenAI API密钥并导出为环境变量`OPENAI_API_KEY`。
+
+完成设置后，API密钥将自动读取。如不熟悉环境变量，可参考[Python os.environ文档](https://docs.python.org/3/library/os.html#os.environ)或[此指南](https://www.twilio.com/en-us/blog/environment-variables-python)。
+
+# 使用方法
+
+## 按相似度查找对象
+
+以下示例展示如何从数据导入到查询Weaviate实例的完整流程。
+
+### 步骤1：数据导入
+
+首先加载并分块长文本文件，向`Weaviate`添加数据。
+
+<LangchainCommunityUnmaintained />
+
+```python
+from langchain_community.document_loaders import TextLoader
+from langchain_openai import OpenAIEmbeddings
+from langchain_text_splitters import CharacterTextSplitter
+```
+
+```python
+loader = TextLoader("state_of_the_union.txt")
+documents = loader.load()
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+docs = text_splitter.split_documents(documents)
+
+embeddings = OpenAIEmbeddings()
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/langchain_core/_api/deprecation.py:117: LangChainDeprecationWarning: The class `langchain_community.embeddings.openai.OpenAIEmbeddings` was deprecated in langchain-community 0.1.0 and will be removed in 0.2.0. An updated version of the class exists in the langchain-openai package and should be used instead. To use it run `pip install -U langchain-openai` and import as `from langchain_openai import OpenAIEmbeddings`.
+  warn_deprecated(
+```
+
+现在可开始导入数据。
+
+通过连接Weaviate实例并使用生成的`weaviate_client`对象实现导入。例如：
+
+```python
+import weaviate
+from langchain_weaviate.vectorstores import WeaviateVectorStore
+```
+
+```python
+weaviate_client = weaviate.connect_to_local()
+db = WeaviateVectorStore.from_documents(docs, embeddings, client=weaviate_client)
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+```
+
+### 步骤2：执行搜索
+
+现在可以执行相似度搜索。该操作将基于Weaviate中存储的嵌入向量以及从查询文本生成的等价嵌入向量，返回与查询文本最相似的最相关文档。
+
+```python
+query = "What did the president say about Ketanji Brown Jackson"
+docs = db.similarity_search(query)
+
+# Print the first 100 characters of each result
+for i, doc in enumerate(docs):
+    print(f"\nDocument {i + 1}:")
+    print(doc.page_content[:100] + "...")
+```
+
+```text
+Document 1:
+Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Ac...
+
+Document 2:
+And so many families are living paycheck to paycheck, struggling to keep up with the rising cost of ...
+
+Document 3:
+Vice President Harris and I ran for office with a new economic vision for America.
+
+Invest in Ameri...
+
+Document 4:
+A former top litigator in private practice. A former federal public defender. And from a family of p...
+```
+
+您还可以添加过滤条件，这些条件将决定结果是否包含或排除（参见[更多过滤示例](https://weaviate.io/developers/weaviate/search/filters)。）。
+
+```python
+from weaviate.classes.query import Filter
+
+for filter_str in ["blah.txt", "state_of_the_union.txt"]:
+    search_filter = Filter.by_property("source").equal(filter_str)
+    filtered_search_results = db.similarity_search(query, filters=search_filter)
+    print(len(filtered_search_results))
+    if filter_str == "state_of_the_union.txt":
+        assert len(filtered_search_results) > 0  # There should be at least one result
+    else:
+        assert len(filtered_search_results) == 0  # There should be no results
+```
+
+```text
+0
+4
+```
+
+同时可以提供`k`，该参数表示返回结果的上限数量。
+
+```python
+search_filter = Filter.by_property("source").equal("state_of_the_union.txt")
+filtered_search_results = db.similarity_search(query, filters=search_filter, k=3)
+assert len(filtered_search_results) <= 3
+```
+
+### 量化结果相似度
+
+您可以选择性获取相关性"分数"。这是一个相对分数，用于衡量在所有搜索结果中该结果的相似度质量。
+
+注意该分数是相对值，不应用于确定相关性阈值。但可用于比较整个搜索结果集中不同结果的相似度。
+
+```python
+docs = db.similarity_search_with_score("country", k=5)
+
+for doc in docs:
+    print(f"{doc[1]:.3f}", ":", doc[0].page_content[:100] + "...")
+```
+
+```text
+0.935 : For that purpose we’ve mobilized American ground forces, air squadrons, and ship deployments to prot...
+0.500 : And built the strongest, freest, and most prosperous nation the world has ever known.
+
+Now is the h...
+0.462 : If you travel 20 miles east of Columbus, Ohio, you’ll find 1,000 empty acres of land.
+
+It won’t loo...
+0.450 : And my report is this: the State of the Union is strong—because you, the American people, are strong...
+0.442 : Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Ac...
+```
+
+## 搜索机制
+
+`similarity_search`使用Weaviate的[混合搜索](https://weaviate.io/developers/weaviate/api/graphql/search-operators#hybrid)。
+
+混合搜索结合向量搜索和关键词搜索，其中`alpha`作为向量搜索的权重。通过`similarity_search`函数可传入额外参数（ kwargs）。详见[此参考文档](https://weaviate.io/developers/weaviate/api/graphql/search-operators#hybrid)了解可用参数。
+
+通过添加`alpha=0`可实现纯关键词搜索：
+
+```python
+docs = db.similarity_search(query, alpha=0)
+docs[0]
+```
+
+```python
+Document(page_content='Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections. \n\nTonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service. \n\nOne of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court. \n\nAnd I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.', metadata={'source': 'state_of_the_union.txt'})
+```
+
+## 持久化
+
+通过`langchain-weaviate`添加的数据将根据配置持久化存储。
+
+例如，WCS实例会配置为永久存储数据，Docker实例可通过挂载卷实现数据持久化。更多详情请参见[Weaviate持久化文档](https://weaviate.io/developers/weaviate/configuration/persistence)。
+
+## 多租户
+
+[多租户](https://weaviate.io/developers/weaviate/concepts/data#multi-tenancy)允许单台Weaviate实例中创建大量隔离的数据集合，这些集合具有相同的集合配置。该特性适用于多用户环境（如构建SaaS应用），其中每个终端用户都将拥有独立的数据集合。
+
+启用多租户时，向量存储需要感知`tenant`参数。
+
+添加任何数据时，需提供`tenant`参数：
+
+```python
+db_with_mt = WeaviateVectorStore.from_documents(
+    docs, embeddings, client=weaviate_client, tenant="Foo"
+)
+```
+
+```text
+2024-Mar-26 03:40 PM - langchain_weaviate.vectorstores - INFO - Tenant Foo does not exist in index LangChain_30b9273d43b3492db4fb2aba2e0d6871. Creating tenant.
+```
+
+执行查询时也需提供`tenant`参数：
+
+```python
+db_with_mt.similarity_search(query, tenant="Foo")
+```
+
+```python
+[Document(page_content='Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections. \n\nTonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service. \n\nOne of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court. \n\nAnd I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.', metadata={'source': 'state_of_the_union.txt'}),
+ Document(page_content='And so many families are living paycheck to paycheck, struggling to keep up with the rising cost of food, gas, housing, and so much more. \n\nI understand. \n\nI remember when my Dad had to leave our home in Scranton, Pennsylvania to find work. I grew up in a family where if the price of food went up, you felt it. \n\nThat’s why one of the first things I did as President was fight to pass the American Rescue Plan.  \n\nBecause people were hurting. We needed to act, and we did. \n\nFew pieces of legislation have done more in a critical moment in our history to lift us out of crisis. \n\nIt fueled our efforts to vaccinate the nation and combat COVID-19. It delivered immediate economic relief for tens of millions of Americans.  \n\nHelped put food on their table, keep a roof over their heads, and cut the cost of health insurance. \n\nAnd as my Dad used to say, it gave people a little breathing room.', metadata={'source': 'state_of_the_union.txt'}),
+ Document(page_content='He and his Dad both have Type 1 diabetes, which means they need insulin every day. Insulin costs about $10 a vial to make.  \n\nBut drug companies charge families like Joshua and his Dad up to 30 times more. I spoke with Joshua’s mom. \n\nImagine what it’s like to look at your child who needs insulin and have no idea how you’re going to pay for it.  \n\nWhat it does to your dignity, your ability to look your child in the eye, to be the parent you expect to be. \n\nJoshua is here with us tonight. Yesterday was his birthday. Happy birthday, buddy.  \n\nFor Joshua, and for the 200,000 other young people with Type 1 diabetes, let’s cap the cost of insulin at $35 a month so everyone can afford it.  \n\nDrug companies will still do very well. And while we’re at it let Medicare negotiate lower prices for prescription drugs, like the VA already does.', metadata={'source': 'state_of_the_union.txt'}),
+ Document(page_content='Putin’s latest attack on Ukraine was premeditated and unprovoked. \n\nHe rejected repeated efforts at diplomacy. \n\nHe thought the West and NATO wouldn’t respond. And he thought he could divide us at home. Putin was wrong. We were ready.  Here is what we did.   \n\nWe prepared extensively and carefully. \n\nWe spent months building a coalition of other freedom-loving nations from Europe and the Americas to Asia and Africa to confront Putin. \n\nI spent countless hours unifying our European allies. We shared with the world in advance what we knew Putin was planning and precisely how he would try to falsely justify his aggression.  \n\nWe countered Russia’s lies with truth.   \n\nAnd now that he has acted the free world is holding him accountable. \n\nAlong with twenty-seven members of the European Union including France, Germany, Italy, as well as countries like the United Kingdom, Canada, Japan, Korea, Australia, New Zealand, and many others, even Switzerland.', metadata={'source': 'state_of_the_union.txt'})]
+```
+
+## 异步使用
+
+`langchain-weaviate`支持Weaviate原生异步客户端。将[`WeaviateAsyncClient`](https://weaviate.io/developers/weaviate/client-libraries/python/async)作为`client_async`参数（与同步的`client`参数一同）时，异步方法（`afrom_texts`、`aadd_texts`、`asimilarity_search`、`asimilarity_search_with_score`、`amax_marginal_relevance_search`及其变体）将直接使用该客户端，而非在线程池中运行同步客户端。
+
+<Note>
+原生异步支持需要`langchain-weaviate` `0.0.8`或更高版本。若未传入`client_async`参数，存储将退化为在执行器中运行同步客户端并记录警告（代码仍可运行但无法获得真正的异步I/O）。
+
+</Note>
+
+与同步的`connect_to_local()`辅助函数不同，`use_async_with_*`辅助函数返回尚未连接的客户端——必须先`await client.connect()`再使用。同步的`client`仍需保留，因其用于集合/方案管理。
+
+```python
+import weaviate
+from langchain_weaviate import WeaviateVectorStore
+
+# Synchronous client (used for schema/collection management)
+weaviate_client = weaviate.connect_to_local()
+
+# Asynchronous client — must be connected explicitly
+weaviate_client_async = weaviate.use_async_with_local()
+await weaviate_client_async.connect()
+
+db = await WeaviateVectorStore.afrom_texts(
+    texts,
+    embeddings,
+    client=weaviate_client,
+    client_async=weaviate_client_async,
+)
+
+results = await db.asimilarity_search(
+    "What did the president say about Ketanji Brown Jackson", k=3
+)
+for doc in results:
+    print(doc.page_content[:100] + "...")
+```
+
+完成操作后需关闭两个客户端以释放连接：
+
+```python
+weaviate_client.close()
+await weaviate_client_async.close()
+```
+
+## 检索器选项
+
+Weaviate也可作为检索器使用
+
+### 最大边际相关性搜索（MMR）
+
+除使用retriever对象中的similaritysearch外，还可使用`mmr`。
+
+```python
+retriever = db.as_retriever(search_type="mmr")
+retriever.invoke(query)[0]
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+```
+
+```python
+Document(page_content='Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections. \n\nTonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service. \n\nOne of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court. \n\nAnd I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.', metadata={'source': 'state_of_the_union.txt'})
+```
+
+# 与LangChain集成
+
+已知大语言模型（LLM）的局限性在于其训练数据可能过时，或缺乏所需领域知识。
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+llm.predict("What did the president say about Justice Breyer")
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/langchain_core/_api/deprecation.py:117: LangChainDeprecationWarning: The class `langchain_community.chat_models.openai.ChatOpenAI` was deprecated in langchain-community 0.0.10 and will be removed in 0.2.0. An updated version of the class exists in the langchain-openai package and should be used instead. To use it run `pip install -U langchain-openai` and import as `from langchain_openai import ChatOpenAI`.
+  warn_deprecated(
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/langchain_core/_api/deprecation.py:117: LangChainDeprecationWarning: The function `predict` was deprecated in LangChain 0.1.7 and will be removed in 0.2.0. Use invoke instead.
+  warn_deprecated(
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+```
+
+```text
+"I'm sorry, I cannot provide real-time information as my responses are generated based on a mixture of licensed data, data created by human trainers, and publicly available data. The last update was in October 2021."
+```
+
+向量存储通过提供存储和检索相关信息的机制，补充大语言模型（LLMs）的能力。这使您能够结合大语言模型和向量存储的优势，通过利用大语言模型的推理和语言能力，结合向量存储检索相关信息的特性。
+
+两个著名的结合大语言模型和向量存储的应用场景是：
+
+- 问题回答
+- 检索增强生成（RAG）
+
+### 问题回答与来源
+
+在LangChain中，通过使用向量存储可以增强问题回答功能。让我们看看如何实现这一点。
+
+本节使用`RetrievalQAWithSourcesChain`，该组件负责从索引中查找文档。
+
+首先，我们将文本再次分块并导入Weaviate向量存储中。
+
+```python
+from langchain_classic.chains import RetrievalQAWithSourcesChain
+from langchain_openai import OpenAI
+```
+
+```python
+with open("state_of_the_union.txt") as f:
+    state_of_the_union = f.read()
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+texts = text_splitter.split_text(state_of_the_union)
+```
+
+```python
+docsearch = WeaviateVectorStore.from_texts(
+    texts,
+    embeddings,
+    client=weaviate_client,
+    metadatas=[{"source": f"{i}-pl"} for i in range(len(texts))],
+)
+```
+
+现在可以指定检索器构建链式流程：
+
+```python
+chain = RetrievalQAWithSourcesChain.from_chain_type(
+    OpenAI(temperature=0), chain_type="stuff", retriever=docsearch.as_retriever()
+)
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/langchain_core/_api/deprecation.py:117: LangChainDeprecationWarning: The class `langchain_community.llms.openai.OpenAI` was deprecated in langchain-community 0.0.10 and will be removed in 0.2.0. An updated version of the class exists in the langchain-openai package and should be used instead. To use it run `pip install -U langchain-openai` and import as `from langchain_openai import OpenAI`.
+  warn_deprecated(
+```
+
+然后运行链式流程以提出问题：
+
+```python
+chain(
+    {"question": "What did the president say about Justice Breyer"},
+    return_only_outputs=True,
+)
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/langchain_core/_api/deprecation.py:117: LangChainDeprecationWarning: The function `__call__` was deprecated in LangChain 0.1.0 and will be removed in 0.2.0. Use invoke instead.
+  warn_deprecated(
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+```
+
+```text
+{'answer': ' The president thanked Justice Stephen Breyer for his service and announced his nomination of Judge Ketanji Brown Jackson to the Supreme Court.\n',
+ 'sources': '31-pl'}
+```
+
+### 检索增强生成
+
+另一个结合大语言模型和向量存储的流行应用是检索增强生成（RAG）。这是一种技术，使用检索器从向量存储中查找相关信息，然后基于检索到的数据和提示词使用大语言模型生成输出。
+
+我们采用类似的初始配置：
+
+```python
+with open("state_of_the_union.txt") as f:
+    state_of_the_union = f.read()
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+texts = text_splitter.split_text(state_of_the_union)
+```
+
+```python
+docsearch = WeaviateVectorStore.from_texts(
+    texts,
+    embeddings,
+    client=weaviate_client,
+    metadatas=[{"source": f"{i}-pl"} for i in range(len(texts))],
+)
+
+retriever = docsearch.as_retriever()
+```
+
+需要为RAG模型构建模板，以便将检索到的信息填充到模板中。
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+
+template = """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.
+Question: {question}
+Context: {context}
+Answer:
+"""
+prompt = ChatPromptTemplate.from_template(template)
+
+print(prompt)
+```
+
+```text
+input_variables=['context', 'question'] messages=[HumanMessagePromptTemplate(prompt=PromptTemplate(input_variables=['context', 'question'], template="You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\nQuestion: {question}\nContext: {context}\nAnswer:\n"))]
+```
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+```
+
+运行单元格后，将得到非常相似的结果。
+
+```python
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+rag_chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+rag_chain.invoke("What did the president say about Justice Breyer")
+```
+
+```text
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+/workspaces/langchain-weaviate/.venv/lib/python3.12/site-packages/pydantic/main.py:1024: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.6/migration/
+  warnings.warn('The `dict` method is deprecated; use `model_dump` instead.', category=PydanticDeprecatedSince20)
+```
+
+```text
+"The president honored Justice Stephen Breyer for his service to the country as an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. The president also mentioned nominating Circuit Court of Appeals Judge Ketanji Brown Jackson to continue Justice Breyer's legacy of excellence. The president expressed gratitude towards Justice Breyer and highlighted the importance of nominating someone to serve on the United States Supreme Court."
+```
+
+请注意，由于模板由您自行构建，您可以按需进行定制。
+
+### 总结与资源
+
+Weaviate是一个可扩展、生产就绪的向量存储。
+
+该集成使Weaviate能够与LangChain结合，通过强大的数据存储增强大语言模型的性能。其可扩展性和生产就绪特性使其成为LangChain应用中非常理想的选择，并能够显著缩短您的生产部署时间。
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/weaviate.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/weaviate.mdx) · 译文由 AI 生成，以英文原文为准。

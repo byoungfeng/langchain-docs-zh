@@ -1,0 +1,113 @@
+---
+title: "Elasticsearch 集成"
+description: "与 Elasticsearch 集成，使用 LangChain Python."
+---
+
+> [Elasticsearch](https://www.elastic.co/elasticsearch/) 是一个分布式、RESTful 搜索和分析引擎。
+> 它提供了一种分布式、多租户支持的全文本搜索引擎，具有 HTTP 网页界面和 schema-free
+> JSON 文档。
+
+## 安装与配置
+
+### Elasticsearch 安装
+
+有两种方式开始使用 Elasticsearch：
+
+#### 在本地机器上安装 Elasticsearch
+
+本地开发测试最便捷的方式是使用 [start-local](https://github.com/elastic/start-local) 脚本。该脚本通过 Docker 用一行简单命令配置 Elasticsearch。
+
+```bash
+curl -fsSL https://elastic.co/start-local | sh
+```
+
+这会创建一个 `elastic-start-local` 文件夹。要启动 Elasticsearch：
+
+```bash
+cd elastic-start-local
+./start.sh
+```
+
+Elasticsearch 将在 `http://localhost:9200` 可用。`elastic` 用户和 API 密钥的自动生成密码将保存在 `.env` 文件中，位于 `elastic-start-local` 文件夹。
+
+如果只需要 Elasticsearch 而不需要 Kibana，可以使用 `--esonly` 选项：
+
+```bash
+curl -fsSL https://elastic.co/start-local | sh -s -- --esonly
+```
+
+<Note>
+本地测试专用的 start-local 配置不应用于生产环境。生产环境安装请参考官方 [Elasticsearch 文档](https://www.elastic.co/guide/en/elasticsearch/reference/current/install-elasticsearch.html)。
+</Note>
+
+#### 在弹性云上部署 Elasticsearch
+
+`Elastic Cloud` 是一个托管 Elasticsearch 服务。注册 [免费试用](https://cloud.elastic.co/registration?utm_source=langchain&utm_content=documentation) 账户。
+
+### 安装客户端
+
+<CodeGroup>
+```bash pip
+pip install elasticsearch
+pip install langchain-elasticsearch
+```
+
+```bash uv
+uv add elasticsearch
+uv add langchain-elasticsearch
+```
+</CodeGroup>
+
+## 嵌入模型
+
+请参考 [使用示例](/langchain/oss/python/integrations/embeddings/elasticsearch)。
+
+```python
+from langchain_elasticsearch import ElasticsearchEmbeddings
+```
+
+## 向量存储
+
+请参考 [使用示例](/langchain/oss/python/integrations/vectorstores/elasticsearch)。
+
+```python
+from langchain_elasticsearch import ElasticsearchStore
+```
+
+## 检索器
+
+### ElasticsearchRetriever
+
+`ElasticsearchRetriever` 允许通过查询 DSL 灵活访问所有 Elasticsearch 功能。
+
+请参考 [使用示例](/langchain/oss/python/integrations/retrievers/elasticsearch_retriever)。
+
+```python
+from langchain_elasticsearch import ElasticsearchRetriever
+```
+
+## LLM 缓存
+
+```python
+from langchain_elasticsearch import ElasticsearchCache
+```
+
+## 字节存储
+
+请参考 [使用示例](/langchain/oss/python/integrations/stores/elasticsearch)。
+
+```python
+from langchain_elasticsearch import ElasticsearchEmbeddingsCache
+```
+
+## 链
+
+这是一个与 Elasticsearch 数据库交互的链。
+
+```python
+from langchain_classic.chains.elasticsearch_database import ElasticsearchDatabaseChain
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/elasticsearch.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/elasticsearch.mdx) · 译文由 AI 生成，以英文原文为准。

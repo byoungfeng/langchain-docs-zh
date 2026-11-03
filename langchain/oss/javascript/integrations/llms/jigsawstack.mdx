@@ -1,0 +1,49 @@
+---
+title: "Jigsawstack 提示引擎集成"
+description: "使用 LangChain JavaScript 与 Jigsawstack prompt engine LLM 集成。"
+integration:
+  name: Jigsawstack prompt engine
+  npm: '@langchain/jigsawstack'
+---
+
+LangChain.js 支持调用 JigsawStack [提示词引擎](https://docs.jigsawstack.com/api-reference/prompt-engine/run-direct) LLMs。
+
+## 安装
+
+- 设置一个 [账户](https://jigsawstack.com/dashboard)（免费开始使用）
+- 创建并获取您的 [API key](https://jigsawstack.com/dashboard)
+
+## 凭证
+
+```bash
+export JIGSAWSTACK_API_KEY="your-api-key"
+```
+
+## 使用
+
+<Tip>
+请参考 [安装 LangChain 包的通用说明部分](/langchain/oss/langchain/install).
+</Tip>
+
+```bash npm
+npm install @langchain/jigsawstack
+```
+```ts
+import { JigsawStackPromptEngine } from "@langchain/jigsawstack";
+
+export const run = async () => {
+  const model = new JigsawStackPromptEngine();
+  const res = await model.invoke(
+    "Tell me about the leaning tower of pisa?\nAnswer:"
+  );
+  console.log({ res });
+};
+```
+
+## 相关
+
+- [模型指南](/langchain/oss/langchain/models)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/llms/jigsawstack.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/llms/jigsawstack.mdx) · 译文由 AI 生成，以英文原文为准。

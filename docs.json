@@ -1,0 +1,1215 @@
+{
+  "name": "AI 开发中文文档",
+  "theme": "mint",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#E5F6F1",
+    "dark": "#086B58"
+  },
+  "description": "自动同步 LangChain 官方文档，提供中文翻译、全文搜索与 AI 友好的 llms.txt。",
+  "metadata": {
+    "timestamp": true
+  },
+  "seo": {
+    "indexing": "navigable"
+  },
+  "redirects": [
+    {
+      "source": "/langchain/oss/contributing",
+      "destination": "/langchain/oss/contributing/overview"
+    },
+    {
+      "source": "/langchain/oss/deepagents",
+      "destination": "/langchain/oss/deepagents/overview"
+    },
+    {
+      "source": "/langchain/oss/deepagents/harness",
+      "destination": "/langchain/oss/deepagents/overview"
+    },
+    {
+      "source": "/langchain/oss/langchain",
+      "destination": "/langchain/oss/langchain/overview"
+    },
+    {
+      "source": "/langchain/oss/langchain/middleware",
+      "destination": "/langchain/oss/langchain/middleware/overview"
+    },
+    {
+      "source": "/langchain/oss/langgraph",
+      "destination": "/langchain/oss/langgraph/overview"
+    },
+    {
+      "source": "/langchain/oss/migrate/langchain-v1",
+      "destination": "/langchain/oss/python/migrate/langchain-v1"
+    },
+    {
+      "source": "/langchain/oss/migrate/langchain-mcp-adapters",
+      "destination": "/langchain/oss/python/migrate/langchain-mcp-adapters"
+    }
+  ],
+  "$schema": "https://mintlify.com/schema.json",
+  "navigation": {
+    "groups": [
+      {
+        "group": "首页",
+        "pages": [
+          "index"
+        ]
+      },
+      {
+        "group": "开源框架",
+        "pages": [
+          "langchain/oss/common-errors",
+          "langchain/oss/learn",
+          "langchain/oss/release-policy",
+          "langchain/oss/security-policy",
+          "langchain/oss/versioning"
+        ]
+      },
+      {
+        "group": "开源框架 · Deep Agents",
+        "pages": [
+          "langchain/oss/deepagents/a2a",
+          "langchain/oss/deepagents/acp",
+          "langchain/oss/deepagents/ag-ui",
+          "langchain/oss/deepagents/async-subagents",
+          "langchain/oss/deepagents/backends",
+          "langchain/oss/deepagents/browser-use",
+          "langchain/oss/deepagents/changelog-js",
+          "langchain/oss/deepagents/changelog-py",
+          "langchain/oss/deepagents/comparison",
+          "langchain/oss/deepagents/content-builder",
+          "langchain/oss/deepagents/context-engineering",
+          "langchain/oss/deepagents/customization",
+          "langchain/oss/deepagents/data-analysis",
+          "langchain/oss/deepagents/deep-research",
+          "langchain/oss/deepagents/dynamic-subagents",
+          "langchain/oss/deepagents/event-streaming",
+          "langchain/oss/deepagents/fault-tolerance",
+          "langchain/oss/deepagents/going-to-production",
+          "langchain/oss/deepagents/human-in-the-loop",
+          "langchain/oss/deepagents/interpreters",
+          "langchain/oss/deepagents/mcp",
+          "langchain/oss/deepagents/memory",
+          "langchain/oss/deepagents/models",
+          "langchain/oss/deepagents/multimodal",
+          "langchain/oss/deepagents/openwiki",
+          "langchain/oss/deepagents/overview",
+          "langchain/oss/deepagents/permissions",
+          "langchain/oss/deepagents/profiles",
+          "langchain/oss/deepagents/quickstart",
+          "langchain/oss/deepagents/rag",
+          "langchain/oss/deepagents/retrieval",
+          "langchain/oss/deepagents/rubric",
+          "langchain/oss/deepagents/sandboxes",
+          "langchain/oss/deepagents/skills",
+          "langchain/oss/deepagents/streaming",
+          "langchain/oss/deepagents/subagents",
+          "langchain/oss/deepagents/tools"
+        ]
+      },
+      {
+        "group": "开源框架 · Deep Agents · code",
+        "pages": [
+          "langchain/oss/deepagents/code/approval-modes",
+          "langchain/oss/deepagents/code/changelog",
+          "langchain/oss/deepagents/code/cli-reference",
+          "langchain/oss/deepagents/code/config-file",
+          "langchain/oss/deepagents/code/configuration",
+          "langchain/oss/deepagents/code/credentials",
+          "langchain/oss/deepagents/code/extensions",
+          "langchain/oss/deepagents/code/goals-and-rubrics",
+          "langchain/oss/deepagents/code/hooks",
+          "langchain/oss/deepagents/code/mcp-tools",
+          "langchain/oss/deepagents/code/memory-and-skills",
+          "langchain/oss/deepagents/code/overview",
+          "langchain/oss/deepagents/code/plugins",
+          "langchain/oss/deepagents/code/providers",
+          "langchain/oss/deepagents/code/quickstart",
+          "langchain/oss/deepagents/code/remote-sandboxes",
+          "langchain/oss/deepagents/code/subagents"
+        ]
+      },
+      {
+        "group": "开源框架 · Deep Agents · 前端",
+        "pages": [
+          "langchain/oss/deepagents/frontend/overview",
+          "langchain/oss/deepagents/frontend/sandbox",
+          "langchain/oss/deepagents/frontend/subagent-streaming",
+          "langchain/oss/deepagents/frontend/todo-list"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK",
+        "pages": [
+          "langchain/oss/javascript/studio"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · LangChain 核心",
+        "pages": [
+          "langchain/oss/javascript/langchain/mcp-v1"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 版本发布",
+        "pages": [
+          "langchain/oss/javascript/releases/changelog",
+          "langchain/oss/javascript/releases/langchain-v1",
+          "langchain/oss/javascript/releases/langgraph-v1"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 迁移指南",
+        "pages": [
+          "langchain/oss/javascript/migrate/langchain-mcp-adapters",
+          "langchain/oss/javascript/migrate/langchain-v1",
+          "langchain/oss/javascript/migrate/langgraph-v1"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · chains",
+        "pages": [
+          "langchain/oss/javascript/integrations/chains/sap_hana_sparql_qa_chain"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · chat",
+        "pages": [
+          "langchain/oss/javascript/integrations/chat/TEMPLATE",
+          "langchain/oss/javascript/integrations/chat/anthropic",
+          "langchain/oss/javascript/integrations/chat/azure",
+          "langchain/oss/javascript/integrations/chat/baidu_qianfan",
+          "langchain/oss/javascript/integrations/chat/bedrock_converse",
+          "langchain/oss/javascript/integrations/chat/cerebras",
+          "langchain/oss/javascript/integrations/chat/cloudflare_workersai",
+          "langchain/oss/javascript/integrations/chat/cohere",
+          "langchain/oss/javascript/integrations/chat/deepseek",
+          "langchain/oss/javascript/integrations/chat/fake",
+          "langchain/oss/javascript/integrations/chat/fireworks",
+          "langchain/oss/javascript/integrations/chat/google",
+          "langchain/oss/javascript/integrations/chat/google_generative_ai",
+          "langchain/oss/javascript/integrations/chat/google_vertex_ai",
+          "langchain/oss/javascript/integrations/chat/groq",
+          "langchain/oss/javascript/integrations/chat/ibm",
+          "langchain/oss/javascript/integrations/chat/index",
+          "langchain/oss/javascript/integrations/chat/mistral",
+          "langchain/oss/javascript/integrations/chat/ollama",
+          "langchain/oss/javascript/integrations/chat/openai",
+          "langchain/oss/javascript/integrations/chat/openrouter",
+          "langchain/oss/javascript/integrations/chat/perplexity",
+          "langchain/oss/javascript/integrations/chat/togetherai",
+          "langchain/oss/javascript/integrations/chat/xai",
+          "langchain/oss/javascript/integrations/chat/yandex"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · decision_models",
+        "pages": [
+          "langchain/oss/javascript/integrations/decision_models/openai"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · document_compressors",
+        "pages": [
+          "langchain/oss/javascript/integrations/document_compressors/cohere_rerank",
+          "langchain/oss/javascript/integrations/document_compressors/ibm",
+          "langchain/oss/javascript/integrations/document_compressors/mixedbread_ai"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · document_loaders",
+        "pages": [
+          "langchain/oss/javascript/integrations/document_loaders/index"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · document_loaders · file_loaders",
+        "pages": [
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/directory",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/index",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/json",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/jsonlines",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/multi_file",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/oracleai",
+          "langchain/oss/javascript/integrations/document_loaders/file_loaders/text"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · document_loaders · web_loaders",
+        "pages": [
+          "langchain/oss/javascript/integrations/document_loaders/web_loaders/google_cloudsql_pg",
+          "langchain/oss/javascript/integrations/document_loaders/web_loaders/index",
+          "langchain/oss/javascript/integrations/document_loaders/web_loaders/langsmith",
+          "langchain/oss/javascript/integrations/document_loaders/web_loaders/soniox"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · document_transformers",
+        "pages": [
+          "langchain/oss/javascript/integrations/document_transformers/index",
+          "langchain/oss/javascript/integrations/document_transformers/openai_metadata_tagger"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · embeddings",
+        "pages": [
+          "langchain/oss/javascript/integrations/embeddings/TEMPLATE",
+          "langchain/oss/javascript/integrations/embeddings/azure_openai",
+          "langchain/oss/javascript/integrations/embeddings/baidu_qianfan",
+          "langchain/oss/javascript/integrations/embeddings/bedrock",
+          "langchain/oss/javascript/integrations/embeddings/cloudflare_ai",
+          "langchain/oss/javascript/integrations/embeddings/cohere",
+          "langchain/oss/javascript/integrations/embeddings/fireworks",
+          "langchain/oss/javascript/integrations/embeddings/google_generative_ai",
+          "langchain/oss/javascript/integrations/embeddings/google_vertex_ai",
+          "langchain/oss/javascript/integrations/embeddings/ibm",
+          "langchain/oss/javascript/integrations/embeddings/index",
+          "langchain/oss/javascript/integrations/embeddings/minimax",
+          "langchain/oss/javascript/integrations/embeddings/mistralai",
+          "langchain/oss/javascript/integrations/embeddings/mixedbread_ai",
+          "langchain/oss/javascript/integrations/embeddings/nomic",
+          "langchain/oss/javascript/integrations/embeddings/ollama",
+          "langchain/oss/javascript/integrations/embeddings/openai",
+          "langchain/oss/javascript/integrations/embeddings/oracleai",
+          "langchain/oss/javascript/integrations/embeddings/pinecone",
+          "langchain/oss/javascript/integrations/embeddings/togetherai",
+          "langchain/oss/javascript/integrations/embeddings/voyageai"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · graphs",
+        "pages": [
+          "langchain/oss/javascript/integrations/graphs/sap_hana_rdf_graph"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · llm_caching",
+        "pages": [
+          "langchain/oss/javascript/integrations/llm_caching/azure_cosmosdb_nosql",
+          "langchain/oss/javascript/integrations/llm_caching/index"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · llms",
+        "pages": [
+          "langchain/oss/javascript/integrations/llms/azure",
+          "langchain/oss/javascript/integrations/llms/cloudflare_workersai",
+          "langchain/oss/javascript/integrations/llms/cohere",
+          "langchain/oss/javascript/integrations/llms/fireworks",
+          "langchain/oss/javascript/integrations/llms/google_vertex_ai",
+          "langchain/oss/javascript/integrations/llms/ibm",
+          "langchain/oss/javascript/integrations/llms/index",
+          "langchain/oss/javascript/integrations/llms/jigsawstack",
+          "langchain/oss/javascript/integrations/llms/mistral",
+          "langchain/oss/javascript/integrations/llms/ollama",
+          "langchain/oss/javascript/integrations/llms/openai",
+          "langchain/oss/javascript/integrations/llms/together",
+          "langchain/oss/javascript/integrations/llms/yandex"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · retrievers",
+        "pages": [
+          "langchain/oss/javascript/integrations/retrievers/TEMPLATE",
+          "langchain/oss/javascript/integrations/retrievers/bedrock-knowledge-bases",
+          "langchain/oss/javascript/integrations/retrievers/exa",
+          "langchain/oss/javascript/integrations/retrievers/hyde",
+          "langchain/oss/javascript/integrations/retrievers/index",
+          "langchain/oss/javascript/integrations/retrievers/kendra-retriever",
+          "langchain/oss/javascript/integrations/retrievers/perplexity_search",
+          "langchain/oss/javascript/integrations/retrievers/sourcey",
+          "langchain/oss/javascript/integrations/retrievers/time-weighted-retriever"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · retrievers · self_query",
+        "pages": [
+          "langchain/oss/javascript/integrations/retrievers/self_query/hanavector_self_query"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · sandboxes",
+        "pages": [
+          "langchain/oss/javascript/integrations/sandboxes/index"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · stores",
+        "pages": [
+          "langchain/oss/javascript/integrations/stores/file_system",
+          "langchain/oss/javascript/integrations/stores/in_memory",
+          "langchain/oss/javascript/integrations/stores/index"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · vectorstores",
+        "pages": [
+          "langchain/oss/javascript/integrations/vectorstores/TEMPLATE",
+          "langchain/oss/javascript/integrations/vectorstores/azure_cosmosdb_mongodb",
+          "langchain/oss/javascript/integrations/vectorstores/azure_cosmosdb_nosql",
+          "langchain/oss/javascript/integrations/vectorstores/azure_documentdb",
+          "langchain/oss/javascript/integrations/vectorstores/cloudflare_vectorize",
+          "langchain/oss/javascript/integrations/vectorstores/google_cloudsql_pg",
+          "langchain/oss/javascript/integrations/vectorstores/index",
+          "langchain/oss/javascript/integrations/vectorstores/memory",
+          "langchain/oss/javascript/integrations/vectorstores/mongodb_atlas",
+          "langchain/oss/javascript/integrations/vectorstores/neo4jvector",
+          "langchain/oss/javascript/integrations/vectorstores/oracleai",
+          "langchain/oss/javascript/integrations/vectorstores/pgvector",
+          "langchain/oss/javascript/integrations/vectorstores/pinecone",
+          "langchain/oss/javascript/integrations/vectorstores/qdrant",
+          "langchain/oss/javascript/integrations/vectorstores/redis",
+          "langchain/oss/javascript/integrations/vectorstores/sap_hanavector",
+          "langchain/oss/javascript/integrations/vectorstores/turbopuffer",
+          "langchain/oss/javascript/integrations/vectorstores/weaviate",
+          "langchain/oss/javascript/integrations/vectorstores/ydb"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 中间件",
+        "pages": [
+          "langchain/oss/javascript/integrations/middleware/anthropic",
+          "langchain/oss/javascript/integrations/middleware/aws",
+          "langchain/oss/javascript/integrations/middleware/index"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 工具",
+        "pages": [
+          "langchain/oss/javascript/integrations/tools/TEMPLATE",
+          "langchain/oss/javascript/integrations/tools/anthropic",
+          "langchain/oss/javascript/integrations/tools/azure_dynamic_sessions",
+          "langchain/oss/javascript/integrations/tools/clicksend",
+          "langchain/oss/javascript/integrations/tools/composio",
+          "langchain/oss/javascript/integrations/tools/dalle",
+          "langchain/oss/javascript/integrations/tools/decodo",
+          "langchain/oss/javascript/integrations/tools/exa_search",
+          "langchain/oss/javascript/integrations/tools/falkordb",
+          "langchain/oss/javascript/integrations/tools/google",
+          "langchain/oss/javascript/integrations/tools/ibm",
+          "langchain/oss/javascript/integrations/tools/index",
+          "langchain/oss/javascript/integrations/tools/jigsawstack",
+          "langchain/oss/javascript/integrations/tools/json",
+          "langchain/oss/javascript/integrations/tools/lambda_agent",
+          "langchain/oss/javascript/integrations/tools/mcp_toolbox",
+          "langchain/oss/javascript/integrations/tools/nia",
+          "langchain/oss/javascript/integrations/tools/openai",
+          "langchain/oss/javascript/integrations/tools/openapi",
+          "langchain/oss/javascript/integrations/tools/oracleai",
+          "langchain/oss/javascript/integrations/tools/perplexity_search",
+          "langchain/oss/javascript/integrations/tools/sql",
+          "langchain/oss/javascript/integrations/tools/tavily_crawl",
+          "langchain/oss/javascript/integrations/tools/tavily_extract",
+          "langchain/oss/javascript/integrations/tools/tavily_get_research",
+          "langchain/oss/javascript/integrations/tools/tavily_map",
+          "langchain/oss/javascript/integrations/tools/tavily_research",
+          "langchain/oss/javascript/integrations/tools/tavily_search",
+          "langchain/oss/javascript/integrations/tools/vectorstore",
+          "langchain/oss/javascript/integrations/tools/webbrowser"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 智能体",
+        "pages": [
+          "langchain/oss/javascript/integrations/agents/sap_hana_sparql_qa_agent"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 模型供应商",
+        "pages": [
+          "langchain/oss/javascript/integrations/providers/all_providers",
+          "langchain/oss/javascript/integrations/providers/anthropic",
+          "langchain/oss/javascript/integrations/providers/aws",
+          "langchain/oss/javascript/integrations/providers/daytona",
+          "langchain/oss/javascript/integrations/providers/deno",
+          "langchain/oss/javascript/integrations/providers/google",
+          "langchain/oss/javascript/integrations/providers/microsoft",
+          "langchain/oss/javascript/integrations/providers/modal",
+          "langchain/oss/javascript/integrations/providers/node-vfs",
+          "langchain/oss/javascript/integrations/providers/openai",
+          "langchain/oss/javascript/integrations/providers/openrouter",
+          "langchain/oss/javascript/integrations/providers/overview",
+          "langchain/oss/javascript/integrations/providers/perplexity",
+          "langchain/oss/javascript/integrations/providers/sap",
+          "langchain/oss/javascript/integrations/providers/sourcey",
+          "langchain/oss/javascript/integrations/providers/supadata",
+          "langchain/oss/javascript/integrations/providers/tavily",
+          "langchain/oss/javascript/integrations/providers/typesafe"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 记忆",
+        "pages": [
+          "langchain/oss/javascript/integrations/memory/index",
+          "langchain/oss/javascript/integrations/memory/mongodb-long-term-memory",
+          "langchain/oss/javascript/integrations/memory/mongodb-short-term-memory"
+        ]
+      },
+      {
+        "group": "开源框架 · JavaScript SDK · 集成 · 长期记忆",
+        "pages": [
+          "langchain/oss/javascript/integrations/long-term-memory/index"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心",
+        "pages": [
+          "langchain/oss/langchain/academy",
+          "langchain/oss/langchain/agents",
+          "langchain/oss/langchain/changelog-js",
+          "langchain/oss/langchain/changelog-py",
+          "langchain/oss/langchain/component-architecture",
+          "langchain/oss/langchain/context-engineering",
+          "langchain/oss/langchain/deep-agent-from-scratch",
+          "langchain/oss/langchain/deploy",
+          "langchain/oss/langchain/event-streaming",
+          "langchain/oss/langchain/get-help",
+          "langchain/oss/langchain/guardrails",
+          "langchain/oss/langchain/human-in-the-loop",
+          "langchain/oss/langchain/install",
+          "langchain/oss/langchain/knowledge-base",
+          "langchain/oss/langchain/long-term-memory",
+          "langchain/oss/langchain/messages",
+          "langchain/oss/langchain/models",
+          "langchain/oss/langchain/observability",
+          "langchain/oss/langchain/overview",
+          "langchain/oss/langchain/philosophy",
+          "langchain/oss/langchain/quickstart",
+          "langchain/oss/langchain/retrieval",
+          "langchain/oss/langchain/runtime",
+          "langchain/oss/langchain/short-term-memory",
+          "langchain/oss/langchain/sql-agent",
+          "langchain/oss/langchain/streaming",
+          "langchain/oss/langchain/structured-output",
+          "langchain/oss/langchain/studio",
+          "langchain/oss/langchain/tools",
+          "langchain/oss/langchain/ui",
+          "langchain/oss/langchain/voice-agent"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · MCP",
+        "pages": [
+          "langchain/oss/langchain/mcp/auth",
+          "langchain/oss/langchain/mcp/connections",
+          "langchain/oss/langchain/mcp/index",
+          "langchain/oss/langchain/mcp/tools"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 中间件",
+        "pages": [
+          "langchain/oss/langchain/middleware/built-in",
+          "langchain/oss/langchain/middleware/custom",
+          "langchain/oss/langchain/middleware/overview"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 前端",
+        "pages": [
+          "langchain/oss/langchain/frontend/branching-chat",
+          "langchain/oss/langchain/frontend/controlled-generative-ui",
+          "langchain/oss/langchain/frontend/declarative-generative-ui",
+          "langchain/oss/langchain/frontend/generative-ui-overview",
+          "langchain/oss/langchain/frontend/headless-tools",
+          "langchain/oss/langchain/frontend/human-in-the-loop",
+          "langchain/oss/langchain/frontend/join-rejoin",
+          "langchain/oss/langchain/frontend/markdown-messages",
+          "langchain/oss/langchain/frontend/message-queues",
+          "langchain/oss/langchain/frontend/open-ended-generative-ui",
+          "langchain/oss/langchain/frontend/overview",
+          "langchain/oss/langchain/frontend/reasoning-tokens",
+          "langchain/oss/langchain/frontend/structured-output",
+          "langchain/oss/langchain/frontend/time-travel",
+          "langchain/oss/langchain/frontend/tool-calling"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 前端 · 集成",
+        "pages": [
+          "langchain/oss/langchain/frontend/integrations/ai-elements",
+          "langchain/oss/langchain/frontend/integrations/assistant-ui",
+          "langchain/oss/langchain/frontend/integrations/copilotkit",
+          "langchain/oss/langchain/frontend/integrations/openui",
+          "langchain/oss/langchain/frontend/integrations/overview"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 多智能体",
+        "pages": [
+          "langchain/oss/langchain/multi-agent/custom-workflow",
+          "langchain/oss/langchain/multi-agent/handoffs",
+          "langchain/oss/langchain/multi-agent/handoffs-customer-support",
+          "langchain/oss/langchain/multi-agent/index",
+          "langchain/oss/langchain/multi-agent/router",
+          "langchain/oss/langchain/multi-agent/router-knowledge-base",
+          "langchain/oss/langchain/multi-agent/skills",
+          "langchain/oss/langchain/multi-agent/skills-sql-assistant",
+          "langchain/oss/langchain/multi-agent/subagents",
+          "langchain/oss/langchain/multi-agent/subagents-personal-assistant"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 测试",
+        "pages": [
+          "langchain/oss/langchain/test/evals",
+          "langchain/oss/langchain/test/index",
+          "langchain/oss/langchain/test/integration-testing",
+          "langchain/oss/langchain/test/unit-testing"
+        ]
+      },
+      {
+        "group": "开源框架 · LangChain 核心 · 疑难解答",
+        "pages": [
+          "langchain/oss/langchain/errors/INVALID_PROMPT_INPUT",
+          "langchain/oss/langchain/errors/INVALID_TOOL_RESULTS",
+          "langchain/oss/langchain/errors/MESSAGE_COERCION_FAILURE",
+          "langchain/oss/langchain/errors/MODEL_AUTHENTICATION",
+          "langchain/oss/langchain/errors/MODEL_NOT_FOUND",
+          "langchain/oss/langchain/errors/MODEL_RATE_LIMIT",
+          "langchain/oss/langchain/errors/OUTPUT_PARSING_FAILURE"
+        ]
+      },
+      {
+        "group": "开源框架 · LangGraph",
+        "pages": [
+          "langchain/oss/langgraph/add-memory",
+          "langchain/oss/langgraph/agentic-rag",
+          "langchain/oss/langgraph/application-structure",
+          "langchain/oss/langgraph/backward-compatibility",
+          "langchain/oss/langgraph/case-studies",
+          "langchain/oss/langgraph/changelog-js",
+          "langchain/oss/langgraph/changelog-py",
+          "langchain/oss/langgraph/checkpointers",
+          "langchain/oss/langgraph/choosing-apis",
+          "langchain/oss/langgraph/deploy",
+          "langchain/oss/langgraph/event-streaming",
+          "langchain/oss/langgraph/fault-tolerance",
+          "langchain/oss/langgraph/functional-api",
+          "langchain/oss/langgraph/graph-api",
+          "langchain/oss/langgraph/install",
+          "langchain/oss/langgraph/interrupts",
+          "langchain/oss/langgraph/local-server",
+          "langchain/oss/langgraph/observability",
+          "langchain/oss/langgraph/overview",
+          "langchain/oss/langgraph/persistence",
+          "langchain/oss/langgraph/pregel",
+          "langchain/oss/langgraph/quickstart",
+          "langchain/oss/langgraph/sql-agent",
+          "langchain/oss/langgraph/stores",
+          "langchain/oss/langgraph/streaming",
+          "langchain/oss/langgraph/studio",
+          "langchain/oss/langgraph/test",
+          "langchain/oss/langgraph/thinking-in-langgraph",
+          "langchain/oss/langgraph/ui",
+          "langchain/oss/langgraph/use-functional-api",
+          "langchain/oss/langgraph/use-graph-api",
+          "langchain/oss/langgraph/use-subgraphs",
+          "langchain/oss/langgraph/use-time-travel",
+          "langchain/oss/langgraph/workflows-agents"
+        ]
+      },
+      {
+        "group": "开源框架 · LangGraph · 前端",
+        "pages": [
+          "langchain/oss/langgraph/frontend/custom-stream-channels",
+          "langchain/oss/langgraph/frontend/graph-execution",
+          "langchain/oss/langgraph/frontend/overview"
+        ]
+      },
+      {
+        "group": "开源框架 · LangGraph · 疑难解答",
+        "pages": [
+          "langchain/oss/langgraph/errors/GRAPH_RECURSION_LIMIT",
+          "langchain/oss/langgraph/errors/INVALID_CHAT_HISTORY",
+          "langchain/oss/langgraph/errors/INVALID_CONCURRENT_GRAPH_UPDATE",
+          "langchain/oss/langgraph/errors/INVALID_GRAPH_NODE_RETURN_VALUE",
+          "langchain/oss/langgraph/errors/MISSING_CHECKPOINTER",
+          "langchain/oss/langgraph/errors/MULTIPLE_SUBGRAPHS"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK",
+        "pages": [
+          "langchain/oss/python/studio"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 版本发布",
+        "pages": [
+          "langchain/oss/python/releases/changelog",
+          "langchain/oss/python/releases/langchain-v1",
+          "langchain/oss/python/releases/langgraph-v1"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 迁移指南",
+        "pages": [
+          "langchain/oss/python/migrate/langchain-mcp-adapters",
+          "langchain/oss/python/migrate/langchain-v1",
+          "langchain/oss/python/migrate/langgraph-supervisor",
+          "langchain/oss/python/migrate/langgraph-v1"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · caches",
+        "pages": [
+          "langchain/oss/python/integrations/caches/redis_llm_caching"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · callbacks",
+        "pages": [
+          "langchain/oss/python/integrations/callbacks/agentsystems_notary",
+          "langchain/oss/python/integrations/callbacks/google_bigquery",
+          "langchain/oss/python/integrations/callbacks/openinference"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · chains",
+        "pages": [
+          "langchain/oss/python/integrations/chains/sap_hana_sparql_qa_chain"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · chat",
+        "pages": [
+          "langchain/oss/python/integrations/chat/TEMPLATE",
+          "langchain/oss/python/integrations/chat/amazon_nova",
+          "langchain/oss/python/integrations/chat/anthropic",
+          "langchain/oss/python/integrations/chat/anthropic_functions",
+          "langchain/oss/python/integrations/chat/azure_ai",
+          "langchain/oss/python/integrations/chat/azure_chat_openai",
+          "langchain/oss/python/integrations/chat/baseten",
+          "langchain/oss/python/integrations/chat/bedrock",
+          "langchain/oss/python/integrations/chat/cerebras",
+          "langchain/oss/python/integrations/chat/cohere",
+          "langchain/oss/python/integrations/chat/crusoe",
+          "langchain/oss/python/integrations/chat/databricks",
+          "langchain/oss/python/integrations/chat/deepseek",
+          "langchain/oss/python/integrations/chat/fireworks",
+          "langchain/oss/python/integrations/chat/google_anthropic_vertex",
+          "langchain/oss/python/integrations/chat/google_generative_ai",
+          "langchain/oss/python/integrations/chat/google_vertex_ai",
+          "langchain/oss/python/integrations/chat/groq",
+          "langchain/oss/python/integrations/chat/huggingface",
+          "langchain/oss/python/integrations/chat/ibm_watsonx",
+          "langchain/oss/python/integrations/chat/index",
+          "langchain/oss/python/integrations/chat/litellm",
+          "langchain/oss/python/integrations/chat/mistralai",
+          "langchain/oss/python/integrations/chat/nvidia_ai_endpoints",
+          "langchain/oss/python/integrations/chat/oci_data_science",
+          "langchain/oss/python/integrations/chat/oci_generative_ai",
+          "langchain/oss/python/integrations/chat/ollama",
+          "langchain/oss/python/integrations/chat/openai",
+          "langchain/oss/python/integrations/chat/openrouter",
+          "langchain/oss/python/integrations/chat/parallel",
+          "langchain/oss/python/integrations/chat/perplexity",
+          "langchain/oss/python/integrations/chat/qwen",
+          "langchain/oss/python/integrations/chat/qwq",
+          "langchain/oss/python/integrations/chat/sambanova",
+          "langchain/oss/python/integrations/chat/together",
+          "langchain/oss/python/integrations/chat/upstage",
+          "langchain/oss/python/integrations/chat/vllm",
+          "langchain/oss/python/integrations/chat/xai"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · chat_message_histories",
+        "pages": [
+          "langchain/oss/python/integrations/chat_message_histories/cockroachdb"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · checkpointers",
+        "pages": [
+          "langchain/oss/python/integrations/checkpointers/index"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · decision_models",
+        "pages": [
+          "langchain/oss/python/integrations/decision_models/openai"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · document_loaders",
+        "pages": [
+          "langchain/oss/python/integrations/document_loaders/astradb",
+          "langchain/oss/python/integrations/document_loaders/azure_blob_storage",
+          "langchain/oss/python/integrations/document_loaders/docling",
+          "langchain/oss/python/integrations/document_loaders/docugami",
+          "langchain/oss/python/integrations/document_loaders/google_alloydb",
+          "langchain/oss/python/integrations/document_loaders/google_bigquery",
+          "langchain/oss/python/integrations/document_loaders/google_bigtable",
+          "langchain/oss/python/integrations/document_loaders/google_classroom",
+          "langchain/oss/python/integrations/document_loaders/google_cloud_sql_mssql",
+          "langchain/oss/python/integrations/document_loaders/google_cloud_sql_mysql",
+          "langchain/oss/python/integrations/document_loaders/google_cloud_storage_directory",
+          "langchain/oss/python/integrations/document_loaders/google_cloud_storage_file",
+          "langchain/oss/python/integrations/document_loaders/google_datastore",
+          "langchain/oss/python/integrations/document_loaders/google_drive",
+          "langchain/oss/python/integrations/document_loaders/google_firestore",
+          "langchain/oss/python/integrations/document_loaders/google_memorystore_redis",
+          "langchain/oss/python/integrations/document_loaders/google_spanner",
+          "langchain/oss/python/integrations/document_loaders/google_speech_to_text",
+          "langchain/oss/python/integrations/document_loaders/index",
+          "langchain/oss/python/integrations/document_loaders/langsmith",
+          "langchain/oss/python/integrations/document_loaders/oracleadb_loader",
+          "langchain/oss/python/integrations/document_loaders/oracleai",
+          "langchain/oss/python/integrations/document_loaders/powerscale",
+          "langchain/oss/python/integrations/document_loaders/unstructured_file",
+          "langchain/oss/python/integrations/document_loaders/upstage"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · document_loaders · example_data",
+        "pages": [
+          "langchain/oss/python/integrations/document_loaders/example_data/example"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · document_transformers",
+        "pages": [
+          "langchain/oss/python/integrations/document_transformers/ai21_semantic_text_splitter",
+          "langchain/oss/python/integrations/document_transformers/cross_encoder_reranker",
+          "langchain/oss/python/integrations/document_transformers/google_cloud_vertexai_rerank",
+          "langchain/oss/python/integrations/document_transformers/google_docai",
+          "langchain/oss/python/integrations/document_transformers/google_translate",
+          "langchain/oss/python/integrations/document_transformers/localai_rerank",
+          "langchain/oss/python/integrations/document_transformers/voyageai-reranker"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · embeddings",
+        "pages": [
+          "langchain/oss/python/integrations/embeddings/TEMPLATE",
+          "langchain/oss/python/integrations/embeddings/azure_openai",
+          "langchain/oss/python/integrations/embeddings/baseten",
+          "langchain/oss/python/integrations/embeddings/bedrock",
+          "langchain/oss/python/integrations/embeddings/bge_huggingface",
+          "langchain/oss/python/integrations/embeddings/cohere",
+          "langchain/oss/python/integrations/embeddings/databricks",
+          "langchain/oss/python/integrations/embeddings/elasticsearch",
+          "langchain/oss/python/integrations/embeddings/fireworks",
+          "langchain/oss/python/integrations/embeddings/google_generative_ai",
+          "langchain/oss/python/integrations/embeddings/google_vertex_ai",
+          "langchain/oss/python/integrations/embeddings/huggingfacehub",
+          "langchain/oss/python/integrations/embeddings/ibm_watsonx",
+          "langchain/oss/python/integrations/embeddings/index",
+          "langchain/oss/python/integrations/embeddings/instruct_embeddings",
+          "langchain/oss/python/integrations/embeddings/mistralai",
+          "langchain/oss/python/integrations/embeddings/nvidia_ai_endpoints",
+          "langchain/oss/python/integrations/embeddings/oci_generative_ai",
+          "langchain/oss/python/integrations/embeddings/ollama",
+          "langchain/oss/python/integrations/embeddings/openai",
+          "langchain/oss/python/integrations/embeddings/oracleai",
+          "langchain/oss/python/integrations/embeddings/perplexity",
+          "langchain/oss/python/integrations/embeddings/pinecone",
+          "langchain/oss/python/integrations/embeddings/sambanova",
+          "langchain/oss/python/integrations/embeddings/sentence_transformers",
+          "langchain/oss/python/integrations/embeddings/text_embeddings_inference",
+          "langchain/oss/python/integrations/embeddings/together",
+          "langchain/oss/python/integrations/embeddings/upstage",
+          "langchain/oss/python/integrations/embeddings/voyageai"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · graphs",
+        "pages": [
+          "langchain/oss/python/integrations/graphs/amazon_neptune_open_cypher",
+          "langchain/oss/python/integrations/graphs/kuzu_db",
+          "langchain/oss/python/integrations/graphs/memgraph",
+          "langchain/oss/python/integrations/graphs/neo4j_cypher",
+          "langchain/oss/python/integrations/graphs/sap_hana_rdf_graph",
+          "langchain/oss/python/integrations/graphs/timbr"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · llms",
+        "pages": [
+          "langchain/oss/python/integrations/llms/ai21",
+          "langchain/oss/python/integrations/llms/aimlapi",
+          "langchain/oss/python/integrations/llms/anthropic",
+          "langchain/oss/python/integrations/llms/azure_openai",
+          "langchain/oss/python/integrations/llms/bedrock",
+          "langchain/oss/python/integrations/llms/cohere",
+          "langchain/oss/python/integrations/llms/google_generative_ai",
+          "langchain/oss/python/integrations/llms/google_vertex_ai",
+          "langchain/oss/python/integrations/llms/huggingface_endpoint",
+          "langchain/oss/python/integrations/llms/huggingface_pipelines",
+          "langchain/oss/python/integrations/llms/ibm_watsonx",
+          "langchain/oss/python/integrations/llms/modelscope_endpoint",
+          "langchain/oss/python/integrations/llms/nvidia_ai_endpoints",
+          "langchain/oss/python/integrations/llms/ollama",
+          "langchain/oss/python/integrations/llms/openai",
+          "langchain/oss/python/integrations/llms/openvino",
+          "langchain/oss/python/integrations/llms/pipeshift",
+          "langchain/oss/python/integrations/llms/predictionguard",
+          "langchain/oss/python/integrations/llms/sagemaker",
+          "langchain/oss/python/integrations/llms/together"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · retrievers",
+        "pages": [
+          "langchain/oss/python/integrations/retrievers/TEMPLATE",
+          "langchain/oss/python/integrations/retrievers/bedrock",
+          "langchain/oss/python/integrations/retrievers/box",
+          "langchain/oss/python/integrations/retrievers/cohere",
+          "langchain/oss/python/integrations/retrievers/cohere-reranker",
+          "langchain/oss/python/integrations/retrievers/egnyte",
+          "langchain/oss/python/integrations/retrievers/elasticsearch_retriever",
+          "langchain/oss/python/integrations/retrievers/google_drive",
+          "langchain/oss/python/integrations/retrievers/google_vertex_ai_search",
+          "langchain/oss/python/integrations/retrievers/graph_rag",
+          "langchain/oss/python/integrations/retrievers/ibm_watsonx_ranker",
+          "langchain/oss/python/integrations/retrievers/index",
+          "langchain/oss/python/integrations/retrievers/mongodb_atlas",
+          "langchain/oss/python/integrations/retrievers/nvidia",
+          "langchain/oss/python/integrations/retrievers/parallel",
+          "langchain/oss/python/integrations/retrievers/perplexity_search",
+          "langchain/oss/python/integrations/retrievers/pinecone_rerank",
+          "langchain/oss/python/integrations/retrievers/ragatouille"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · sandboxes",
+        "pages": [
+          "langchain/oss/python/integrations/sandboxes/aws",
+          "langchain/oss/python/integrations/sandboxes/databricks",
+          "langchain/oss/python/integrations/sandboxes/daytona",
+          "langchain/oss/python/integrations/sandboxes/index",
+          "langchain/oss/python/integrations/sandboxes/langsmith",
+          "langchain/oss/python/integrations/sandboxes/modal"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · stores",
+        "pages": [
+          "langchain/oss/python/integrations/stores/astradb",
+          "langchain/oss/python/integrations/stores/bigtable",
+          "langchain/oss/python/integrations/stores/elasticsearch",
+          "langchain/oss/python/integrations/stores/file_system",
+          "langchain/oss/python/integrations/stores/in_memory",
+          "langchain/oss/python/integrations/stores/index"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · vectorstores",
+        "pages": [
+          "langchain/oss/python/integrations/vectorstores/TEMPLATE",
+          "langchain/oss/python/integrations/vectorstores/astradb",
+          "langchain/oss/python/integrations/vectorstores/azure_cosmos_db_mongo_vcore",
+          "langchain/oss/python/integrations/vectorstores/azure_cosmos_db_no_sql",
+          "langchain/oss/python/integrations/vectorstores/azure_db_for_postgresql",
+          "langchain/oss/python/integrations/vectorstores/chroma",
+          "langchain/oss/python/integrations/vectorstores/databricks_vector_search",
+          "langchain/oss/python/integrations/vectorstores/elasticsearch",
+          "langchain/oss/python/integrations/vectorstores/google_alloydb",
+          "langchain/oss/python/integrations/vectorstores/google_bigquery_vector_search",
+          "langchain/oss/python/integrations/vectorstores/google_cloud_sql_mysql",
+          "langchain/oss/python/integrations/vectorstores/google_cloud_sql_pg",
+          "langchain/oss/python/integrations/vectorstores/google_firestore",
+          "langchain/oss/python/integrations/vectorstores/google_memorystore_redis",
+          "langchain/oss/python/integrations/vectorstores/google_spanner",
+          "langchain/oss/python/integrations/vectorstores/google_vertex_ai_feature_store",
+          "langchain/oss/python/integrations/vectorstores/google_vertex_ai_vector_search",
+          "langchain/oss/python/integrations/vectorstores/in_memory",
+          "langchain/oss/python/integrations/vectorstores/index",
+          "langchain/oss/python/integrations/vectorstores/memorydb",
+          "langchain/oss/python/integrations/vectorstores/milvus",
+          "langchain/oss/python/integrations/vectorstores/mongodb_atlas",
+          "langchain/oss/python/integrations/vectorstores/neo4jvector",
+          "langchain/oss/python/integrations/vectorstores/oracle",
+          "langchain/oss/python/integrations/vectorstores/pgvector",
+          "langchain/oss/python/integrations/vectorstores/pgvectorstore",
+          "langchain/oss/python/integrations/vectorstores/pinecone",
+          "langchain/oss/python/integrations/vectorstores/pinecone_sparse",
+          "langchain/oss/python/integrations/vectorstores/qdrant",
+          "langchain/oss/python/integrations/vectorstores/redis",
+          "langchain/oss/python/integrations/vectorstores/sap_hanavector",
+          "langchain/oss/python/integrations/vectorstores/turbopuffer",
+          "langchain/oss/python/integrations/vectorstores/valkey",
+          "langchain/oss/python/integrations/vectorstores/weaviate"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 中间件",
+        "pages": [
+          "langchain/oss/python/integrations/middleware/TEMPLATE",
+          "langchain/oss/python/integrations/middleware/anthropic",
+          "langchain/oss/python/integrations/middleware/aws",
+          "langchain/oss/python/integrations/middleware/azure_ai",
+          "langchain/oss/python/integrations/middleware/index",
+          "langchain/oss/python/integrations/middleware/nvidia",
+          "langchain/oss/python/integrations/middleware/openai",
+          "langchain/oss/python/integrations/middleware/scaledown"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 工具",
+        "pages": [
+          "langchain/oss/python/integrations/tools/TEMPLATE",
+          "langchain/oss/python/integrations/tools/azure_ai",
+          "langchain/oss/python/integrations/tools/azure_ai_services",
+          "langchain/oss/python/integrations/tools/azure_dynamic_sessions",
+          "langchain/oss/python/integrations/tools/azure_logic_apps",
+          "langchain/oss/python/integrations/tools/bedrock_agentcore_browser",
+          "langchain/oss/python/integrations/tools/bedrock_agentcore_code_interpreter",
+          "langchain/oss/python/integrations/tools/bedrock_agentcore_web_search",
+          "langchain/oss/python/integrations/tools/cdp_agentkit",
+          "langchain/oss/python/integrations/tools/composio",
+          "langchain/oss/python/integrations/tools/databricks",
+          "langchain/oss/python/integrations/tools/discord",
+          "langchain/oss/python/integrations/tools/exa_search",
+          "langchain/oss/python/integrations/tools/google_calendar",
+          "langchain/oss/python/integrations/tools/google_cloud_texttospeech",
+          "langchain/oss/python/integrations/tools/google_drive",
+          "langchain/oss/python/integrations/tools/google_gmail",
+          "langchain/oss/python/integrations/tools/google_imagen",
+          "langchain/oss/python/integrations/tools/google_search",
+          "langchain/oss/python/integrations/tools/ibm_watsonx",
+          "langchain/oss/python/integrations/tools/ibm_watsonx_sql",
+          "langchain/oss/python/integrations/tools/index",
+          "langchain/oss/python/integrations/tools/mcp_toolbox",
+          "langchain/oss/python/integrations/tools/oracleai",
+          "langchain/oss/python/integrations/tools/parallel_extract",
+          "langchain/oss/python/integrations/tools/parallel_findall",
+          "langchain/oss/python/integrations/tools/parallel_monitor",
+          "langchain/oss/python/integrations/tools/parallel_search",
+          "langchain/oss/python/integrations/tools/parallel_task",
+          "langchain/oss/python/integrations/tools/perplexity_search",
+          "langchain/oss/python/integrations/tools/privy",
+          "langchain/oss/python/integrations/tools/stagehand",
+          "langchain/oss/python/integrations/tools/stripe",
+          "langchain/oss/python/integrations/tools/tableau",
+          "langchain/oss/python/integrations/tools/tavily_crawl",
+          "langchain/oss/python/integrations/tools/tavily_extract",
+          "langchain/oss/python/integrations/tools/tavily_map",
+          "langchain/oss/python/integrations/tools/tavily_search",
+          "langchain/oss/python/integrations/tools/unstructured_transform",
+          "langchain/oss/python/integrations/tools/upstage_groundedness_check"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 文本切分",
+        "pages": [
+          "langchain/oss/python/integrations/splitters/markdown_header_metadata_splitter",
+          "langchain/oss/python/integrations/splitters/recursive_json_splitter",
+          "langchain/oss/python/integrations/splitters/split_html"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 智能体",
+        "pages": [
+          "langchain/oss/python/integrations/agents/sap_hana_sparql_qa_agent"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 模型供应商",
+        "pages": [
+          "langchain/oss/python/integrations/providers/aerospike",
+          "langchain/oss/python/integrations/providers/agentsystems",
+          "langchain/oss/python/integrations/providers/ai21",
+          "langchain/oss/python/integrations/providers/aimlapi",
+          "langchain/oss/python/integrations/providers/alibaba_cloud",
+          "langchain/oss/python/integrations/providers/all_providers",
+          "langchain/oss/python/integrations/providers/anthropic",
+          "langchain/oss/python/integrations/providers/anyllm",
+          "langchain/oss/python/integrations/providers/astradb",
+          "langchain/oss/python/integrations/providers/aws",
+          "langchain/oss/python/integrations/providers/azure_ai",
+          "langchain/oss/python/integrations/providers/baseten",
+          "langchain/oss/python/integrations/providers/box",
+          "langchain/oss/python/integrations/providers/browser_use",
+          "langchain/oss/python/integrations/providers/browserbase",
+          "langchain/oss/python/integrations/providers/cerebras",
+          "langchain/oss/python/integrations/providers/chroma",
+          "langchain/oss/python/integrations/providers/cockroachdb",
+          "langchain/oss/python/integrations/providers/cohere",
+          "langchain/oss/python/integrations/providers/context",
+          "langchain/oss/python/integrations/providers/cratedb",
+          "langchain/oss/python/integrations/providers/databricks",
+          "langchain/oss/python/integrations/providers/datadog",
+          "langchain/oss/python/integrations/providers/daytona",
+          "langchain/oss/python/integrations/providers/deepseek",
+          "langchain/oss/python/integrations/providers/dell",
+          "langchain/oss/python/integrations/providers/discord-shikenso",
+          "langchain/oss/python/integrations/providers/docling",
+          "langchain/oss/python/integrations/providers/docugami",
+          "langchain/oss/python/integrations/providers/egnyte",
+          "langchain/oss/python/integrations/providers/elasticsearch",
+          "langchain/oss/python/integrations/providers/exa_search",
+          "langchain/oss/python/integrations/providers/fireworks",
+          "langchain/oss/python/integrations/providers/google",
+          "langchain/oss/python/integrations/providers/graph_rag",
+          "langchain/oss/python/integrations/providers/graphsignal",
+          "langchain/oss/python/integrations/providers/groq",
+          "langchain/oss/python/integrations/providers/helicone",
+          "langchain/oss/python/integrations/providers/huggingface",
+          "langchain/oss/python/integrations/providers/ibm",
+          "langchain/oss/python/integrations/providers/johnsnowlabs",
+          "langchain/oss/python/integrations/providers/konlpy",
+          "langchain/oss/python/integrations/providers/kuzu",
+          "langchain/oss/python/integrations/providers/langchain_decorators",
+          "langchain/oss/python/integrations/providers/langfair",
+          "langchain/oss/python/integrations/providers/langfuse",
+          "langchain/oss/python/integrations/providers/litellm",
+          "langchain/oss/python/integrations/providers/localai",
+          "langchain/oss/python/integrations/providers/log10",
+          "langchain/oss/python/integrations/providers/memgraph",
+          "langchain/oss/python/integrations/providers/metal",
+          "langchain/oss/python/integrations/providers/microsoft",
+          "langchain/oss/python/integrations/providers/milvus",
+          "langchain/oss/python/integrations/providers/mindsdb",
+          "langchain/oss/python/integrations/providers/mistralai",
+          "langchain/oss/python/integrations/providers/mlflow_tracking",
+          "langchain/oss/python/integrations/providers/modal",
+          "langchain/oss/python/integrations/providers/modelscope",
+          "langchain/oss/python/integrations/providers/mongodb",
+          "langchain/oss/python/integrations/providers/mongodb_atlas",
+          "langchain/oss/python/integrations/providers/motorhead",
+          "langchain/oss/python/integrations/providers/neo4j",
+          "langchain/oss/python/integrations/providers/nvidia",
+          "langchain/oss/python/integrations/providers/oci",
+          "langchain/oss/python/integrations/providers/ollama",
+          "langchain/oss/python/integrations/providers/open_agent_spec",
+          "langchain/oss/python/integrations/providers/openai",
+          "langchain/oss/python/integrations/providers/openrouter",
+          "langchain/oss/python/integrations/providers/oracleai",
+          "langchain/oss/python/integrations/providers/overview",
+          "langchain/oss/python/integrations/providers/parallel",
+          "langchain/oss/python/integrations/providers/perplexity",
+          "langchain/oss/python/integrations/providers/pinecone",
+          "langchain/oss/python/integrations/providers/pipeshift",
+          "langchain/oss/python/integrations/providers/plainid",
+          "langchain/oss/python/integrations/providers/predictionguard",
+          "langchain/oss/python/integrations/providers/privy",
+          "langchain/oss/python/integrations/providers/qdrant",
+          "langchain/oss/python/integrations/providers/ray_serve",
+          "langchain/oss/python/integrations/providers/redis",
+          "langchain/oss/python/integrations/providers/remembrall",
+          "langchain/oss/python/integrations/providers/replicate",
+          "langchain/oss/python/integrations/providers/sambanova",
+          "langchain/oss/python/integrations/providers/sap",
+          "langchain/oss/python/integrations/providers/shaleprotocol",
+          "langchain/oss/python/integrations/providers/supadata",
+          "langchain/oss/python/integrations/providers/tableau",
+          "langchain/oss/python/integrations/providers/tavily",
+          "langchain/oss/python/integrations/providers/tensorlake",
+          "langchain/oss/python/integrations/providers/timbr",
+          "langchain/oss/python/integrations/providers/together",
+          "langchain/oss/python/integrations/providers/toolbox",
+          "langchain/oss/python/integrations/providers/truefoundry",
+          "langchain/oss/python/integrations/providers/trulens",
+          "langchain/oss/python/integrations/providers/typesafe",
+          "langchain/oss/python/integrations/providers/unstructured",
+          "langchain/oss/python/integrations/providers/upstage",
+          "langchain/oss/python/integrations/providers/voyageai",
+          "langchain/oss/python/integrations/providers/weaviate",
+          "langchain/oss/python/integrations/providers/xai",
+          "langchain/oss/python/integrations/providers/yeagerai"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 模型供应商 · portkey",
+        "pages": [
+          "langchain/oss/python/integrations/providers/portkey/index",
+          "langchain/oss/python/integrations/providers/portkey/logging_tracing_portkey"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 记忆",
+        "pages": [
+          "langchain/oss/python/integrations/memory/index",
+          "langchain/oss/python/integrations/memory/mongodb-long-term-memory",
+          "langchain/oss/python/integrations/memory/mongodb-short-term-memory"
+        ]
+      },
+      {
+        "group": "开源框架 · Python SDK · 集成 · 长期记忆",
+        "pages": [
+          "langchain/oss/python/integrations/long-term-memory/index"
+        ]
+      },
+      {
+        "group": "开源框架 · contributing",
+        "pages": [
+          "langchain/oss/contributing/code",
+          "langchain/oss/contributing/comarketing",
+          "langchain/oss/contributing/documentation",
+          "langchain/oss/contributing/implement-langchain",
+          "langchain/oss/contributing/integrations-langchain",
+          "langchain/oss/contributing/overview",
+          "langchain/oss/contributing/publish-langchain",
+          "langchain/oss/contributing/standard-tests-langchain"
+        ]
+      },
+      {
+        "group": "开源框架 · openwiki",
+        "pages": [
+          "langchain/oss/openwiki/automate-updates",
+          "langchain/oss/openwiki/changelog",
+          "langchain/oss/openwiki/cli-reference",
+          "langchain/oss/openwiki/code-mode",
+          "langchain/oss/openwiki/customize",
+          "langchain/oss/openwiki/integrations",
+          "langchain/oss/openwiki/overview",
+          "langchain/oss/openwiki/personal-mode",
+          "langchain/oss/openwiki/providers",
+          "langchain/oss/openwiki/quickstart",
+          "langchain/oss/openwiki/search-and-link",
+          "langchain/oss/openwiki/visualize"
+        ]
+      },
+      {
+        "group": "开源框架 · reference",
+        "pages": [
+          "langchain/oss/reference/deepagents-javascript",
+          "langchain/oss/reference/deepagents-python",
+          "langchain/oss/reference/integrations-javascript",
+          "langchain/oss/reference/integrations-python",
+          "langchain/oss/reference/langchain-javascript",
+          "langchain/oss/reference/langchain-python",
+          "langchain/oss/reference/langgraph-javascript",
+          "langchain/oss/reference/langgraph-python",
+          "langchain/oss/reference/overview"
+        ]
+      },
+      {
+        "group": "开源框架 · 核心概念",
+        "pages": [
+          "langchain/oss/concepts/context",
+          "langchain/oss/concepts/human-in-the-loop",
+          "langchain/oss/concepts/memory",
+          "langchain/oss/concepts/products",
+          "langchain/oss/concepts/providers-and-models"
+        ]
+      },
+      {
+        "group": "开源框架 · 集成 · backends",
+        "pages": [
+          "langchain/oss/integrations/backends/index"
+        ]
+      },
+      {
+        "group": "开源框架 · 集成 · 文本切分",
+        "pages": [
+          "langchain/oss/integrations/splitters/character_text_splitter",
+          "langchain/oss/integrations/splitters/code_splitter",
+          "langchain/oss/integrations/splitters/index",
+          "langchain/oss/integrations/splitters/recursive_text_splitter",
+          "langchain/oss/integrations/splitters/split_by_token"
+        ]
+      },
+      {
+        "group": "开源框架 · 集成 · 模型供应商",
+        "pages": [
+          "langchain/oss/integrations/providers/cala"
+        ]
+      }
+    ]
+  }
+}

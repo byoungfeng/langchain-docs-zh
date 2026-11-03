@@ -1,0 +1,365 @@
+---
+title: "从零构建数据分析智能体"
+sidebarTitle: Deep Agent
+description: "本指南使用 createagent 和 Deep Agents 中间件从基础构建一个数据分析智能体。"
+---
+
+import DeepAgentFromScratchMinimalPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-minimal-py.mdx';
+import DeepAgentFromScratchMinimalJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-minimal-js.mdx';
+import DeepAgentFromScratchSandboxPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-sandbox-py.mdx';
+import DeepAgentFromScratchSandboxJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-sandbox-js.mdx';
+import DeepAgentFromScratchSkillsPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-skills-py.mdx';
+import DeepAgentFromScratchSkillsJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-skills-js.mdx';
+import DeepAgentFromScratchSkillsUploadPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-skills-upload-py.mdx';
+import DeepAgentFromScratchSkillsUploadJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-skills-upload-js.mdx';
+import DeepAgentFromScratchSubagentPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-subagent-py.mdx';
+import DeepAgentFromScratchSubagentJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-subagent-js.mdx';
+import DeepAgentFromScratchSummarizationPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-summarization-py.mdx';
+import DeepAgentFromScratchSummarizationJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-summarization-js.mdx';
+import DeepAgentFromScratchUploadPy from '/langchain/snippets/code-samples/deep-agent-from-scratch-upload-py.mdx';
+import DeepAgentFromScratchUploadJs from '/langchain/snippets/code-samples/deep-agent-from-scratch-upload-js.mdx';
+
+本指南使用 `create_agent` 和 Deep Agents 中间件从基础构建一个数据分析智能体。
+
+`create_agent` 和 `create_deep_agent` 都能让你对工具、记忆等细节进行精细控制。
+两者之间的主要区别在于 Deep Agents 已内置多种常用功能，例如规划、文件系统工具和子智能体。
+如果 Deep Agents 默认的 harness 不符合你的需求，本指南将展示如何从 `create_agent` 开始，逐步组装 harness，让你清楚每个组件的作用，并只替换你用例所需的组件。
+
+按照本指南构建一个智能体，实现：
+
+1. 接收 CSV 文件进行分析
+2. 在隔离沙箱中编写和执行 Python 代码
+3. 将可视化工作委托给专业子智能体
+4. 从技能文件加载数据分析模式
+
+最终栈结构与 `create_deep_agent` 默认组装的结构一致。
+
+## 你将学到什么
+
+每一步为同一个数据分析智能体添加一项功能：
+
+| 步骤 | 缺少它会遇到的问题 | 你添加的内容 |
+|------|-------------------|--------------|
+| 最小智能体 | — | 基线循环：模型 + 工具，无 harness |
+| 沙箱 + 文件系统 | 智能体无法读取 CSV 或运行 Python | 隔离的 [backend](/langchain/oss/deepagents/backends) + 文件和执行工具 |
+| 摘要 | 长会话超出上下文限制 | 自动历史压缩 |
+| 技能 | 领域规则使系统提示词臃肿 | 通过 [渐进式披露](/langchain/oss/langchain/multi-agent/skills-sql-assistant) 的按需专业知识 |
+| 子智能体 | 图表迭代阻塞主线程 | 隔离的工作线程 + 并行委托 |
+
+## 设置
+
+<Steps>
+  <Step title="Install packages">
+
+安装本教程所需的包：
+
+:::python
+```bash
+pip install deepagents langsmith
+```
+:::
+
+:::js
+```bash
+npm install deepagents langsmith
+```
+:::
+
+  </Step>
+
+  <Step title="Set up LangSmith API keys">
+
+本教程使用 @[`LangSmithSandbox`]，它通过 `SandboxClient` 提供沙箱。该客户端使用 `LANGSMITH_API_KEY` 进行 LangSmith 身份验证，因此运行教程需要 API 密钥。设置 LangSmith 还能让你查看智能体运行时的跟踪记录。
+
+1. [注册免费账号](https://smith.langchain.com)。你可以使用 Google、GitHub 或邮箱。
+2. [在 **设置 > API 密钥** 中创建 API 密钥](https://docs.langchain.com/langsmith/create-account-api-key)。
+3. 导出 LangSmith API 密钥：
+
+```bash
+export LANGSMITH_API_KEY=...
+```
+
+4. 启用跟踪以检查添加每个组件时工具调用、中间件步骤和子智能体委托的情况：
+
+```bash
+export LANGSMITH_TRACING=true
+```
+
+  </Step>
+
+  <Step title="Add a model provider API key">
+
+导出代码示例中使用的模型提供者的 API 密钥：
+
+<CodeGroup>
+```bash Google
+export GOOGLE_API_KEY=...
+```
+
+```bash OpenAI
+export OPENAI_API_KEY=...
+```
+
+```bash Anthropic
+export ANTHROPIC_API_KEY=...
+```
+
+```bash OpenRouter
+export OPENROUTER_API_KEY=...
+```
+
+```bash Fireworks
+export FIREWORKS_API_KEY=...
+```
+
+```bash Baseten
+export BASETEN_API_KEY=...
+```
+
+```bash Ollama
+# Local: Ollama must be running on your machine
+# Cloud: Set your Ollama API key for hosted inference
+export OLLAMA_API_KEY=...
+```
+</CodeGroup>
+
+  </Step>
+</Steps>
+
+## 构建智能体
+
+## 创建最小智能体
+
+数据分析智能体需要比聊天循环更多功能，但开始时，先从基线开始：仅模型和循环。
+
+使用 @[`create_agent`] 并指定你想要使用的模型：
+
+:::python
+
+<DeepAgentFromScratchMinimalPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchMinimalJs />
+
+:::
+
+这可以运行，但智能体没有文件系统，也没有执行代码的方式。如果你让它分析 CSV，它只能从提示词中猜测。下一步将添加真实的文件访问和代码执行功能。
+
+## 添加沙箱后端
+
+为了高效分析数据，智能体需要在文件上运行代码。这需要两件事：
+
+- 一个隔离的 [sandbox](/langchain/oss/deepagents/sandboxes)，智能体可以在其中放置文件并在文件上运行代码，而不会让智能体访问你的主机机器。
+
+:::python
+- 一个 [backend](/langchain/oss/deepagents/backends)，它使用 @[`FilesystemMiddleware` 提供文件系统工具来与沙箱交互（`read_file`、`write_file`、`edit_file`、`delete`、`glob`、`grep`）。因为 `LangSmithSandbox` 后端实现了沙箱协议，@[`FilesystemMiddleware`] 还添加了 `execute` 工具，它允许智能体运行 shell 命令。
+:::
+
+:::js
+- 一个 [backend](/langchain/oss/deepagents/backends)，它使用 @[`FilesystemMiddleware` 提供文件系统工具来与沙箱交互（`read_file`、`write_file`、`edit_file`、`glob`、`grep`）。因为 `LangSmithSandbox` 后端实现了沙箱协议，@[`FilesystemMiddleware`] 还添加了 `execute` 工具，它允许智能体运行 shell 命令。
+:::
+
+@[`LangSmithSandbox`] 是文件存放和命令运行的地方。@[`FilesystemMiddleware`] 是将这种环境暴露给模型作为工具的方式。如果你稍后更换后端，相同的中间件也能与其他后端配合工作。
+
+:::python
+@[`LangSmithSandbox`] 为智能体提供隔离环境，包含文件系统和用于运行 shell 命令的 `execute` 工具。有了它，智能体可以安装包、编写脚本并运行它们，而不会触及主机。要使用自定义镜像而不是默认运行时启动，将 `snapshot_name` 或 `snapshot_id` 传递给 `create_sandbox()`；参见 [Sandbox 快照](https://docs.langchain.com/langsmith/sandbox-snapshots)。
+:::
+
+:::js
+@[`LangSmithSandbox`] 为智能体提供隔离环境，包含文件系统和用于运行 shell 命令的 `execute` 工具。有了它，智能体可以安装包、编写脚本并运行它们，而不会触及主机。要使用自定义镜像而不是默认运行时启动，将 `snapshotId` 传递给 `LangSmithSandbox.create()`；参见 [Sandbox 快照](https://docs.langchain.com/langsmith/sandbox-snapshots)。
+:::
+
+用包含 @[`FilesystemMiddleware`] 的智能体替换上一步的智能体：
+
+:::python
+
+<DeepAgentFromScratchSandboxPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchSandboxJs />
+
+:::
+
+沙箱文件系统与你的笔记本电脑是分开的。在调用智能体之前，你必须先将其需要上传到沙箱：
+
+:::python
+
+<DeepAgentFromScratchUploadPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchUploadJs />
+
+:::
+
+<Note>
+使用 @[`LangSmithSandbox`] 时，上传路径必须是绝对 POSIX 路径（例如，`/sales.csv`）。相对路径（如 `sales.csv`）会被 `invalid_path` 拒绝，文件不会被写入沙箱。
+</Note>
+
+将前几步的代码合并到一个脚本中并运行它：
+
+:::python
+```bash
+python analyze_sales.py
+```
+:::
+
+:::js
+```bash
+npx tsx analyze-sales.ts
+```
+:::
+
+第一次运行时，LangSmith 会配置沙箱（这可能需要几秒钟）。脚本上传 `sales.csv`，流式传输智能体运行，并打印到达的助手消息。你应该看到对样本销售数据的分析：产品级收入、最畅销的部件以及简要的趋势笔记。具体措辞因模型运行而异。
+
+在 [LangSmith](https://smith.langchain.com/) 中打开运行，观察智能体在回复之前使用文件系统工具（`read_file`，如果它在沙箱中运行 Python 则还包括 `execute`）。
+
+## 添加上下文管理
+
+完成步骤 2 后，每个工具结果都保留在消息历史中。一个真实的分析会话（多个图表、失败的脚本、大型 `read_file` 输出）会迅速填满上下文窗口。
+
+@[`SummarizationMiddleware`] 在历史记录过长时会压缩旧轮次，这样智能体可以持续工作而无需你手动修剪消息。这在第一个 `sales.csv` 问题时影响较小，但在后续问题（如“现在按产品分段并绘制月度趋势”）中更为重要。
+
+通过在步骤 2 中添加 @[`SummarizationMiddleware`] 到中间件列表来更新你的智能体：
+
+:::python
+
+<DeepAgentFromScratchSummarizationPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchSummarizationJs />
+
+:::
+
+运行多轮会话以查看摘要功能的效果。在初始分析后，提出后续问题以触发更多文件读取或脚本运行。在 LangSmith 中，查找后续模型调用之前的摘要步骤。有关更多信息，请参阅[上下文工程](/langchain/oss/langchain/context-engineering)。
+
+## 添加技能
+
+[技能](/langchain/oss/langchain/multi-agent/skills-sql-assistant)提供了一种在需要时通过渐进式披露为智能体提供按需领域知识的方法。技能可以包含多步工作流、规则和约定。通过将信息放在技能中，它不会默认添加到系统提示词中，这确保了 Token 仅在需要技能信息执行任务时使用。
+
+当智能体启动时，它只看到每个技能的轻量级元数据。当任务需要技能时，智能体按需加载完整的技能文件。
+
+在技能目录中创建一个技能文件：
+
+```
+skills/
+  pandas-patterns/
+    SKILL.md
+```
+
+```markdown
+---
+name: pandas-patterns
+description: Common pandas and matplotlib patterns for data analysis and visualization
+---
+
+## Data loading
+Use `pd.read_csv()` for CSV files. Always check `df.info()` and `df.describe()` first.
+
+## Visualization
+Use `matplotlib` for bar charts, `seaborn` for statistical plots.
+Save figures with `plt.savefig("output.png", dpi=150, bbox_inches="tight")`.
+
+## Reporting
+Write a markdown summary to `report.md` alongside any generated charts.
+```
+
+此技能包含有关如何进行可视化的信息。
+
+使用 @[`LangSmithSandbox`]，技能路径在沙盒文件系统中解析，而不是在本地机器上。在配置 @[`SkillsMiddleware`] 之前，请先上传本地 `skills/` 目录：
+
+:::python
+
+<DeepAgentFromScratchSkillsUploadPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchSkillsUploadJs />
+
+:::
+
+然后通过添加 @[`SkillsMiddleware`] 创建包含技能的智能体：
+
+:::python
+
+<DeepAgentFromScratchSkillsPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchSkillsJs />
+
+:::
+
+你可以尝试一个提示词，如“使用我们的 pandas 模式分析 sales.csv”。当智能体需要绘图或报告指导时，它会加载技能。如果你提出一个不需要技能的不同问题，智能体将不会加载它。
+
+## 添加可视化子智能体
+
+某些任务会产生大量中间输出（脚本草稿、失败运行、文件读取），如果保留在一个线程中，会挤占主智能体的上下文。一个 [子智能体](/langchain/oss/deepagents/subagents)在其自己的上下文窗口中运行，因此监督者只看到最终结果，而不是每一步的每个工具调用。这使主要分析保持专注，并为后续问题留出空间。
+
+使用子智能体是合理的示例之一，即图表生成。绘图通常意味着迭代 Python 脚本、安装包并读取错误输出，直到图形准备好。以下 `visualizer` 子智能体可以独立处理这项工作，而主智能体可以继续规划和分析。使用 @[`TodoListMiddleware`]，主智能体还可以并行委派图表工作，而不是在每个绘图上阻塞。
+
+通过添加 @[`TodoListMiddleware`] 和 @[`SubAgentMiddleware`] 更新步骤 4 中的智能体：
+
+:::python
+
+<DeepAgentFromScratchSubagentPy />
+
+:::
+
+:::js
+
+<DeepAgentFromScratchSubagentJs />
+
+:::
+
+尝试一个提示词，如“分析 sales.csv，然后创建按产品划分的收入条形图”。主智能体处理分析和规划，并通过 `task` 工具将图表生成委派给 `visualizer` 子智能体。
+
+如果你在 [设置](#设置)中启用了跟踪，请在 [LangSmith](https://smith.langchain.com/)中打开运行。你应该看到一个 `task` 调用 `visualizer`，一个具有自己的工具循环的单独子运行，以及一个短结果返回给监督者。
+
+## 你构建了什么
+
+你构建了一个具有以下中间件的定制智能体：
+
+| 中间件 | 它添加的功能 |
+|---|---|
+| @[`FilesystemMiddleware`] + `LangSmithSandbox` | 独立的文件系统 + `execute` 工具 |
+| @[`SummarizationMiddleware`] | 自动上下文压缩 |
+| @[`SkillsMiddleware`] | 按需加载领域知识 |
+| @[`TodoListMiddleware`] + @[`SubAgentMiddleware`] | 并行可视化子智能体 |
+
+:::python
+这是 @[`create_deep_agent`] 的相同基础：手动组装，因此你可以精确控制包含的内容。
+:::
+
+:::js
+这是 @[`createDeepAgent`] 的相同基础：手动组装，因此你可以精确控制包含的内容。
+:::
+
+可能性并未结束：请参阅 [预构建中间件](/langchain/oss/langchain/middleware/built-in) 获取可组合功能的完整列表，以及 @[`create_agent`] 参考，了解所有配置选项。
+
+:::python
+要使用预组装版本，请参阅 [自定义深度智能体](/langchain/oss/deepagents/customization)。有关使用 `create_deep_agent` 的完整数据分析示例，请参阅 [数据分析](/langchain/oss/deepagents/data-analysis)。
+:::
+
+:::js
+要使用预组装版本，请参阅 [自定义深度智能体](/langchain/oss/deepagents/customization)。
+:::
+
+---
+
+> 官方原文：[src/oss/langchain/deep-agent-from-scratch.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/deep-agent-from-scratch.mdx) · 译文由 AI 生成，以英文原文为准。

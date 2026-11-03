@@ -1,0 +1,158 @@
+---
+title: "组件架构"
+description: "LangChain 的强大之处在于其组件如何协同工作以构建复杂的 AI 应用程序。本页面通过组件关系图展示不同组件之间的交互。"
+---
+
+LangChain 的强大之处在于其组件如何协同工作以构建复杂的 AI 应用程序。本页面通过组件关系图展示不同组件之间的交互。
+
+## 核心组件生态
+
+以下架构图展示了 LangChain 主要组件如何连接以构建完整 AI 应用：
+
+```mermaid
+graph TD
+    %% Input processing
+    subgraph "📥 Input processing"
+        A[Text input] --> B[Document loaders]
+        B --> C[Text splitters]
+        C --> D[Documents]
+    end
+
+    %% Embedding & storage
+    subgraph "🔢 Embedding & storage"
+        D --> E[Embedding models]
+        E --> F[Vectors]
+        F --> G[(Vector stores)]
+    end
+
+    %% Retrieval
+    subgraph "🔍 Retrieval"
+        H[User Query] --> I[Embedding models]
+        I --> J[Query vector]
+        J --> K[Retrievers]
+        K --> G
+        G --> L[Relevant context]
+    end
+
+    %% Generation
+    subgraph "🤖 Generation"
+        M[Chat models] --> N[Tools]
+        N --> O[Tool results]
+        O --> M
+        L --> M
+        M --> P[AI response]
+    end
+
+    %% Orchestration
+    subgraph "🎯 Orchestration"
+        Q[Agents] --> M
+        Q --> N
+        Q --> K
+        Q --> R[Memory]
+    end
+
+    classDef trigger fill:#F6FFDB,stroke:#6E8900,stroke-width:2px,color:#2E3900
+    classDef process fill:#E5F4FF,stroke:#006DDD,stroke-width:2px,color:#030710
+    classDef output fill:#EBD0F0,stroke:#885270,stroke-width:2px,color:#441E33
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68
+
+    class A,H trigger
+    class B,C,E,I,K,M,N,Q process
+    class D,F,J,L,O,P,R neutral
+    class G output
+```
+
+### 组件连接方式
+
+每个组件层级都建立在先前组件之上：
+
+1. **输入处理** – 将原始数据转换为结构化文档
+2. **嵌入与存储** – 将文本转换为可检索的向量表示
+3. **检索** – 根据用户查询查找相关信息
+4. **生成** – 使用 AI 模型生成响应（可选集成工具）
+5. **编排** – 通过智能体和记忆系统协调所有环节
+
+## 组件分类
+
+LangChain 将组件划分为以下主要类别：
+
+| 类别 | 目的 | 关键组件 | 应用场景 |
+|------|------|----------|----------|
+| **[Models](/langchain/oss/langchain/models)** | AI 推理与生成 | 对话模型、大语言模型、嵌入模型 | 文本生成、推理、语义理解 |
+| **[Tools](/langchain/oss/langchain/tools)** | 外部能力 | API、数据库等 | 网页搜索、数据访问、计算任务 |
+| **[Agents](/langchain/oss/langchain/agents)** | 编排与推理 | ReAct 智能体、工具调用智能体 | 非确定性工作流、决策制定 |
+| **[Memory](/langchain/oss/langchain/short-term-memory)** | 上下文保留 | 消息历史、自定义状态 | 对话、状态化交互 |
+| **[Retrievers](/langchain/oss/python/integrations/retrievers)** | 信息访问 | 向量检索器、网页检索器 | RAG、知识库搜索 |
+| **[Document processing](/langchain/oss/python/integrations/document_loaders)** | 数据摄入 | 加载器、分割器、转换器 | PDF 处理、网页抓取 |
+| **[Vector Stores](/langchain/oss/python/integrations/vectorstores)** | 语义搜索 | Chroma、Pinecone、FAISS | 相似度搜索、嵌入存储 |
+
+## 常见模式
+
+### RAG（检索增强生成）
+```mermaid
+graph LR
+    A[User question] --> B[Retriever]
+    B --> C[Relevant docs]
+    C --> D[Chat model]
+    A --> D
+    D --> E[Informed response]
+
+    classDef trigger fill:#F6FFDB,stroke:#6E8900,stroke-width:2px,color:#2E3900
+    classDef process fill:#E5F4FF,stroke:#006DDD,stroke-width:2px,color:#030710
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68
+
+    class A trigger
+    class B,D process
+    class C,E neutral
+```
+
+### 工具集成智能体
+```mermaid
+graph LR
+    A[User request] --> B[Agent]
+    B --> C{Need tool?}
+    C -->|Yes| D[Call tool]
+    D --> E[Tool result]
+    E --> B
+    C -->|No| F[Final answer]
+
+    classDef trigger fill:#F6FFDB,stroke:#6E8900,stroke-width:2px,color:#2E3900
+    classDef process fill:#E5F4FF,stroke:#006DDD,stroke-width:2px,color:#030710
+    classDef decision fill:#FDF3FF,stroke:#7E65AE,stroke-width:2px,color:#504B5F
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68
+
+    class A trigger
+    class B,D process
+    class C decision
+    class E,F neutral
+```
+
+### 多智能体系统
+```mermaid
+graph LR
+    A[Complex Task] --> B[Supervisor agent]
+    B --> C[Specialist agent 1]
+    B --> D[Specialist agent 2]
+    C --> E[Results]
+    D --> E
+    E --> B
+    B --> F[Coordinated response]
+
+    classDef trigger fill:#F6FFDB,stroke:#6E8900,stroke-width:2px,color:#2E3900
+    classDef process fill:#E5F4FF,stroke:#006DDD,stroke-width:2px,color:#030710
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68
+
+    class A trigger
+    class B,C,D process
+    class E,F neutral
+```
+
+## 深入学习
+
+- [创建智能体](/langchain/oss/langchain/agents)
+- [使用工具](/langchain/oss/langchain/tools)
+- [浏览集成](/langchain/oss/python/integrations/providers/overview)
+
+---
+
+> 官方原文：[src/oss/langchain/component-architecture.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/component-architecture.mdx) · 译文由 AI 生成，以英文原文为准。

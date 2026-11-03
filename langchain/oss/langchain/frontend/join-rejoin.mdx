@@ -1,0 +1,284 @@
+---
+title: "加入与重新加入流"
+description: "断开并重新连接到正在运行的智能体流"
+---
+
+Join 和 rejoin 允许您在不停止智能体的前提下断开正在运行的智能体流，稍后重新连接。当客户端断开连接时，智能体在服务器端继续执行，而您可以在稍后重新连接时从断开点继续接收流。
+
+import { PatternEmbed } from "/langchain/snippets/pattern-embed.jsx"
+
+<PatternEmbed pattern="join-rejoin" />
+
+import RequiresLanggraphServer from '/langchain/snippets/oss/requires-langgraph-server.mdx';
+import UseStreamTypeInference from '/langchain/snippets/oss/use-stream-type-inference.mdx';
+
+<RequiresLanggraphServer />
+
+## 为什么使用 join 和 rejoin？
+
+传统的流式 API 将客户端和服务器紧密耦合：如果客户端断开连接，流就会丢失。Join 和 rejoin 打破了这种耦合，使以下重要模式成为可能：
+
+- **网络中断**：移动用户在基站或 Wi-Fi 网络之间移动时可以无缝恢复
+- **页面导航**：用户离开聊天页面并在稍后返回而不会丢失进度
+- **移动后台**：操作系统挂起的 App 在切换到前台时可以重新连接流
+- **长时间运行的任务**：智能体执行多分钟操作（研究、代码生成、数据分析），用户无需保持页面打开
+- **多设备切换**：在手机上开始对话，然后在桌面端重新连接
+
+## 核心概念
+
+Join/rejoin 模式涉及三个关键机制：
+
+| 方法/选项 | 目的 |
+|---|---|
+| `threadId` | 将流绑定到您想要观察的 LangGraph 线程 |
+| `onThreadId` | 持久化新创建的线程 ID，以便重新挂载时可以重新连接 |
+| `stream.disconnect()` | 在智能体在服务器端运行时，将流客户端端留置 |
+| 使用相同的 `threadId` 重新挂载 | 重新连接到该线程的进行中的工作 |
+
+<Note>
+**Join/rejoin 使用 `stream.disconnect()`，而不是 `stream.stop()`。** 默认情况下，`stream.stop()` **取消当前运行**：它断开客户端并在服务器端取消运行。对于 join/rejoin，调用 `stream.disconnect()`（`stop({ cancel: false })`的别名），以便在您离开时智能体继续处理。
+
+要从应用代码显式取消执行，请使用 `stream.stop()` 或 @[`client.runs.cancel`].
+</Note>
+
+## 设置 `useStream`
+
+关键设置步骤是持久化 `threadId`。当组件使用相同的线程 ID 重新挂载时，流会连接到该线程的当前状态和任何进行中的运行。
+
+<UseStreamTypeInference />
+
+<CodeGroup>
+
+```tsx React
+import { useStream } from "@langchain/react";
+import { useCallback, useState } from "react";
+
+function Chat() {
+  const [connected, setConnected] = useState(true);
+  const [mountKey, setMountKey] = useState(0);
+  const [threadId, setThreadId] = useState<string | null>(
+    () => sessionStorage.getItem("activeThreadId"),
+  );
+
+  const stream = useStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "join_rejoin",
+    threadId,
+    onThreadId(id) {
+      setThreadId(id);
+      if (id) sessionStorage.setItem("activeThreadId", id);
+    },
+  });
+
+  const disconnect = useCallback(() => {
+    void stream.disconnect();
+    setConnected(false);
+  }, [stream]);
+
+  const rejoin = useCallback(() => {
+    setMountKey((key) => key + 1);
+    setConnected(true);
+  }, []);
+
+  return (
+    <div key={mountKey}>
+      <ConnectionStatus connected={connected} />
+      <MessageList messages={stream.messages} />
+      <ChatControls
+        stream={stream}
+        threadId={threadId}
+        connected={connected}
+        onDisconnect={disconnect}
+        onRejoin={rejoin}
+      />
+    </div>
+  );
+}
+```
+
+```vue Vue
+<script setup lang="ts">
+import { useStream } from "@langchain/vue";
+import { ref } from "vue";
+
+const connected = ref(true);
+const mountKey = ref(0);
+const threadId = ref<string | null>(sessionStorage.getItem("activeThreadId"));
+
+const stream = useStream<typeof myAgent>({
+  apiUrl: "http://localhost:2024",
+  assistantId: "join_rejoin",
+  threadId,
+  onThreadId(id) {
+    threadId.value = id;
+    if (id) sessionStorage.setItem("activeThreadId", id);
+  },
+});
+
+function disconnect() {
+  void stream.disconnect();
+  connected.value = false;
+}
+
+function rejoin() {
+  mountKey.value += 1;
+  connected.value = true;
+}
+</script>
+
+<template>
+  <div :key="mountKey">
+    <ConnectionStatus :connected="connected" />
+    <MessageList :messages="stream.messages" />
+    <ChatControls
+      :stream="stream"
+      :threadId="threadId"
+      :connected="connected"
+      @disconnect="disconnect"
+      @rejoin="rejoin"
+    />
+  </div>
+</template>
+```
+
+```svelte Svelte
+<script lang="ts">
+  import { useStream } from "@langchain/svelte";
+
+  let connected = $state(true);
+  let mountKey = $state(0);
+  let threadId = $state<string | null>(sessionStorage.getItem("activeThreadId"));
+
+  const stream = useStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "join_rejoin",
+    threadId: () => threadId,
+    onThreadId(id) {
+      threadId = id;
+      if (id) sessionStorage.setItem("activeThreadId", id);
+    },
+  });
+
+  function disconnect() {
+    void stream.disconnect();
+    connected = false;
+  }
+
+  function rejoin() {
+    mountKey += 1;
+    connected = true;
+  }
+</script>
+
+<div key={mountKey}>
+  <ConnectionStatus {connected} />
+  <MessageList messages={stream.messages} />
+  <ChatControls
+    {threadId}
+    {connected}
+    onDisconnect={disconnect}
+    onRejoin={rejoin}
+  />
+</div>
+```
+
+```ts Angular
+import { Component, signal } from "@angular/core";
+import { injectStream } from "@langchain/angular";
+
+@Component({
+  selector: "app-chat",
+  template: `
+    <connection-status [connected]="connected()" />
+    <message-list [messages]="stream.messages()" />
+    <chat-controls
+      [stream]="stream"
+      [threadId]="threadId()"
+      [connected]="connected()"
+      (disconnect)="disconnect()"
+      (rejoin)="rejoin()"
+    />
+  `,
+})
+export class ChatComponent {
+  threadId = signal<string | null>(sessionStorage.getItem("activeThreadId"));
+  connected = signal(true);
+  mountKey = signal(0);
+
+  stream = injectStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "join_rejoin",
+    threadId: this.threadId,
+    onThreadId: (id) => {
+      this.threadId.set(id);
+      if (id) sessionStorage.setItem("activeThreadId", id);
+    },
+  });
+
+  disconnect() {
+    void this.stream.disconnect();
+    this.connected.set(false);
+  }
+
+  rejoin() {
+    this.mountKey.update((key) => key + 1);
+    this.connected.set(true);
+  }
+}
+```
+
+</CodeGroup>
+
+## 提交消息
+
+正常提交消息。线程 ID 绑定允许稍后的重新挂载重新连接到同一对话：
+
+```ts
+stream.submit({ messages: [{ type: "human", content: text }] });
+```
+
+## 断开与流的连接
+
+调用 `stream.disconnect()` 以断开流而不取消运行。智能体在服务器端继续处理。
+
+```ts
+await stream.disconnect();
+// equivalent to: await stream.stop({ cancel: false })
+```
+
+**不要**在此处使用 `stream.stop()` — 默认情况下它会取消服务器端的运行。
+
+调用 `disconnect()` 后：
+- `stream.isLoading` 变为 `false`
+- 您自己的 `connected` 标志也应变为 `false`
+- 消息列表保留所有在断开点之前收到的消息
+- 智能体在服务器端继续运行
+- 直到您重新连接之前不会收到新消息
+
+## 重新连接到流
+
+使用保存的线程 ID 重新挂载流消费者以重新连接。在 React 中，演示代码会递增 `mountKey`；在其他框架中，使用等效的重新挂载或条件渲染模式：
+
+```ts
+setMountKey((key) => key + 1);
+setConnected(true);
+```
+
+重新连接后：
+- `connected` 变为 `true`
+- 在断开连接期间生成的任何消息都会被传递
+- 新的流式消息实时恢复
+- 如果智能体仍在运行，`stream.isLoading` 变为 `true`；如果它已经完成，您会立即收到最终状态
+
+## 最佳实践
+
+- **使用 `disconnect()` 进行 join/rejoin，使用 `stop()` 取消**：离开或后台运行应用时应调用 `stream.disconnect()`。用户界面的“停止”或“取消”按钮应调用 `stream.stop()`（或 @[`client.runs.cancel`]）。
+- **始终保存线程 ID**：没有它，重新连接是不可能的。使用组件状态和持久化存储以提高容错性。
+- **显示清晰的连接状态**：用户应始终知道他们是在接收实时更新还是在查看快照。
+- **在可见性变化时自动重新连接**：使用页面可见性 API 在用户返回选项卡时自动重新连接。
+- **设置合理的超时**：如果重新连接尝试耗时过长，则回退到获取线程历史记录。
+- **清理过期的线程**：在用户重新开始或后端报告线程不可用时删除持久化的线程 ID。
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/join-rejoin.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/join-rejoin.mdx) · 译文由 AI 生成，以英文原文为准。

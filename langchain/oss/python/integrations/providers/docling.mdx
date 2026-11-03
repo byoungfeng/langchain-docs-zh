@@ -1,0 +1,53 @@
+---
+title: "Docling 集成"
+description: "与 Docling 集成，使用 LangChain Python."
+---
+
+> [Docling](https://github.com/docling-project/docling) 将PDF、DOCX、PPTX、HTML等格式解析为包含文档布局、表格等丰富统一表示，使其适用于RAG等生成式AI工作流。
+>
+> 该集成通过 `DoclingLoader` 文档加载器提供Docling的功能。
+
+## 安装和配置
+
+通过包管理器安装 `langchain-docling`，例如使用pip：
+
+<CodeGroup>
+```bash pip
+pip install langchain-docling
+```
+
+```bash uv
+uv add langchain-docling
+```
+</CodeGroup>
+
+## 文档加载器
+
+`langchain-docling`中的 `DoclingLoader` 类无缝集成Docling到LangChain，使您能够：
+- 轻松且快速地使用多种文档类型在你的LLM应用中
+- 利用Docling的丰富表示实现文档原生锚定
+
+基础用法示例如下：
+
+```python
+from langchain_docling import DoclingLoader
+
+FILE_PATH = ["https://arxiv.org/pdf/2408.09869"]  # Docling Technical Report
+
+loader = DoclingLoader(file_path=FILE_PATH)
+
+docs = loader.load()
+```
+
+对于端到端使用场景，请查看 [this example](/langchain/oss/python/integrations/document_loaders/docling)。
+
+## 其他资源
+
+- [LangChain Docling集成GitHub](https://github.com/docling-project/docling-langchain)
+- [LangChain Docling集成PyPI包](https://pypi.org/project/langchain-docling/)
+- [Docling GitHub](https://github.com/docling-project/docling)
+- [Docling文档](https://docling-project.github.io/docling/)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/docling.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/docling.mdx) · 译文由 AI 生成，以英文原文为准。

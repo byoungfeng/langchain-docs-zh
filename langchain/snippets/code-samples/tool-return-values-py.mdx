@@ -1,0 +1,13 @@
+```python
+from langchain.tools import tool
+
+
+@tool
+def get_weather(city: str) -> str:
+    """Get weather for a city."""
+    return f"It is currently sunny in {city}."
+```
+
+<Card title="View example trace" icon="chart-line" href="https://smith.langchain.com/public/c28f67dc-bc64-4c18-ac53-bc0fb60c6b99/r" arrow horizontal>
+  为此示例打开一个公开的 LangSmith 运行。
+</Card>

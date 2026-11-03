@@ -1,0 +1,75 @@
+---
+title: "LangGraph v1 新特性"
+sidebarTitle: LangGraph v1
+description: "LangGraph v1 是一个以稳定性为重点发布的智能体运行时。 它保持了核心图 API 和执行模型不变，同时改进了类型安全、文档和开发者易用性。"
+---
+
+**LangGraph v1 是一个以稳定性为重点发布的智能体运行时。** 它保持了核心图 API 和执行模型不变，同时改进了类型安全、文档和开发者易用性。
+
+它设计为与 [LangChain v1](/langchain/oss/python/releases/langchain-v1)（其 `create_agent` 基于 LangGraph）协同工作，让您可以从高级别开始，在需要时再深入到细粒度控制。
+
+<CardGroup cols={1}>
+    <Card title="Stable core APIs" icon="sitemap">
+        图原语（状态、节点、边）和执行/运行时模型保持不变，使升级变得简单。
+    </Card>
+    <Card title="Reliability, by default" icon="database">
+        具有检查点、持久化、流式输出和人工介入的持久执行继续是首选功能。
+    </Card>
+    <Card title="Seamless with LangChain v1" icon="link">
+        LangChain 的 `create_agent` 运行在 LangGraph 上。使用 LangChain 快速开始；使用 LangGraph 进行自定义编排。
+    </Card>
+</CardGroup>
+
+要升级，
+
+<CodeGroup>
+```bash pip
+pip install -U langgraph
+```
+```bash uv
+uv add langgraph
+```
+</CodeGroup>
+
+## `create_react_agent` 的弃用
+
+LangGraph @[`create_react_agent`] 预构建已被弃用，改为使用 LangChain 的 @[`create_agent`]。它提供了一个更简单的接口，并通过引入中间件提供了更大的自定义潜力。
+
+* 关于新的 @[`create_agent`] API 的信息，请参阅 [LangChain v1 发布说明](/langchain/oss/python/releases/langchain-v1#create_agent)。
+* 关于从 @[`create_react_agent`] 迁移到 @[`create_agent`] 的信息，请参阅 [LangChain v1 迁移指南](/langchain/oss/python/migrate/langchain-v1#迁移到-create_agent)。
+
+## 报告问题
+
+请在 [GitHub](https://github.com/langchain-ai/langgraph/issues) 上使用 [`'v1'` 标签](https://github.com/langchain-ai/langgraph/issues?q=state%3Aopen%20label%3Av1) 报告发现的 1.0 任何问题。
+
+## 其他资源
+
+<CardGroup cols={3}>
+    <Card title="LangGraph 1.0" icon="rocket" href="https://blog.langchain.com/langchain-langchain-1-0-alpha-releases/">
+        阅读公告
+    </Card>
+    <Card title="Overview" icon="book" href="/langchain/oss/langgraph/overview" arrow>
+        LangGraph 是什么以及何时使用它
+    </Card>
+    <Card title="Graph API" icon="sitemap" href="/langchain/oss/langgraph/graph-api" arrow>
+        使用状态、节点和边构建图
+    </Card>
+    <Card title="LangChain Agents" icon="robot" href="/langchain/oss/langchain/agents" arrow>
+        基于 LangGraph 的高级智能体
+    </Card>
+    <Card title="Migration guide" icon="arrows-exchange" href="/langchain/oss/python/migrate/langgraph-v1" arrow>
+        如何迁移到 LangGraph v1
+    </Card>
+    <Card title="GitHub" icon="brand-github" href="https://github.com/langchain-ai/langgraph">
+        报告问题或贡献
+    </Card>
+</CardGroup>
+
+## 参见
+
+- [版本控制](/langchain/oss/versioning) – 理解版本号
+- [发布策略](/langchain/oss/release-policy) – 详细发布策略
+
+---
+
+> 官方原文：[src/oss/python/releases/langgraph-v1.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/releases/langgraph-v1.mdx) · 译文由 AI 生成，以英文原文为准。

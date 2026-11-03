@@ -1,0 +1,50 @@
+---
+title: "部署"
+description: "使用 LangSmith Cloud 或 JavaScript 框架和托管平台部署 LangChain 智能体到生产环境"
+sidebarTitle: "部署"
+---
+
+import DeployPy from '/langchain/snippets/oss/deploy-py.mdx';
+import DeployJs from '/langchain/snippets/oss/deploy-js.mdx';
+import DeployFrameworksPlatformsReference from '/langchain/snippets/langsmith/deploy-frameworks-platforms-reference.mdx';
+
+当你准备好将你的 LangChain 智能体部署到生产环境时，选择一个适合你技术栈的托管模型。**[LangSmith Cloud](https://docs.langchain.com/langsmith/deploy-to-cloud)** 提供完全管理的基础设施，用于具有持久状态和后台执行的态性、长时间运行的智能体。
+
+:::js
+你也可以使用相同的 [Agent Streaming Protocol](https://github.com/langchain-ai/agent-protocol/tree/main/streaming) 在 **JavaScript 框架和平台**（如 Next.js、SvelteKit、Nuxt、Cloudflare Workers 和 Deno Deploy）上部署。
+
+<DeployFrameworksPlatformsReference />
+:::
+
+<Tip>
+LangSmith 提供了云之外的多种部署选项，包括 [混合](https://docs.langchain.com/langsmith/hybrid)、[独立服务器](https://docs.langchain.com/langsmith/deploy-standalone-server) 和 [带控制平面的自托管](https://docs.langchain.com/langsmith/deploy-with-control-plane)。更多信息，请参阅 [LangSmith 部署概述](https://docs.langchain.com/langsmith/deployment)。
+</Tip>
+
+## LangSmith Cloud
+
+本节将指导你从 GitHub 仓库将智能体部署到 LangSmith Cloud。LangSmith 处理基础设施、扩展和运维问题。
+
+### 前置条件
+
+开始之前，请确保你拥有以下内容：
+
+- 一个 [GitHub 账户](https://github.com/)
+- 一个 [LangSmith 账户](https://smith.langchain.com)（免费注册）
+
+### 部署你的智能体
+
+#### 1. 在 GitHub 上创建一个仓库
+
+你的应用程序代码必须存储在 GitHub 仓库中才能在 LangSmith 上部署。支持公共和私有仓库。对于这个快速入门，首先确保你的应用兼容 LangGraph，方法是按照 [本地服务器设置指南](/langchain/oss/langchain/studio) 操作。然后，将你的代码推送到仓库。
+
+:::python
+<DeployPy />
+:::
+
+:::js
+<DeployJs />
+:::
+
+---
+
+> 官方原文：[src/oss/langchain/deploy.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/deploy.mdx) · 译文由 AI 生成，以英文原文为准。

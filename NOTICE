@@ -1,0 +1,36 @@
+# NOTICE
+
+本仓库包含 LangChain 官方文档的简体中文翻译与 Mintlify 站点配置。
+
+## 上游来源
+
+- 仓库：https://github.com/langchain-ai/docs
+- 许可证：MIT
+- 版权：Copyright (c) 2025 LangChain
+- 收录范围：`src/oss/**` 与 `src/snippets/**`
+- 未收录：`src/langsmith/**`（LangSmith 为独立产品，站内相关链接指向官方文档）
+
+译文与源文件的对应关系保持目录结构一致：
+
+```text
+langchain/oss/<path>       ← src/oss/<path>
+langchain/snippets/<path>  ← src/snippets/<path>
+```
+
+## 翻译与衍生作品说明
+
+- 中文译文是对上游文档的衍生作品，按上游 MIT 许可证分发。
+- 译文由 LLM 自动生成并经自动化校验，**不是 LangChain 官方翻译**，可能存在偏差。
+- 代码块按上游原样保留；正文中的产品名、API 名称等专有名词通常不翻译。
+- 如译文与官方英文原文冲突，以官方原文为准：
+  https://docs.langchain.com
+
+## 商标
+
+LangChain、LangGraph、LangSmith、Deep Agents 等名称和标识归其权利人所有。
+本仓库仅用于文档本地化，不代表 LangChain 官方，也不暗示任何官方背书。
+
+## 第三方内容
+
+文档中引用的第三方项目、图片、论文与代码示例版权归各自作者所有，遵循其各自
+许可证。若权利人认为内容使用不当，请提交 Issue，我们会及时处理。

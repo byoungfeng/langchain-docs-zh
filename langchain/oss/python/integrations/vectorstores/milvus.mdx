@@ -1,0 +1,440 @@
+---
+title: "Milvus 集成"
+description: "使用 LangChain Python 集成 Milvus 向量存储。"
+integration:
+  name: Milvus
+  pypi: langchain-milvus
+  featured: true
+  delete_by_id: true
+  filtering: true
+  search_by_vector: true
+  search_with_score: true
+  async_api: true
+  passes_standard_tests: true
+  multi_tenancy: true
+  ids_in_add_documents: true
+---
+
+
+>[Milvus](https://milvus.io/docs/overview.md) 是一种数据库，用于存储、索引和管理深度神经网络等机器学习（ML）模型生成的海量嵌入向量。
+
+本笔记本展示了如何使用与 `Milvus` 向量存储相关的功能。
+
+## 设置
+
+您需要安装 `langchain-milvus` 并集成 `pip install -qU langchain-milvus` 才能使用此功能。
+
+```python
+pip install -qU langchain-milvus
+```
+
+### 凭证
+
+使用 `Milvus` 向量存储时不需要凭证。
+
+## 初始化
+
+<EmbeddingTabs/>
+
+```python
+# | output: false
+# | echo: false
+from langchain_openai import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+```
+
+### Milvus Lite
+
+最简单的原型开发方式是使用 Milvus Lite，所有数据存储在本地向量数据库文件中。仅支持 Flat 索引。
+
+```python
+from langchain_milvus import Milvus
+
+URI = "./milvus_example.db"
+
+vector_store = Milvus(
+    embedding_function=embeddings,
+    connection_args={"uri": URI},
+    index_params={"index_type": "FLAT", "metric_type": "L2"},
+)
+```
+
+### Milvus Server
+
+如果数据量较大（例如超过百万向量），建议在 [Docker](https://milvus.io/docs/install_standalone-docker.md#Start-Milvus) 或 [Kubernetes](https://milvus.io/docs/install_cluster-milvusoperator.md) 上部署性能更优的 Milvus 服务器。
+
+Milvus 服务器支持多种 [indexes](https://milvus.io/docs/index.md?tab=floating)。利用不同索引可以显著提升检索能力并加速检索过程，满足您的具体需求。
+
+以 Milvus Standalone 为例，启动 Docker 容器的命令如下：
+
+```python
+!curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
+
+!bash standalone_embed.sh start
+```
+
+```text
+Password:
+```
+
+这里创建 Milvus 数据库：
+
+```python
+from pymilvus import Collection, MilvusException, connections, db, utility
+
+conn = connections.connect(host="127.0.0.1", port=19530)
+
+# Check if the database exists
+db_name = "milvus_demo"
+try:
+    existing_databases = db.list_database()
+    if db_name in existing_databases:
+        print(f"Database '{db_name}' already exists.")
+
+        # Use the database context
+        db.using_database(db_name)
+
+        # Drop all collections in the database
+        collections = utility.list_collections()
+        for collection_name in collections:
+            collection = Collection(name=collection_name)
+            collection.drop()
+            print(f"Collection '{collection_name}' has been dropped.")
+
+        db.drop_database(db_name)
+        print(f"Database '{db_name}' has been deleted.")
+    else:
+        print(f"Database '{db_name}' does not exist.")
+        database = db.create_database(db_name)
+        print(f"Database '{db_name}' created successfully.")
+except MilvusException as e:
+    print(f"An error occurred: {e}")
+```
+
+```text
+Database 'milvus_demo' does not exist.
+Database 'milvus_demo' created successfully.
+```
+
+注意 URI 的变更。实例初始化后，可通过 [127.0.0.1:9091/webui](http://127.0.0.1:9091/webui) 访问本地 Web UI。
+
+以下是用 Milvus 数据库服务创建向量存储实例的示例：
+
+```python
+from langchain_milvus import BM25BuiltInFunction, Milvus
+
+URI = "http://localhost:19530"
+
+vectorstore = Milvus(
+    embedding_function=embeddings,
+    connection_args={"uri": URI, "token": "root:Milvus", "db_name": "milvus_demo"},
+    index_params={"index_type": "FLAT", "metric_type": "L2"},
+    consistency_level="Strong",
+    drop_old=False,  # set to True if seeking to drop the collection with that name if it exists
+)
+```
+
+> 如果要使用 Zilliz 云服务（Milvus 的全托管云服务），请调整 URI 和 Token，分别对应 Zilliz 云的 [Public Endpoint](https://docs.zilliz.com/docs/byoc/quick-start#free-cluster-details) 和 [Api key](https://docs.zilliz.com/docs/byoc/quick-start#free-cluster-details)。
+
+### 使用 milvus 创建数据分区（collections）
+
+您可以将不相关的文档存储在同一个 Milvus 实例的不同集合（collections）中。
+
+以下是创建新集合的示例：
+
+```python
+from langchain_core.documents import Document
+
+vector_store_saved = Milvus.from_documents(
+    [Document(page_content="foo!")],
+    embeddings,
+    collection_name="langchain_example",
+    connection_args={"uri": URI},
+)
+```
+
+这是检索已存储集合的示例：
+
+```python
+vector_store_loaded = Milvus(
+    embeddings,
+    connection_args={"uri": URI},
+    collection_name="langchain_example",
+)
+```
+
+## 管理向量存储
+
+创建向量存储后，可通过添加和删除项目与之交互。
+
+### 向向量存储添加项目
+
+我们使用 `add_documents` 函数向向量存储添加项目。
+
+```python
+from uuid import uuid4
+
+from langchain_core.documents import Document
+
+document_1 = Document(
+    page_content="I had chocolate chip pancakes and scrambled eggs for breakfast this morning.",
+    metadata={"source": "tweet"},
+)
+
+document_2 = Document(
+    page_content="The weather forecast for tomorrow is cloudy and overcast, with a high of 62 degrees.",
+    metadata={"source": "news"},
+)
+
+document_3 = Document(
+    page_content="Building an exciting new project with LangChain - come check it out!",
+    metadata={"source": "tweet"},
+)
+
+document_4 = Document(
+    page_content="Robbers broke into the city bank and stole $1 million in cash.",
+    metadata={"source": "news"},
+)
+
+document_5 = Document(
+    page_content="Wow! That was an amazing movie. I can't wait to see it again.",
+    metadata={"source": "tweet"},
+)
+
+document_6 = Document(
+    page_content="Is the new iPhone worth the price? Read this review to find out.",
+    metadata={"source": "website"},
+)
+
+document_7 = Document(
+    page_content="The top 10 soccer players in the world right now.",
+    metadata={"source": "website"},
+)
+
+document_8 = Document(
+    page_content="LangGraph is the best framework for building stateful, agentic applications!",
+    metadata={"source": "tweet"},
+)
+
+document_9 = Document(
+    page_content="The stock market is down 500 points today due to fears of a recession.",
+    metadata={"source": "news"},
+)
+
+document_10 = Document(
+    page_content="I have a bad feeling I am going to get deleted :(",
+    metadata={"source": "tweet"},
+)
+
+documents = [
+    document_1,
+    document_2,
+    document_3,
+    document_4,
+    document_5,
+    document_6,
+    document_7,
+    document_8,
+    document_9,
+    document_10,
+]
+uuids = [str(uuid4()) for _ in range(len(documents))]
+
+vector_store.add_documents(documents=documents, ids=uuids)
+```
+
+### 从向量存储删除项目
+
+```python
+vector_store.delete(ids=[uuids[-1]])
+```
+
+```text
+(insert count: 0, delete count: 1, upsert count: 0, timestamp: 0, success count: 0, err count: 0, cost: 0)
+```
+
+## 查询向量存储
+
+当您的向量存储已创建并添加了相关文档后，您可能在运行链（Chain）或智能体（Agent）时希望进行查询。
+
+### 直接查询
+
+#### 相似度搜索
+
+通过元数据过滤进行简单相似度搜索的示例如下：
+
+```python
+results = vector_store.similarity_search(
+    "LangChain provides abstractions to make working with LLMs easy",
+    k=2,
+    expr='source == "tweet"',
+)
+for res in results:
+    print(f"* {res.page_content} [{res.metadata}]")
+```
+
+```text
+* Building an exciting new project with LangChain - come check it out! [{'pk': '9905001c-a4a3-455e-ab94-72d0ed11b476', 'source': 'tweet'}]
+* LangGraph is the best framework for building stateful, agentic applications! [{'pk': '1206d237-ee3a-484f-baf2-b5ac38eeb314', 'source': 'tweet'}]
+```
+
+
+#### 带分数的相似度搜索
+
+您也可以带分数进行搜索：
+
+```python
+results = vector_store.similarity_search_with_score(
+    "Will it be hot tomorrow?", k=1, expr='source == "news"'
+)
+for res, score in results:
+    print(f"* [SIM={score:3f}] {res.page_content} [{res.metadata}]")
+```
+
+```text
+* [SIM=21192.628906] bar [{'pk': '2', 'source': 'https://example.com'}]
+```
+
+
+要查看 `Milvus` 向量存储支持的所有搜索选项，请访问 @[API reference][MilvusVectorStore]。
+
+### 将向量存储转换为检索器
+
+您还可以将向量存储转换为检索器，以便在链中更方便地使用。
+
+```python
+retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 1})
+retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+```
+
+```text
+[Document(metadata={'pk': 'eacc7256-d7fa-4036-b1f7-83d7a4bee0c5', 'source': 'news'}, page_content='Robbers broke into the city bank and stole $1 million in cash.')]
+```
+
+
+## 混合搜索
+
+最常见的混合搜索场景是密集+稀疏混合搜索，即通过语义向量相似度和精确关键词匹配同时检索候选结果。将两种方法的结果合并、重排序后输入大型语言模型（LLM）生成最终答案。这种方案兼顾准确性和语义理解，适用于多样化的查询场景。
+
+### 全文搜索
+
+自 [Milvus 2.5](https://milvus.io/blog/introduce-milvus-2-5-full-text-search-powerful-metadata-filtering-and-more.md) 开始，Milvus 通过稀疏-BM25 方法原生支持全文搜索。该方案将 BM25 算法表示为稀疏向量，Milvus 接受原始文本输入并自动将其转换为指定字段的稀疏向量，无需手动生成稀疏嵌入。
+
+对于全文搜索，MilvusVectorStore 接受 `builtin_function` 参数。通过此参数可传入 `BM25BuiltInFunction` 的实例。这与通常通过 `VectorStore` 传入密集嵌入的语义搜索不同。
+
+以下是以 OpenAI 密集嵌入进行语义搜索、BM25 进行全文搜索的混合搜索示例：
+
+```python
+from langchain_milvus import BM25BuiltInFunction, Milvus
+from langchain_openai import OpenAIEmbeddings
+
+vectorstore = Milvus.from_documents(
+    documents=documents,
+    embedding=OpenAIEmbeddings(),
+    builtin_function=BM25BuiltInFunction(),
+    # `dense` is for OpenAI embeddings, `sparse` is the output field of BM25 function
+    vector_field=["dense", "sparse"],
+    connection_args={
+        "uri": URI,
+    },
+    consistency_level="Strong",
+    drop_old=True,
+)
+```
+
+> 当您使用 `BM25BuiltInFunction` 时，请注意全文搜索在 Milvus Standalone 和 Milvus Distributed 中可用，但在 Milvus Lite 中不可用（虽在路线图中计划未来支持）。该功能即将在 Zilliz 云（全托管 Milvus）中上线。如需更多信息，请联系 [support@zilliz.com](mailto:support@zilliz.com)。
+
+代码中我们定义了 `BM25BuiltInFunction` 的实例并传入 `Milvus` 对象。`BM25BuiltInFunction` 是 Milvus 中 [`Function`](https://milvus.io/docs/manage-collections.md#Function) 的轻量级封装类。我们可通过 `OpenAIEmbeddings` 初始化支持密集+稀疏混合搜索的 Milvus 向量存储实例。
+
+`BM25BuiltInFunction` 不需要客户端传入语料或训练数据，所有处理均在 Milvus 服务器端完成，用户无需关心词汇表和语料。此外，用户可通过自定义 [analyzer](https://milvus.io/docs/analyzer-overview.md#Analyzer-Overview) 实现 BM25 的文本处理逻辑。
+
+### 候选重排序
+
+在首次检索阶段后，需要对候选结果进行重排序以获得更好的结果。更多重排序实现细节请参考 [Reranking](https://milvus.io/docs/reranking.md#Reranking)。
+
+以下是加权重排序示例：
+
+```python
+query = "What are the novels Lila has written and what are their contents?"
+
+vectorstore.similarity_search(
+    query, k=1, ranker_type="weighted", ranker_params={"weights": [0.6, 0.4]}
+)
+```
+
+
+## 检索增强生成（RAG）的用法
+
+关于如何使用此向量存储实现检索增强生成（RAG），请参考以下章节：
+
+- [检索文档](/langchain/oss/deepagents/retrieval)
+- [使用 LangChain 构建一个 RAG 应用](/langchain/oss/deepagents/rag)
+- [Agentic RAG](/langchain/oss/langgraph/agentic-rag)
+
+### 多用户检索
+
+构建检索应用时通常需要支持多用户。这意味着不仅要存储单个用户的数据，还要为不同用户存储独立数据且互不可见。
+
+Milvus 建议使用 [partition_key](https://milvus.io/docs/multi_tenancy.md#Partition-key-based-multi-tenancy) 实现多租户。示例如下：
+> 分区键功能在 Milvus Lite 中不可用，如需使用需启动 Milvus 服务器（如上所述）。
+
+```python
+from langchain_core.documents import Document
+
+docs = [
+    Document(page_content="i worked at kensho", metadata={"namespace": "harrison"}),
+    Document(page_content="i worked at facebook", metadata={"namespace": "ankush"}),
+]
+vectorstore = Milvus.from_documents(
+    docs,
+    embeddings,
+    connection_args={"uri": URI},
+    drop_old=True,
+    partition_key_field="namespace",  # Use the "namespace" field as the partition key
+)
+```
+
+
+执行分区键搜索时，应在布尔表达式中包含以下任一内容：
+
+`search_kwargs={"expr": '<partition_key> == "xxxx"'}`
+
+`search_kwargs={"expr": '<partition_key> == in ["xxx", "xxx"]'}`
+
+请将 `<partition_key>` 替换为指定的分区键字段名称。
+
+Milvus 会根据指定的分区键进行分区，根据分区键过滤实体，并在过滤后的实体中进行搜索。
+
+```python
+# This will only get documents for Ankush
+vectorstore.as_retriever(search_kwargs={"expr": 'namespace == "ankush"'}).invoke(
+    "where did i work?"
+)
+```
+
+```python
+[Document(page_content='i worked at facebook', metadata={'namespace': 'ankush'})]
+```
+
+```python
+# This will only get documents for Harrison
+vectorstore.as_retriever(search_kwargs={"expr": 'namespace == "harrison"'}).invoke(
+    "where did i work?"
+)
+```
+
+```python
+[Document(page_content='i worked at kensho', metadata={'namespace': 'harrison'})]
+```
+
+
+---
+
+## API 参考
+
+如需了解 `Milvus` 向量存储的所有功能和使用配置的详细文档，请访问 [API reference](https://reference.langchain.com/python/langchain-milvus/vectorstores/milvus/Milvus)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/milvus.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/milvus.mdx) · 译文由 AI 生成，以英文原文为准。

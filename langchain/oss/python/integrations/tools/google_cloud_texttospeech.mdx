@@ -1,0 +1,52 @@
+---
+title: "Google cloud text-to-speech 集成"
+description: "使用 LangChain Python 集成 Google 云文本转语音工具"
+integration:
+  name: Google cloud text-to-speech
+  pypi: langchain-google-community
+---
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>[Google Cloud 文本转语音](https://cloud.google.com/text-to-speech)使开发者能够合成自然流畅的语音，提供100+种声音选择，支持多种语言和变体。该服务应用了DeepMind在WaveNet领域的突破性研究成果，结合Google强大的神经网络技术，实现最高音质输出。
+>
+>支持的语言包括英语、德语、波兰语、西班牙语、意大利语、法语、葡萄牙语和印地语。
+
+本笔记本演示如何通过`Google Cloud Text-to-Speech API`实现语音合成功能。
+
+首先需要配置Google Cloud项目。请参考[Google Cloud 文本转语音设置指南](https://cloud.google.com/text-to-speech/docs/before-you-begin)。
+
+```python
+!pip install -U langchain-google-community[texttospeech]
+```
+
+## 立即实例化
+
+```python
+from langchain_google_community import TextToSpeechTool
+```
+
+## 已弃用GoogleCloudTextToSpeechTool
+
+<LangchainCommunityUnmaintained />
+
+```python
+from langchain_community.tools import GoogleCloudTextToSpeechTool
+```
+
+```python
+text_to_speak = "Hello world!"
+
+tts = GoogleCloudTextToSpeechTool()
+tts.name
+```
+
+我们可以生成音频、保存到临时文件并播放。
+
+```python
+speech_file = tts.run(text_to_speak)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/google_cloud_texttospeech.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/google_cloud_texttospeech.mdx) · 译文由 AI 生成，以英文原文为准。

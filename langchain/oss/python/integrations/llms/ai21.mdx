@@ -1,0 +1,87 @@
+---
+title: "AI21LLM 集成"
+description: "使用 LangChain Python 集成 AI21LLM。"
+integration:
+  name: AI21LLM
+  pypi: langchain-ai21
+---
+
+:::caution 此服务已弃用。
+请参考 [AI21 文档](https://docs.ai21.com/) 获取更新后的 ChatAI21 对象文档。 :::
+
+本示例演示如何使用 LangChain 与 `AI21` Juris 模型交互。如需使用 Jamba 模型，请改用 [ChatAI21 对象](https://docs.ai21.com/) 。
+
+[查看 LangChain 中 AI21 模型与工具的完整列表](https://pypi.org/project/langchain-ai21/)
+
+## 安装
+
+```python
+!pip install -qU langchain-ai21
+```
+
+## 环境设置
+
+我们需要获取 [AI21 API 密钥](https://docs.ai21.com/) 并设置 `AI21_API_KEY` 环境变量：
+
+```python
+import os
+from getpass import getpass
+
+if "AI21_API_KEY" not in os.environ:
+    os.environ["AI21_API_KEY"] = getpass()
+```
+
+## 使用示例
+
+```python
+from langchain_ai21 import AI21LLM
+from langchain_core.prompts import PromptTemplate
+
+template = """Question: {question}
+
+Answer: Let's think step by step."""
+
+prompt = PromptTemplate.from_template(template)
+
+model = AI21LLM(model="j2-ultra")
+
+chain = prompt | model
+
+chain.invoke({"question": "What is LangChain?"})
+```
+
+```text
+'\nLangChain is a (database)\nLangChain is a database for storing and processing documents'
+```
+
+# AI21 上下文回答
+
+您可以使用 AI21 的上下文回答模型接收文本或文档作为上下文，同时接收问题，基于此上下文生成答案。
+
+这意味着如果问题的答案不在文档中，模型将明确表示（而非提供错误答案）
+
+```python
+from langchain_ai21 import AI21ContextualAnswers
+
+tsm = AI21ContextualAnswers()
+
+response = tsm.invoke(input={"context": "Your context", "question": "Your question"})
+```
+
+您还可以将其与链（chains）、输出解析器（output parsers）和向量数据库（vector DBs）结合使用
+
+```python
+from langchain_ai21 import AI21ContextualAnswers
+from langchain_core.output_parsers import StrOutputParser
+
+tsm = AI21ContextualAnswers()
+chain = tsm | StrOutputParser()
+
+response = chain.invoke(
+    {"context": "Your context", "question": "Your question"},
+)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/llms/ai21.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/llms/ai21.mdx) · 译文由 AI 生成，以英文原文为准。

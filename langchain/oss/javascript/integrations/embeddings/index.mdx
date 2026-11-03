@@ -1,0 +1,419 @@
+---
+title: "嵌入模型集成"
+sidebarTitle: "嵌入模型"
+description: "集成嵌入模型，使用 LangChain JavaScript"
+keywords: ["embedding", "embeddings", "embedding model"]
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/javascript-embeddings-downloads.mdx';
+
+## 概述
+
+<Note>
+本概述涵盖 **基于文本的嵌入模型**。LangChain 目前不支持多模态嵌入。
+</Note>
+
+嵌入模型将原始文本——如句子、段落或推文——转换为固定长度的数字向量，以捕捉其 **语义意义**。这些向量使机器能够根据意义而不是确切词语来比较和搜索文本。
+
+在实践中，这意味着具有相似想法的文本在向量空间中会被放置在一起。例如，嵌入模型不仅可以匹配 *"机器学习"* 这个短语，还可以在用不同措辞的情况下，提取讨论相关概念的文档。
+
+### 工作原理
+
+1. **向量化**：模型将每个输入字符串编码为高维向量。
+2. **相似度评分**：使用数学指标比较向量，以衡量底层文本的关联程度。
+
+### 相似度指标
+
+常用以下几种指标来比较嵌入：
+
+* **余弦相似度**：测量两个向量之间的夹角。
+* **欧几里得距离**：测量两点之间的直线距离。
+* **点积**：测量一个向量在另一个向量上的投影程度。
+
+## 接口
+
+LangChain 通过 @[Embeddings] 接口为文本嵌入模型（例如 OpenAI、Cohere、Hugging Face）提供标准接口。
+
+提供两种主要方法：
+
+* `embedDocuments(documents: string[]) → number[][]`：嵌入一系列文档。
+* `embedQuery(text: string) → number[]`：嵌入单个查询。
+
+<Note>
+该接口允许使用不同的策略嵌入查询和文档，尽管在实践中大多数提供者以相同方式处理它们。
+</Note>
+
+## 安装和使用
+
+<AccordionGroup>
+<Accordion title="OpenAI">
+
+安装依赖项：
+
+<CodeGroup>
+
+```bash npm
+npm install @langchain/openai @langchain/core
+```
+```bash yarn
+yarn add @langchain/openai @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/openai @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+OPENAI_API_KEY=your-api-key
+```
+
+实例化模型：
+
+```typescript
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const embeddings = new OpenAIEmbeddings({
+  model: "text-embedding-3-large"
+});
+```
+
+</Accordion>
+<Accordion title="Azure">
+
+安装依赖项
+
+<CodeGroup>
+
+```bash npm
+npm install @langchain/openai @langchain/core
+```
+```bash yarn
+yarn add @langchain/openai @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/openai @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+AZURE_OPENAI_API_INSTANCE_NAME=<YOUR_INSTANCE_NAME>
+AZURE_OPENAI_API_KEY=<YOUR_KEY>
+AZURE_OPENAI_API_VERSION="2024-02-01"
+```
+
+实例化模型：
+
+```typescript
+import { AzureOpenAIEmbeddings } from "@langchain/openai";
+
+const embeddings = new AzureOpenAIEmbeddings({
+  azureOpenAIApiEmbeddingsDeploymentName: "text-embedding-ada-002"
+});
+```
+
+</Accordion>
+
+<Accordion title="AWS">
+
+安装依赖项：
+
+<CodeGroup>
+
+```bash npm
+npm install @langchain/aws @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/aws @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/aws @langchain/core
+```
+
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+BEDROCK_AWS_REGION=your-region
+```
+
+实例化模型：
+
+```typescript
+import { BedrockEmbeddings } from "@langchain/aws";
+
+const embeddings = new BedrockEmbeddings({
+  model: "amazon.titan-embed-text-v1"
+});
+```
+
+</Accordion>
+<Accordion title="Google Gemini">
+
+安装依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/google-genai @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/google-genai @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/google-genai @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+GOOGLE_API_KEY=your-api-key
+```
+
+实例化模型：
+
+```typescript
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+
+const embeddings = new GoogleGenerativeAIEmbeddings({
+  model: "gemini-embedding-001"
+});
+```
+
+</Accordion>
+<Accordion title="Gemini Enterprise Agent Platform">
+
+安装依赖项：
+
+<CodeGroup>
+
+```bash npm
+npm install @langchain/google-vertexai @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/google-vertexai @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/google-vertexai @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=credentials.json
+```
+
+实例化模型：
+
+```typescript
+import { VertexAIEmbeddings } from "@langchain/google-vertexai";
+
+const embeddings = new VertexAIEmbeddings({
+  model: "gemini-embedding-001"
+});
+```
+
+</Accordion>
+<Accordion title="MistralAI">
+
+安装依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/mistralai @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/mistralai @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/mistralai @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+MISTRAL_API_KEY=your-api-key
+```
+
+实例化模型：
+
+```typescript
+import { MistralAIEmbeddings } from "@langchain/mistralai";
+
+const embeddings = new MistralAIEmbeddings({
+  model: "mistral-embed"
+});
+```
+
+</Accordion>
+<Accordion title="Cohere">
+
+安装依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/cohere @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/cohere @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/cohere @langchain/core
+```
+
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+COHERE_API_KEY=your-api-key
+```
+
+实例化模型：
+
+```typescript
+import { CohereEmbeddings } from "@langchain/cohere";
+
+const embeddings = new CohereEmbeddings({
+  model: "embed-english-v3.0"
+});
+```
+
+</Accordion>
+<Accordion title="Ollama">
+
+安装依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/ollama @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/ollama @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/ollama @langchain/core
+```
+</CodeGroup>
+
+实例化模型：
+
+```typescript
+import { OllamaEmbeddings } from "@langchain/ollama";
+
+const embeddings = new OllamaEmbeddings({
+  model: "llama2",
+  baseUrl: "http://localhost:11434", // Default value
+});
+```
+
+</Accordion>
+<Accordion title="Voyage AI">
+
+安装依赖项：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/mongodb @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/mongodb @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/mongodb @langchain/core
+```
+</CodeGroup>
+
+添加环境变量：
+
+```bash
+VOYAGE_API_KEY=your-api-key
+```
+
+实例化模型：
+
+```typescript
+import { VoyageEmbeddings } from "@langchain/mongodb";
+
+const embeddings = new VoyageEmbeddings({
+  model: "voyage-4"
+});
+```
+
+</Accordion>
+</AccordionGroup>
+
+## 缓存
+
+嵌入可以被存储或临时缓存，以避免需要重新计算它们。
+
+使用 `CacheBackedEmbeddings` 可以缓存嵌入。这个包装器将嵌入存储在键值存储中，其中文本被哈希，哈希值用作缓存中的键。
+
+初始化 `CacheBackedEmbeddings` 的主要支持方式是 `fromBytesStore`。它接受以下参数：
+
+- **underlyingEmbeddings**：用于嵌入的嵌入器。
+- **documentEmbeddingStore**：任何 [`BaseStore`](/langchain/oss/python/integrations/stores/)，用于缓存文档嵌入。
+- **options.namespace**：(可选，默认为 `""`) 用于文档缓存的命名空间。有助于避免冲突（例如，将其设置为嵌入模型名称）。
+
+<Important>
+- 始终设置 `namespace` 参数，以避免在使用不同的嵌入模型时发生冲突。
+- `CacheBackedEmbeddings` 默认不缓存查询嵌入。要启用此功能，请指定一个 `query_embedding_store`。
+</Important>
+
+```typescript
+import { CacheBackedEmbeddings } from "@langchain/classic/embeddings/cache_backed";
+import { InMemoryStore } from "@langchain/core/stores";
+
+const underlyingEmbeddings = new OpenAIEmbeddings();
+
+const inMemoryStore = new InMemoryStore();
+
+const cacheBackedEmbeddings = CacheBackedEmbeddings.fromBytesStore(
+  underlyingEmbeddings,
+  inMemoryStore,
+  {
+    namespace: underlyingEmbeddings.model,
+  }
+);
+
+// Example: caching a query embedding
+const tic = Date.now();
+const queryEmbedding = cacheBackedEmbeddings.embedQuery("Hello, world!");
+console.log(`First call took: ${Date.now() - tic}ms`);
+
+// Example: caching a document embedding
+const tic = Date.now();
+const documentEmbedding = cacheBackedEmbeddings.embedDocuments(["Hello, world!"]);
+console.log(`Cached creation time: ${Date.now() - tic}ms`);
+```
+
+在生产环境中，您通常会使用更健壮的持久化存储，例如数据库或云存储。请参阅 [stores integrations](/langchain/oss/python/integrations/stores/) 获取选项。
+
+## 所有集成
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/embeddings/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/embeddings/index.mdx) · 译文由 AI 生成，以英文原文为准。

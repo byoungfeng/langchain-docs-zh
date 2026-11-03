@@ -1,0 +1,142 @@
+---
+title: "Unstructured Transform 集成"
+description: "集成 Unstructured Transform 工具，使用 LangChain Python。"
+integration:
+  name: UnstructuredTransformToolkit
+  featured: true
+  pypi: langchain-unstructured-transform
+---
+
+本指南提供了快速入门 Unstructured Transform [工具](/langchain/oss/langchain/tools) 的概述。[Unstructured Transform](https://docs.unstructured.io/transform/overview)
+MCP 服务器将文件（PDF、DOCX、图像和 70+ 种文件类型）摄取并转换为分区、增强、分块和嵌入的数据，用于 RAG 和 AI 管道。The `langchain-unstructured-transform`
+包将这些工具作为原生 LangChain 工具加载。
+
+## 概述
+
+### 详情
+
+| 类别 | 包 | 可序列化 | JS 支持 | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| `UnstructuredTransformToolkit` | [langchain-unstructured-transform](https://pypi.org/project/langchain-unstructured-transform/) | ❌ | ❌ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-unstructured-transform?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-unstructured-transform?style=flat-square&label=%20) |
+
+### 功能
+
+- 将托管的 Transform MCP 服务器的工具作为原生 LangChain 工具加载。
+- 驱动完整的解析生命周期：请求上传 URL、转换文件、轮询状态并获取结果。
+- 与任何 LangChain 或 LangGraph 智能体配合使用。
+- 远程和托管：无需运行本地服务器或桥梁。
+
+---
+
+## 设置
+
+要访问 Unstructured Transform 工具，您需要 Unstructured 账户和 API 密钥，并且需要安装 `langchain-unstructured-transform` 包。
+
+### 凭证
+
+从 [Unstructured 文档](https://docs.unstructured.io/transform/overview) 获取 API 密钥，然后
+将其设置为环境变量：
+
+```python Set API key icon="key"
+import getpass
+import os
+
+if "UNSTRUCTURED_API_KEY" not in os.environ:
+    os.environ["UNSTRUCTURED_API_KEY"] = getpass.getpass("Enter your Unstructured API key: ")
+```
+
+设置 LangSmith 以实现最佳级别的可观察性/<Tooltip tip="Log each step of a model's execution to debug and improve it">跟踪</Tooltip>工具调用也很有帮助（但不是必需的）。要启用自动跟踪，请设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python Enable tracing icon="flask"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+Unstructured Transform 工具位于 `langchain-unstructured-transform` 包中：
+
+<CodeGroup>
+    ```python pip
+    pip install -U langchain-unstructured-transform
+    ```
+    ```python uv
+    uv add langchain-unstructured-transform
+    ```
+</CodeGroup>
+
+---
+
+## 实例化
+
+Transform 工具通过 MCP 加载，这是一个异步操作。使用工具包的 `aget_tools()` 方法（或 `aget_transform_tools()` 辅助方法）来加载它们：
+
+```python Load the tools icon="robot"
+from langchain_unstructured_transform import UnstructuredTransformToolkit
+
+toolkit = UnstructuredTransformToolkit()  # reads UNSTRUCTURED_API_KEY
+tools = await toolkit.aget_tools()
+```
+
+加载的 `tools` 包括 `request_file_upload_url`、`transform_files`、`check_transform_status`，
+和 `get_transform_results`。
+
+---
+
+## 调用
+
+### 在智能体内部
+
+这些工具设计为由智能体编排，智能体将它们链接起来以运行完整的解析任务。
+
+```python Agent with tools icon="robot"
+# pip install -qU "langchain[anthropic]" to call the model
+from langchain.agents import create_agent
+from langchain_unstructured_transform import aget_transform_tools
+
+tools = await aget_transform_tools()
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=tools,
+)
+
+response = await agent.ainvoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "Use the Unstructured Transform tools to parse ./report.pdf. "
+                    "Provide the results as JSON."
+                ),
+            }
+        ]
+    }
+)
+print(response["messages"][-1].content)
+```
+
+智能体请求上传 URL，上传每个文件，启动转换，轮询状态，并返回结果——每个输入文件一个输出。
+
+---
+
+## 限制
+
+解析请求有以下限制：
+
+- 每个文件必须是 [支持的文件类型](https://docs.unstructured.io/transform/supported-file-types)。
+- 每个文件的大小必须为 50 MB 或更小。
+- 每个请求最多包含 10 个文件。
+- 同时只能运行 5 个请求。
+
+Transform MCP 服务器通过其工具响应将这些限制报告给智能体，因此您可以指示您的智能体批量处理文件，并在其系统提示中相应地回退。
+
+---
+
+## API 参考
+
+有关 Unstructured Transform MCP 服务器的详细文档、其工具以及如何控制其输出的信息，请访问 [Unstructured Transform 文档](https://docs.unstructured.io/transform/overview)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/unstructured_transform.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/unstructured_transform.mdx) · 译文由 AI 生成，以英文原文为准。

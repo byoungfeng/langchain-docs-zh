@@ -1,0 +1,134 @@
+---
+title: "SourceyRetriever 集成"
+description: "使用 LangChain JavaScript 集成 SourceyRetriever 检索器。"
+integration:
+  name: SourceyRetriever
+  npm: langchain-sourcey
+---
+
+
+## 概述
+
+[Sourcey](https://sourcey.com) 已经生成了这个检索器需要的文件。
+
+使用 `SourceyRetriever` 从已发布的 Sourcey 文档站点进行检索。它读取 `search-index.json`，在存在时使用 `llms-full.txt`，并返回包含规范页面 URL 的 `Document` 对象到 `metadata.source`。
+
+### 集成细节
+
+| 检索器 | 源 | 包 |
+| :--- | :--- | :---: |
+| `SourceyRetriever` | 已发布的 Sourcey 文档站点。 | [`langchain-sourcey`](https://www.npmjs.com/package/langchain-sourcey) |
+
+## 设置
+
+### 安装
+
+<CodeGroup>
+```bash npm
+npm install langchain-sourcey @langchain/core
+```
+```bash yarn
+yarn add langchain-sourcey @langchain/core
+```
+```bash pnpm
+pnpm add langchain-sourcey @langchain/core
+```
+</CodeGroup>
+
+不需要 API 密钥。
+
+## 实例化
+
+`siteUrl` 应指向已发布 Sourcey 文档构建的根目录。
+
+```typescript
+import { SourceyRetriever } from "langchain-sourcey";
+
+const retriever = new SourceyRetriever({
+  siteUrl: "https://sourcey.com/docs",
+  topK: 3,
+});
+```
+
+## 使用
+
+```typescript
+const docs = await retriever.invoke("mcp integration");
+
+for (const doc of docs) {
+  console.log(doc.metadata.title);
+  console.log(doc.metadata.source);
+}
+```
+
+## 在链中使用
+
+安装一个对话模型包。此示例使用 OpenAI：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/openai
+```
+```bash yarn
+yarn add @langchain/openai
+```
+```bash pnpm
+pnpm add @langchain/openai
+```
+</CodeGroup>
+
+```typescript
+import type { Document } from "@langchain/core/documents";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { RunnablePassthrough, RunnableSequence } from "@langchain/core/runnables";
+import { ChatOpenAI } from "@langchain/openai";
+import { SourceyRetriever } from "langchain-sourcey";
+
+const retriever = new SourceyRetriever({
+  siteUrl: "https://sourcey.com/docs",
+  topK: 3,
+});
+
+const prompt = ChatPromptTemplate.fromTemplate(
+  `Answer the question using the documentation context below.
+
+{context}
+
+Question: {question}`
+);
+
+const formatDocs = (docs: Document[]) =>
+  docs.map((doc) => doc.pageContent).join("\n\n");
+
+const chain = RunnableSequence.from([
+  {
+    context: retriever.pipe(formatDocs),
+    question: new RunnablePassthrough(),
+  },
+  prompt,
+  new ChatOpenAI({ model: "gpt-4.1-mini" }),
+  new StringOutputParser(),
+]);
+
+await chain.invoke("How does Sourcey document MCP servers?");
+```
+
+## Sourcey 站点要求
+
+为了干净的检索，已发布的 Sourcey 站点应该：
+
+- 发布 `search-index.json`
+- 发布 `llms-full.txt`
+- 在 `sourcey.config.ts` 中设置 `siteUrl`，以便返回的引用是规范的
+
+如果 `llms-full.txt` 不可用，`SourceyRetriever` 会回退到从匹配的 HTML 页面提取文本。
+
+## 更多
+
+- Sourcey 指南：[Using Sourcey with LangChain](https://sourcey.com/docs/guides/guide-langchain-retriever)
+- 包：[langchain-sourcey on npm](https://www.npmjs.com/package/langchain-sourcey)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/retrievers/sourcey.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/retrievers/sourcey.mdx) · 译文由 AI 生成，以英文原文为准。

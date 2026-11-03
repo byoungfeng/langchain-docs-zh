@@ -1,0 +1,62 @@
+---
+title: "AI21 labs 集成"
+description: "使用 LangChain Python 集成 AI21 labs。"
+---
+
+>[AI21 Labs](https://www.ai21.com/about) 是一家专注于自然语言处理（NLP）的公司，开发了能够理解和生成自然语言的人工智能系统。
+
+此页面涵盖了如何在 `LangChain` 中使用 `AI21` 生态系统。
+
+## 安装与配置
+
+- 获取 AI21 API 密钥并将其设置为环境变量（`AI21_API_KEY`）
+- 安装 Python 包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-ai21
+```
+
+```bash uv
+uv add langchain-ai21
+```
+</CodeGroup>
+
+## 对话模型
+
+### AI21 对话模型
+
+请参考 [AI21 文档](https://docs.ai21.com/)。
+
+```python
+from langchain_ai21 import ChatAI21
+```
+
+## 已弃用功能
+
+:::caution 以下功能已弃用。
+:::
+
+### AI21 LLM
+
+```python
+from langchain_ai21 import AI21LLM
+```
+
+### AI21 上下文问答
+
+```python
+from langchain_ai21 import AI21ContextualAnswers
+```
+
+## 文本分割器
+
+### AI21 语义文本分割器
+
+```python
+from langchain_ai21 import AI21SemanticTextSplitter
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/ai21.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/ai21.mdx) · 译文由 AI 生成，以英文原文为准。

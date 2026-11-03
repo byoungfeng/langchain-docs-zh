@@ -1,0 +1,35 @@
+```python Python
+# dataset.py
+from langsmith import Client
+
+def main():
+    client = Client()
+
+    # Programmatically create a dataset in LangSmith
+    dataset = client.create_dataset(
+        dataset_name="Sample dataset",
+        description="A sample dataset in LangSmith."
+    )
+
+    # Create examples
+    examples = [
+        {
+            "inputs": {"question": "Which country is Mount Kilimanjaro located in?"},
+            "outputs": {"answer": "Mount Kilimanjaro is located in Tanzania."},
+        },
+        {
+            "inputs": {"question": "What is Earth's lowest point?"},
+            "outputs": {"answer": "Earth's lowest point is The Dead Sea."},
+        },
+    ]
+
+    # Add examples to the dataset
+    client.create_examples(dataset_id=dataset.id, examples=examples)
+    print("Created dataset:", dataset.name)
+
+if __name__ == "__main__":
+    main()
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 id：['0']；意外的额外 id：[]。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。

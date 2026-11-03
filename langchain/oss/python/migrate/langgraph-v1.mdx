@@ -1,0 +1,99 @@
+---
+title: "LangGraph v1 迁移指南"
+sidebarTitle: LangGraph v1
+description: "description=\"将代码库迁移至LangGraph v1\" icon=\"arrow-right\" actions={[\"copy\"]} 将此代码库迁移至LangGraph v1（需langgraph>=1.0.0、langchain-core>=0.3.0）。"
+---
+
+<Prompt
+    description="将代码库迁移至LangGraph v1"
+    icon="arrow-right"
+    actions={["copy"]}
+>
+将此代码库迁移至LangGraph v1（需`langgraph>=1.0.0`、`langchain-core>=0.3.0`）。
+
+关键变更：
+
+1. **升级依赖包**：运行`pip install -U langgraph langchain-core`（或`uv add langgraph langchain-core`）。
+2. **`create_react_agent` → `create_agent`**：将所有`from langgraph.prebuilt import create_react_agent`替换为`from langchain.agents import create_agent`。更新调用位置：使用`create_agent(model, tools, system_prompt=...)`替代`create_react_agent(model, tools, prompt=...)`。
+3. **移除已弃用状态类型**：将`AgentState`、`AgentStatePydantic`、`AgentStateWithStructuredResponse`、`AgentStateWithStructuredResponsePydantic`（均来自`langgraph.prebuilt`）替换为`langchain.agents.AgentState`。
+4. **人工介入流程**：将`HumanInterruptConfig`、`ActionRequest`、`HumanInterrupt`（来自`langgraph.types`或`langgraph.prebuilt`）替换为`langchain.agents.middleware.human_in_the_loop.InterruptOnConfig`和`HITLRequest`。
+5. **`ValidationNode`**：移除该组件。`create_agent`自动验证工具输入。
+6. **`MessageGraph`**：使用`messages`密钥将其替换为`StateGraph`，或直接使用`create_agent`。
+7. **LangGraph v1保持向后兼容**：自定义`StateGraph`构建的图、检查点存储器、`interrupt()`、`Command`、`Send`、`MemorySaver`均保持不变。
+
+搜索代码库中所有来自`langgraph.prebuilt`（`create_react_agent`、`AgentState`、`AgentStatePydantic`、`AgentStateWithStructuredResponse`、`HumanInterruptConfig`、`ActionRequest`、`HumanInterrupt`、`ValidationNode`、`MessageGraph`）的导入语句，并应用必要变更。标记无法自动迁移的内容。
+</Prompt>
+
+本指南概述了LangGraph v1的变更及如何从旧版本迁移。了解变更概览请参考[更新日志](/langchain/oss/python/releases/langgraph-v1)页面。
+
+升级步骤：
+
+<CodeGroup>
+```bash pip
+pip install -U langgraph langchain-core
+```
+```bash uv
+uv add langgraph langchain-core
+```
+</CodeGroup>
+
+## 变更总结
+
+LangGraph v1与旧版本保持向后兼容。主要变更是弃用@`create_react_agent`，改用LangChain的新@`create_agent`函数。
+
+## 弃用项
+
+LangGraph v1弃用以下内容：
+
+| 弃用项         | 替代方案                     |
+|----------------|------------------------------|
+| `create_react_agent`           | @`langchain.agents.create_agent`[create_agent]          |
+| `AgentState`           | @`langchain.agents.AgentState`[AgentState]            |
+| `AgentStatePydantic`           | `langchain.agents.AgentState`（不再使用pydantic状态） |
+| `AgentStateWithStructuredResponse`           | `langchain.agents.AgentState`                         |
+| `AgentStateWithStructuredResponsePydantic`           | `langchain.agents.AgentState`（不再使用pydantic状态） |
+| `HumanInterruptConfig`           | `langchain.agents.middleware.human_in_the_loop.InterruptOnConfig`                         |
+| `ActionRequest`           | `langchain.agents.middleware.human_in_the_loop.InterruptOnConfig`                         |
+| `HumanInterrupt`           | `langchain.agents.middleware.human_in_the_loop.HITLRequest`                         |
+| `ValidationNode`           | 工具自动使用@`create_agent`验证输入     |
+| `MessageGraph`           | @`StateGraph`配合`messages`密钥（如@`create_agent`）|
+
+## `create_react_agent` → `create_agent`
+
+LangGraph v1弃用@`create_react_agent`预构建模块，改用LangChain的@`create_agent`，该功能在LangGraph上运行并支持灵活的中间件系统。
+
+详细请参考LangChain v1文档：
+
+- [发布说明](/langchain/oss/python/releases/langchain-v1#create_agent)
+- [迁移指南](/langchain/oss/python/migrate/langchain-v1#迁移到-create_agent)
+
+<CodeGroup>
+```python v1 (new)
+from langchain.agents import create_agent
+
+agent = create_agent(  # [!code highlight]
+    model,
+    tools,
+    system_prompt="You are a helpful assistant.",
+)
+```
+```python v0 (old)
+from langgraph.prebuilt import create_react_agent
+
+agent = create_react_agent(  # [!code highlight]
+    model,
+    tools,
+    prompt="You are a helpful assistant.",  # [!code highlight]
+)
+```
+</CodeGroup>
+
+## 不兼容变更
+
+### Python 3.9支持已终止
+
+所有LangChain包现要求**Python 3.10或更高版本**。Python 3.9已于[生命周期结束](https://devguide.python.org/versions/)（2025年10月）终止支持。
+
+---
+
+> 官方原文：[src/oss/python/migrate/langgraph-v1.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/migrate/langgraph-v1.mdx) · 译文由 AI 生成，以英文原文为准。

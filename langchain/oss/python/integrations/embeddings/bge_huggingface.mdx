@@ -1,0 +1,65 @@
+---
+title: "BGE on Hugging Face 集成"
+description: "集成Hugging Face上的BGE嵌入模型，使用LangChain Python。"
+integration:
+  name: BGE on Hugging Face
+  pypi: langchain-huggingface
+---
+  
+> [BGE models on Hugging Face](https://huggingface.co/BAAI)是由[北京人工智能研究院 (BAAI)](https://en.wikipedia.org/wiki/Beijing_Academy_of_Artificial_Intelligence)发布的开源嵌入和重排序模型家族。BGE在2023和2024年是领先的开源嵌入家族之一，尽管[MTEB排行榜](https://huggingface.co/spaces/mteb/leaderboard)上更新的模型在原始检索得分上已超越它们，但BGE（尤其是`BAAI/bge-m3`）仍作为多语言检索的广泛使用、平衡性优秀的默认选择。
+
+LangChain提供两种使用BGE模型的方式：
+
+- `HuggingFaceEmbeddings` from `langchain-huggingface`：通用的Sentence Transformers类。覆盖所有BGE变体，是**推荐**的新项目首选方案。
+
+## `BAAI/bge-m3`及更高版本
+
+```shell
+pip install -qU langchain-huggingface
+```
+  
+```python
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="BAAI/bge-m3",
+    encode_kwargs={"normalize_embeddings": True},
+)
+```
+  
+`BAAI/bge-m3`无需查询提示词进行训练，因此无需额外配置。`normalize_embeddings=True`推荐用于余弦相似度，根据模型作者的建议。
+
+## `BAAI/bge-*-en-v1.5`（快速路径）
+
+```python
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="BAAI/bge-large-en-v1.5",
+    encode_kwargs={"normalize_embeddings": True},
+    query_encode_kwargs={
+        "prompt": "Represent this sentence for searching relevant passages: ",
+        "normalize_embeddings": True,
+    },
+)
+```
+
+不同 BGE 变体使用不同的提示词；请查阅 Hugging Face 上的每个模型卡片以获取确切字符串。
+
+## 选择 BGE 模型
+
+| 模型 | 大小 | 备注 |
+|---|---|---|
+| `BAAI/bge-small-en-v1.5` | 33M | 最小英语文本模型，CPU 友好 |
+| `BAAI/bge-large-en-v1.5` | 335M | 更强大的英文模型，广泛使用的基准线 |
+| `BAAI/bge-m3` | 570M | 多语言支持；单模型包含密集、稀疏和混合向量 |
+
+若需重排名（非嵌入），请参考 [`BAAI/bge-reranker-v2-m3`](https://huggingface.co/BAAI/bge-reranker-v2-m3) 的 [Cross Encoder Reranker 指南](/langchain/oss/python/integrations/document_transformers/cross_encoder_reranker)。
+
+## 更多
+
+关于 GPU 配置、批处理大小、查询/文档提示词及部署选项，请查阅 [Sentence Transformers 集成页面](/langchain/oss/python/integrations/embeddings/sentence_transformers)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/bge_huggingface.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/bge_huggingface.mdx) · 译文由 AI 生成，以英文原文为准。

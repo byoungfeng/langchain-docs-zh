@@ -1,0 +1,140 @@
+---
+title: "ElasticsearchEmbeddingsCache 集成"
+description: "使用 LangChain 集成 ElasticsearchEmbeddingsCache 存储。"
+integration:
+  name: ElasticsearchEmbeddingsCache
+  pypi: langchain-elasticsearch
+---
+
+这将帮助您开始使用 Elasticsearch [键值存储](/langchain/oss/python/integrations/stores)。有关所有 `ElasticsearchEmbeddingsCache` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-elasticsearch/cache/ElasticsearchEmbeddingsCache)。
+
+## 概述
+
+`ElasticsearchEmbeddingsCache` 是一个 `ByteStore` 实现，它使用您的 Elasticsearch 实例来高效地存储和检索嵌入。
+
+### 集成细节
+
+| 类 | 包 | 本地 | JS 支持 | 下载 | 版本 |
+| :--- | :--- | :---: | :---: |  :---: | :---: |
+| [`ElasticsearchEmbeddingsCache`](https://reference.langchain.com/python/langchain-elasticsearch/cache/ElasticsearchEmbeddingsCache) | [`langchain-elasticsearch`](https://reference.langchain.com/python/langchain-elasticsearch) | ✅ | ❌ | ![PyPI - 下载](https://img.shields.io/pypi/dm/langchain_elasticsearch?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain_elasticsearch?style=flat-square&label=%20) |
+
+## 设置
+
+要创建一个 `ElasticsearchEmbeddingsCache` 字节存储，您需要一个 Elasticsearch 集群。您可以 [本地设置一个](https://www.elastic.co/downloads/elasticsearch) 或创建一个 [Elastic 账户](https://www.elastic.co/elasticsearch)。
+
+### 安装
+
+LangChain `ElasticsearchEmbeddingsCache` 集成存在于 `langchain-elasticsearch` 包中：
+
+```python
+pip install -qU langchain-elasticsearch
+```
+
+## 实例化
+
+现在我们可以实例化我们的字节存储：
+
+```python
+from langchain_elasticsearch import ElasticsearchEmbeddingsCache
+
+# Example config for a locally running Elasticsearch instance
+kv_store = ElasticsearchEmbeddingsCache(
+    es_url="https://localhost:9200",
+    index_name="llm-chat-cache",
+    metadata={"project": "my_chatgpt_project"},
+    namespace="my_chatgpt_project",
+    es_user="elastic",
+    es_password="<GENERATED PASSWORD>",
+    es_params={
+        "ca_certs": "~/http_ca.crt",
+    },
+)
+```
+
+## 使用
+
+您可以使用 `mset` 方法像这样在键下设置数据：
+
+```python
+kv_store.mset(
+    [
+        ["key1", b"value1"],
+        ["key2", b"value2"],
+    ]
+)
+
+kv_store.mget(
+    [
+        "key1",
+        "key2",
+    ]
+)
+```
+
+```text
+[b'value1', b'value2']
+```
+
+并且您可以使用 `mdelete` 方法删除数据：
+
+```python
+kv_store.mdelete(
+    [
+        "key1",
+        "key2",
+    ]
+)
+
+kv_store.mget(
+    [
+        "key1",
+        "key2",
+    ]
+)
+```
+
+```text
+[None, None]
+```
+
+## 作为嵌入缓存使用
+
+像其他 `ByteStores` 一样，您可以使用 `ElasticsearchEmbeddingsCache` 实例为 RAG 进行 [文档摄取中的持久缓存](/langchain/oss/python/integrations/embeddings#缓存)。
+
+然而，缓存的向量默认情况下是不可搜索的。开发者可以自定义 Elasticsearch 文档的构建，以便添加索引向量字段。
+
+这可以通过继承并覆盖方法来完成：
+
+```python
+from typing import Any, Dict, List
+
+
+class SearchableElasticsearchStore(ElasticsearchEmbeddingsCache):
+    @property
+    def mapping(self) -> Dict[str, Any]:
+        mapping = super().mapping
+        mapping["mappings"]["properties"]["vector"] = {
+            "type": "dense_vector",
+            "dims": 1536,
+            "index": True,
+            "similarity": "dot_product",
+        }
+        return mapping
+
+    def build_document(self, llm_input: str, vector: List[float]) -> Dict[str, Any]:
+        body = super().build_document(llm_input, vector)
+        body["vector"] = vector
+        return body
+```
+
+当覆盖映射和文档构建时，请仅进行附加修改，保持基本映射完整。
+
+---
+
+## API 参考
+
+有关所有 `ElasticsearchEmbeddingsCache` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-elasticsearch/cache/ElasticsearchEmbeddingsCache)
+
+---
+
+> 官方原文：[src/oss/python/integrations/stores/elasticsearch.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/stores/elasticsearch.mdx) · 译文由 AI 生成，以英文原文为准。

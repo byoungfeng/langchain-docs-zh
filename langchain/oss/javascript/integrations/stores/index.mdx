@@ -1,0 +1,45 @@
+---
+title: "存储集成"
+sidebarTitle: "键值存储"
+description: "使用 LangChain JavaScript 集成存储。"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/javascript-stores-downloads.mdx';
+
+## 概述
+
+LangChain 提供了一个键值存储接口，用于通过键存储和检索数据。LangChain 中的键值存储接口主要用于缓存 [嵌入](/langchain/oss/python/integrations/embeddings)。
+
+## 接口
+
+所有 [`BaseStores`](https://reference.langchain.com/javascript/langchain-core/stores/BaseStore) 都是 **通用** 的，并支持以下接口，其中 `K` 表示键类型，`V` 表示值类型：
+
+- `mget(keys: K[]): Promise<(V | undefined)[]>`: 获取多个键的值，如果键不存在则返回 `undefined`
+- `mset(keyValuePairs: [K, V][]): Promise<void>`: 设置多个键的值
+- `mdelete(keys: K[]): Promise<void>`: 删除多个键
+- `yieldKeys(prefix?: string): AsyncGenerator<K | string>`: 异步生成存储中的所有键，可选择按前缀过滤
+
+接口的通用性允许你使用不同的键和值类型。例如，`BaseStore<string, BaseMessage>` 会用字符串键存储消息，而 `BaseStore<string, number[]>` 会存储数字数组。
+
+<Note>
+基础存储设计为一次处理 **多个** 键值对以提高效率。这可以节省网络往返次数，并可能允许在底层存储中进行更高效的批量操作。
+</Note>
+
+## 本地开发的自带存储
+
+<Columns cols={2}>
+  <Card title="InMemoryStore" icon="link" href="/langchain/oss/python/integrations/stores/in_memory" arrow="true" cta="View guide" />
+  <Card title="LocalFileStore" icon="link" href="/langchain/oss/python/integrations/stores/file_system" arrow="true" cta="View guide" />
+</Columns>
+
+## 自定义存储
+
+你也可以通过扩展 @[`BaseStore`] 类来实现自己的自定义存储。有关更多详细信息，请参阅 [存储接口文档](https://reference.langchain.com/javascript/langchain-core/stores/BaseStore)。
+
+## 所有键值存储
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/stores/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/stores/index.mdx) · 译文由 AI 生成，以英文原文为准。

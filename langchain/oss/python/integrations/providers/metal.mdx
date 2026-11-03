@@ -1,0 +1,31 @@
+---
+title: "Metal 集成"
+description: "使用 LangChain Python 集成 Metal。"
+---
+
+本页面介绍了如何在LangChain中使用[Metal](https://getmetal.io)。
+
+## 什么是metal?
+
+Metal 是专为生产环境设计的受管检索与记忆平台。您可轻松将数据索引至`Metal`，并在此运行语义搜索与检索。
+
+## 快速开始
+
+首先通过[创建Metal账户](https://app.getmetal.io/signup)进行初始化。
+
+随后可利用`MetalRetriever`类快速实现数据检索（用于语义搜索、提示词上下文构建等）。该类接受一个`Metal`实例及传递给Metal API的参数字典。
+
+```python
+from langchain_classic.retrievers import MetalRetriever
+from metal_sdk.metal import Metal
+
+
+metal = Metal("API_KEY", "CLIENT_ID", "INDEX_ID");
+retriever = MetalRetriever(metal, params={"limit": 2})
+
+docs = retriever.invoke("search term")
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/metal.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/metal.mdx) · 译文由 AI 生成，以英文原文为准。

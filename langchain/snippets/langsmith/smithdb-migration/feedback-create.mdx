@@ -1,0 +1,135 @@
+import SmithdbFeedbackCreateBeforePy from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-before-py.mdx';
+import SmithdbFeedbackCreateAfterPy from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-after-py.mdx';
+import SmithdbFeedbackCreateBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-before-js.mdx';
+import SmithdbFeedbackCreateAfterJs from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-after-js.mdx';
+import SmithdbFeedbackCreateBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-before-kt.mdx';
+import SmithdbFeedbackCreateAfterKt from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-after-kt.mdx';
+import SmithdbFeedbackCreateBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-before-go.mdx';
+import SmithdbFeedbackCreateAfterGo from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-after-go.mdx';
+import SmithdbFeedbackCreateBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-before-sh.mdx';
+import SmithdbFeedbackCreateAfterSh from '/langchain/snippets/code-samples/smithdb-migration/feedback-create-after-sh.mdx';
+
+## 反馈: 创建
+
+为执行流程创建反馈（评分、修正或评论）。
+
+### 主要变更
+
+#### 必要参数
+
+方法名称和端点保持不变。仅会话（项目）ID的要求发生了变化。
+
+<Tabs>
+  <Tab title="Python">
+    <Warning>
+    `create_feedback` 现在需要 `session_id`，即拥有该运行（run）的项目（session）的 UUID。之前它是可选的。
+    </Warning>
+
+    | Before | After | Notes |
+    |---|---|---|
+    | `session_id` (optional) | `session_id` (**required**) | 项目拥有的执行流程的UUID；若尚未拥有，请通过 `client.read_project()` 分解获取 |
+  </Tab>
+  <Tab title="TypeScript">
+    <Warning>
+    `client.createFeedback` 现在需要 `sessionId`，即拥有该运行的项目（会话）的 UUID。此前该参数是可选的。
+    </Warning>
+
+    | Before | After | Notes |
+    |---|---|---|
+    | `sessionId` (optional) | `sessionId` (**required**) | 项目拥有的执行流程的UUID；若尚未拥有，请通过 `client.readProject()` 分解获取 |
+  </Tab>
+  <Tab title="Java">
+    <Warning>
+    `FeedbackCreateSchema.sessionId()` is now required. It was previously optional.
+    </Warning>
+
+    | Before | After | Notes |
+    |---|---|---|
+    | `sessionId()` (optional) | `sessionId()` (**required**) | 项目拥有的执行流程的UUID；若尚未拥有，请通过 `client.sessions().list()` 分解获取 |
+  </Tab>
+  <Tab title="Go">
+    <Warning>
+    `FeedbackCreateSchemaParam.SessionID` is now required. It was previously optional.
+    </Warning>
+
+    | Before | After | Notes |
+    |---|---|---|
+    | `SessionID` (optional) | `SessionID` (**required**) | 项目拥有的执行流程的UUID；若尚未拥有，请通过 `client.Sessions.List()` 分解获取 |
+  </Tab>
+  <Tab title="cURL">
+    <Warning>
+    `POST /api/v1/feedback` 现在要求请求体中包含 `session_id` 字段。此前该字段是可选的。
+    </Warning>
+
+    | Before | After | Notes |
+    |---|---|---|
+    | `session_id` (optional) | `session_id` (**required**) | 项目拥有的执行流程的UUID；若尚未拥有，请通过 `GET /api/v1/sessions` 分解获取 |
+  </Tab>
+</Tabs>
+
+### 示例
+
+#### 创建反馈时提供 `session_id`
+
+<Tabs>
+  <Tab title="Python">
+    `create_feedback` 现在除了 `session_id` 还需要 `run_id`。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbFeedbackCreateBeforePy />
+      </Tab>
+      <Tab title="After">
+        <SmithdbFeedbackCreateAfterPy />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="TypeScript">
+    `client.createFeedback` 现在除了 `sessionId` 还需要 `runId`。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbFeedbackCreateBeforeJs />
+      </Tab>
+      <Tab title="After">
+        <SmithdbFeedbackCreateAfterJs />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="Java">
+    `.create()` 现在除了 `.sessionId()` 还需要 `.runId()`。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbFeedbackCreateBeforeKt />
+      </Tab>
+      <Tab title="After">
+        <SmithdbFeedbackCreateAfterKt />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="Go">
+    `Feedback.New` 现在除了 `SessionID` 还需要 `RunID`。
+
+<Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbFeedbackCreateBeforeGo />
+      </Tab>
+      <Tab title="After">
+        <SmithdbFeedbackCreateAfterGo />
+      </Tab>
+    </Tabs>
+  </Tab>
+  <Tab title="cURL">
+    `POST /api/v1/feedback` 现在除了 `run_id` 还需要一个 `session_id` 字段。
+
+    <Tabs sync={false}>
+      <Tab title="Before">
+        <SmithdbFeedbackCreateBeforeSh />
+      </Tab>
+      <Tab title="After">
+        <SmithdbFeedbackCreateAfterSh />
+      </Tab>
+    </Tabs>
+  </Tab>
+</Tabs>

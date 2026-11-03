@@ -1,0 +1,25 @@
+受管理的运行时拥有 `backend`、`store`、`checkpointer`、`skills` 和 系统提示词。在智能体定义中不要设置这些字段。
+
+:::python
+| 涉及领域 | 所有者 | 配置位置 |
+| --- | --- | --- |
+| `name` | You | 在智能体定义中必需；用作助手ID和默认部署名称。 |
+| `backend`, `store`, `checkpointer` | 受管理的运行时 | 不可配置。 |
+| 持久化记忆 | 启用时的受管理的运行时 | 通过项目根目录的 `memory.py` 声明（可选），并在整个部署中共享。参见 [Memory](https://docs.langchain.com/langsmith/managed-deep-agents-memory)。 |
+| `skills` | 由 Context Hub 支持的受管理的运行时 | 在项目中设置 `skills/**`。参见 [Context Hub](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub)。 |
+| 系统提示词 | 由 Context Hub 支持的受管理的运行时 | 在项目中设置 `instructions.md`。参见 [Context Hub](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub)。 |
+| 模型、工具、中间件、子智能体、中断 | You | 在智能体定义及导入的模块中配置。 |
+:::
+
+:::js
+| 涉及领域 | 所有者 | 配置位置 |
+| --- | --- | --- |
+| `name` | You | 在智能体定义中必需；用作助手ID和默认部署名称。 |
+| `backend`, `store`, `checkpointer` | 受管理的运行时 | 不可配置。 |
+| 持久化记忆 | 启用时的受管理的运行时 | 通过项目根目录的 `memory.ts` 声明（可选），并在整个部署中共享。参见 [Memory](https://docs.langchain.com/langsmith/managed-deep-agents-memory)。 |
+| `skills` | 由 Context Hub 支持的受管理的运行时 | 在项目中设置 `skills/**`。参见 [Context Hub](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub)。 |
+| 系统提示词 | 由 Context Hub 支持的受管理的运行时 | 在项目中设置 `instructions.md`。参见 [Context Hub](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub)。 |
+| 模型、工具、中间件、子智能体、中断 | You | 在智能体定义及导入的模块中配置。 |
+:::
+
+对于作者配置的字段，参见 [Agent definition](https://docs.langchain.com/langsmith/managed-deep-agents-agent-definition)。

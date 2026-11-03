@@ -1,0 +1,111 @@
+---
+title: "快速入门"
+sidebarTitle: "快速入门"
+description: "安装 OpenWiki，配置模型提供者，并生成您的第一个维基"
+---
+
+OpenWiki 是一个 CLI 工具，用于编写和维护您代码库或个人知识库的 Markdown Wiki。智能体将此 Wiki 用作持久化上下文，因此可以减少重新发现架构、集成和其他仓库细节所需的时间和 Token 数量。人类可以阅读相同的文档，但智能体是主要受众。本指南涵盖安装、提供方配置和首次文档生成。功能概述请参阅 [OpenWiki 概览](/langchain/oss/openwiki/overview)。
+
+## 安装并生成仓库文档
+
+<Steps>
+    <Step title="Install the CLI" icon="package">
+        OpenWiki 需要 [Node.js 22.22.0 或 later](https://nodejs.org)。
+
+        ```bash
+        npm install -g openwiki
+        ```
+
+        在 Windows 系统上，建议使用 `npm` 或 `pnpm`。使用 Bun 安装可能会回退到编译原生 `better-sqlite3` 依赖，并可能需要 Visual Studio Build Tools 的桌面开发与 C++ 工作负载。
+    </Step>
+
+    <Step title="Initialize in your repository" icon="player-play">
+        在仓库根目录运行以下命令：
+
+        ```bash
+        openwiki --init
+        ```
+
+        首次交互式运行时，OpenWiki 会提示配置以下内容：
+
+        - 推理提供方和模型
+        - 提供方 API 密钥（或等效凭证）
+        - 可选的 LangSmith API 密钥用于追踪
+        - 用于从运行时轨迹丰富 Wiki 的 LangSmith 项目
+
+        OpenWiki 将配置和密钥保存至 `~/.openwiki/.env`。
+
+        再次运行 `--init` 会重新生成仓库 Wiki 和声明（Claims），同时保留 `openwiki/INSTRUCTIONS.md`。在持久化检出（checkout）中中断的运行会从 `openwiki/.run.json` 恢复。
+
+        若要在智能体内而非独立模型会话中运行 OpenWiki，请参阅 [智能体集成](/langchain/oss/openwiki/integrations)。Wiki 创建后，您可搜索它或链接相关仓库 [相关仓库](/langchain/oss/openwiki/search-and-link)。
+    </Step>
+
+    <Step title="Review the generated wiki" icon="book">
+        OpenWiki 将文档写入 `openwiki/`（仓库内），包括快速入门入口点和主题页面。它会在仓库根目录创建或刷新 `AGENTS.md`，其中包含引导智能体咨询 Wiki 获取代码库上下文的区块。当 `CLAUDE.md` 已存在时，OpenWiki 会刷新一个导入 `@AGENTS.md` 的受管理区块。事实性页面通过 `openwiki/.claims/` 下方的声明（Claims）进行锚定。
+
+        仓库特定的 Wiki 指示存储在 `openwiki/INSTRUCTIONS.md` 中。OpenWiki 会读取此文件以确定范围和优先级。如需修改，请编辑文件或通过聊天请求 OpenWiki 修改摘要（例如 `openwiki "Update openwiki/INSTRUCTIONS.md to focus on the public API"`）。常规 `--init` 和 `--update` 运行不会重写它。
+
+        在浏览器中探索 Wiki：
+        ```bash
+        openwiki visualize
+        ```
+        此命令会打开本地交互式节点图，附带 Markdown 阅读器。详见 [可视化 Wiki](/langchain/oss/openwiki/visualize)。
+    </Step>
+
+    <Step title="Keep docs up to date" icon="refresh">
+        代码变更后刷新文档：
+        ```bash
+        openwiki --update
+        ```
+        在代码模式下，更新还会同步过时的声明（Claims）以适应源证据变更。如需在 CI 中自动化更新，请参阅 [自动化更新](/langchain/oss/openwiki/automate-updates)。
+    </Step>
+</Steps>
+
+## 个人 Wiki（可选）
+
+初始化本地个人知识库而非仓库文档：
+
+```bash
+openwiki personal --init
+```
+
+个人模式将数据写入 `~/.openwiki/wiki`，并支持配置连接器（如本地 Git 仓库、自定义 MCP、Gmail、Notion、网页搜索、Hacker News、X/Twitter）。详见 [个人模式](/langchain/oss/openwiki/personal-mode)。
+
+## 交互式和单次运行
+
+裸载 `openwiki` 启动当前仓库的代码模式交互会话。通过消息发起请求：
+```bash
+openwiki "Please generate documentation for this repository"
+```
+
+使用 `-p` / `--print` 进行单次非交互式运行，输出最终助手响应后退出：
+```bash
+openwiki -p "Summarize what you can do"
+```
+
+在聊天界面，使用 `/api-key` 更新当前提供方 API 密钥，`/langsmith-key` 更新或清除 LangSmith 追踪凭证，`/effort` 设置支持模型的可解释性（reasoning effort）。
+
+## 使用 LangSmith 追踪
+
+在入职（onboarding）阶段提供 LangSmith API 密钥，将 OpenWiki 运行轨迹关联至名为 `openwiki` 的 LangSmith 项目。也可在 `~/.openwiki/.env` 或进程环境变量中设置这些值：
+```bash
+LANGSMITH_API_KEY=your-key
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_PROJECT=openwiki
+```
+
+如需从 LangSmith 追踪（独立于 OpenWiki 自身追踪）丰富仓库 Wiki，请参阅 [LangSmith 连接器](/langchain/oss/openwiki/code-mode#langsmith连接器)。
+
+## 后续步骤
+
+- [代码模式](/langchain/oss/openwiki/code-mode)：仓库 Wiki、声明（Claims）、OKF 输出和智能体指令文件
+- [智能体集成](/langchain/oss/openwiki/integrations)：在 Codex、Claude Code、OpenCode、Cursor、IBM Bob、Kiro、Oh My Pi、Antigravity 或 Pi 中运行 OpenWiki
+- [搜索与链接 Wiki](/langchain/oss/openwiki/search-and-link)：MCP 搜索与阅读、多仓库工作区
+- [个人模式](/langchain/oss/openwiki/personal-mode)：本地知识库和连接器
+- [模型提供方](/langchain/oss/openwiki/providers)：支持提供方及凭证
+- [自动化更新](/langchain/oss/openwiki/automate-updates)：GitHub Actions、GitLab CI 和 Bitbucket Pipelines
+- [CLI 参考文档](/langchain/oss/openwiki/cli-reference)：命令与标志
+
+---
+
+> 官方原文：[src/oss/openwiki/quickstart.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/quickstart.mdx) · 译文由 AI 生成，以英文原文为准。

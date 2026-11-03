@@ -1,0 +1,365 @@
+---
+title: "快速入门"
+sidebarTitle: "快速入门"
+description: "深度智能体代码 (dcode) 是基于 深度智能体 SDK 构建的终端编码智能体。本指南涵盖安装、第一个任务、日常交互使用、通过管道进行自动化以及 LangSmith 跟踪。有关功能概述，请参阅 深度智能体代码概述。有关 config.toml 和提供者设置，请参阅 配置。"
+---
+
+import ProjectTracingCompatibility from '/langchain/snippets/langsmith/project-tracing-compatibility.mdx';
+
+深度智能体代码 (`dcode`) 是基于 [深度智能体 SDK](/langchain/oss/deepagents/quickstart) 构建的终端编码智能体。本指南涵盖安装、第一个任务、日常交互使用、通过管道进行自动化以及 LangSmith 跟踪。有关功能概述，请参阅 [深度智能体代码概述](/langchain/oss/deepagents/code/overview)。有关 `config.toml` 和提供者设置，请参阅 [配置](/langchain/oss/deepagents/code/configuration)。
+
+## 安装并运行第一个任务
+
+<Steps>
+
+    <Step title="Install and launch" icon="terminal">
+        ```bash
+        curl -LsSf https://langch.in/dcode | bash
+        ```
+    </Step>
+
+    <Step title="Add provider credentials" icon="key">
+        深度智能体代码可与任何进行函数调用的 LLM 配合使用。OpenAI、Anthropic 和 Google 已内置支持。
+
+        使用 `/auth` 命令连接到提供者。有关完整列表和凭证详情，请参阅 [提供者](/langchain/oss/deepagents/code/providers)。
+
+        <Note>
+            网络搜索使用 [Tavily](https://tavily.com)。使用 `/auth` 添加密钥。请参阅 [启用网络搜索](/langchain/oss/deepagents/code/credentials#启用-tavily-网页搜索)。
+        </Note>
+    </Step>
+
+    <Step title="Give the agent a task" icon="message">
+        ```txt
+        Create a Python script that prints "Hello, World!"
+        ```
+
+        智能体会解释查询，并在修改文件之前提出更改供您批准。如有需要，它可以运行 shell 命令来测试代码、检查文档或在网络上搜索最新信息。
+    </Step>
+
+    <Step title="Enable tracing (optional)" icon="chart-dots">
+        要在 LangSmith 中记录智能体操作、工具调用和决策，请运行 `/auth` 并添加您的 LangSmith API 密钥。下次启动时将启用跟踪。
+
+        有关选择智能体环境、高级选项以及 CI 或无头设置的信息，请参阅 [使用 LangSmith 进行跟踪](#使用-langsmith-进行跟踪)。
+    </Step>
+</Steps>
+
+<Note>
+    深度智能体代码在 Windows 上未正式支持。Windows 用户可以尝试在 [Windows 子系统 for Linux (WSL)](https://learn.microsoft.com/en-us/windows/wsl/install) 下运行它。
+</Note>
+
+## 交互模式
+
+像在聊天界面中一样自然地输入。
+智能体会使用其内置工具、技能和记忆来帮助您完成任务。
+
+<AccordionGroup>
+    <Accordion title="Slash commands" icon="slash">
+        在深度智能体代码会话中使用以下命令：
+
+        - `/model`：切换模型或打开交互式模型选择器。
+        - `/effort`：为当前模型设置推理工作量。
+        - `/agents`：在无需重新启动的情况下在预配置的智能体之间热切换。有关相关标志，请参阅 [命令参考](/langchain/oss/deepagents/code/cli-reference#命令行选项)。
+        - `/auth`：管理为模型提供者和服务（例如 Tavily 网络搜索）存储的 API 密钥。有关详细信息，请参阅 [提供者凭证](/langchain/oss/deepagents/code/credentials)。
+        - `/goal <objective>`：从可衡量的目标中起草验收标准。请参阅 [目标和评分标准](/langchain/oss/deepagents/code/goals-and-rubrics)。
+        - `/rubric`：为评分设置明确的验收标准。请参阅 [目标和评分标准](/langchain/oss/deepagents/code/goals-and-rubrics)。
+        - `/remember [context]`：查看对话并更新记忆和技能。可选地传递附加上下文。
+        - `/skill:<name> [args]`：通过名称直接调用技能。智能体服务器在第一次模型调用之前解析技能并加载其 `SKILL.md` 指令。请参阅 [会话中调用技能](/langchain/oss/deepagents/code/memory-and-skills#会话中途调用技能)。
+        - `/skill-creator [task]`：创建有效智能体技能的指南。
+        - `/offload` (别名 `/compact`) - 通过将消息卸载到存储并使用摘要占位符来释放上下文窗口空间。如有需要，智能体可以从卸载的文件中检索完整历史记录。
+        - `/context`：打开带有模型容量、使用类别和剩余空间的彩色编码上下文窗口使用报告。
+        - `/context-doctor`：审核会话中注入的上下文及其估计的 Token 成本。请参阅 [审核注入的上下文](/langchain/oss/deepagents/code/cli-reference#审计注入的上下文)。
+        - `/tools`：列出当前智能体可用的内置和 MCP 工具。请参阅 [列出可用工具](/langchain/oss/deepagents/code/cli-reference#列出可用工具)。
+        - `/extensions`：列出加载的 [Python 扩展](/langchain/oss/deepagents/code/extensions)、它们的注册及其源路径。需要 `DEEPAGENTS_CODE_EXPERIMENTAL=1`。
+        - `/cost`：显示线程的估计成本。请参阅 [跟踪线程成本](/langchain/oss/deepagents/code/cli-reference#跟踪线程成本)。
+        - `/btw`：在不中断主任务的情况下，就对话提出一个旁侧问题。请参阅 [提出旁侧问题](/langchain/oss/deepagents/code/cli-reference#提问)。
+        - `/tokens`：显示当前上下文窗口 Token 使用情况分解。
+        - `/clear`：启动一个新线程。
+        - `/force-clear`：使用新线程恢复卡住的会话。
+        - `/copy`：将最新的助手消息复制到剪贴板。
+        - `/prompts`：搜索、预览、复制和重用之前提交的提示词。
+        - `/rename [name]`：为当前线程命名，或在省略名称时生成可编辑的建议。请参阅 [为线程命名](/langchain/oss/deepagents/code/cli-reference#为线程命名)。
+        - `/threads`：浏览并恢复之前的对话线程。
+        - `/mcp [login <server> | reconnect]`：显示活动的 MCP 服务器和工具。`login <server>` 运行服务器的 OAuth 流程；`reconnect` 加载延迟登录。
+        - `/plugins`：管理 [插件和市集](/langchain/oss/deepagents/code/plugins)。
+        - `/notifications`：配置启动警告首选项。
+        - `/reload`：重新读取 `.env` 文件、刷新配置并重新发现技能，而无需重新启动。这也重新加载插件技能和 MCP 配置。对话状态保持不变。有关 [`DEEPAGENTS_CODE_` 前缀](/langchain/oss/deepagents/code/configuration#deepagents_code_-前缀) 的覆盖行为，请参阅。
+        - `/theme`：打开交互式主题选择器以切换颜色主题。内置主题可用，还有任何 [用户定义的主题](/langchain/oss/deepagents/code/configuration#主题)。
+        - `/scrollbar`：显示或隐藏聊天滚动条。
+        - `/line-numbers`：在新差异中显示或隐藏相对于文件的行号。请参阅 [差异行号](/langchain/oss/deepagents/code/config-file#差异行号)。
+        - `/update`：在线检查并安装深度智能体代码更新。检测您的安装方法（uv、Homebrew、pip）并运行适当的升级命令。
+        - `/auto-update`：打开或关闭自动更新。
+        - `/install`：安装可选集成。
+        - `/trace`：在 LangSmith 中打开当前线程。
+        - `/editor`：在您的外部编辑器（`$VISUAL` / `$EDITOR`）中打开当前提示词。请参阅 [外部编辑器](#外部编辑器)。
+        - `/restart`：重新启动智能体服务器。
+        - `/timestamps`：切换消息时间戳页脚。
+        - `/changelog`：在您的浏览器中打开深度智能体代码变更日志。
+        - `/docs`：在您的浏览器中打开文档。
+        - `/feedback`：发送反馈或报告问题。
+        - `/version` (别名 `/about`) - 显示安装的 `deepagents-code` 和 SDK 版本。
+        - `/help`：显示帮助和可用命令。
+        - `/quit`：退出深度智能体代码。
+    </Accordion>
+
+    <Accordion title="Shell commands" icon="prompt">
+        输入 `!` 进入 shell 模式，然后输入您的命令。
+
+        ```bash
+        git status
+        npm test
+        ls -la
+        ```
+    </Accordion>
+
+    <Accordion title="Keyboard shortcuts" icon="keyboard">
+        **通用**
+
+| 快捷键 | 操作 |
+        |-|-|
+        | `Enter` | 提交提示词 |
+        | `Shift+Enter`, `Ctrl+J`, `Alt+Enter`, 或 `Ctrl+Enter` | 插入换行 |
+        | `@filename` | 自动完成文件并注入内容 |
+        | `@@query` | 搜索最近线程并插入线程引用 |
+        | `Shift+Tab` | 循环 [审批模式](/langchain/oss/deepagents/code/approval-modes) |
+        | `Ctrl+G` | 在外部编辑器中打开提示词 |
+        | `Ctrl+T` | 当存在时展开或折叠子智能体面板 |
+        | `Ctrl+N` | 当面板打开时查看待处理通知 |
+        | `Ctrl+O` | 展开/折叠最新工具输出 |
+        | `Escape` | 中断当前操作 |
+        | `Ctrl+C` | 中断或退出 |
+        | `Ctrl+D` | 退出 |
+
+        **提示词中的文本编辑**
+
+        对话输入使用标准的 readline 风格绑定：
+
+        | 快捷键 | 操作 |
+        |-|-|
+        | `Ctrl+A` 或 `Home` | 将光标移动到行首 |
+        | `Ctrl+E` 或 `End` | 将光标移动到行尾 |
+        | `Ctrl+U` | 从光标删除到行首 |
+        | `Ctrl+K` | 从光标删除到行尾 |
+        | `Ctrl+W` 或 `Ctrl+Backspace` | 向左删除单词 |
+        | `Ctrl+Left` / `Ctrl+Right` | 将光标向左/右移动一个单词 |
+
+        **搜索提示词历史**
+
+        提示词历史搜索允许您在不离开对话输入的情况下查找和重用之前提交的提示词。按下 `Ctrl+R` 打开存储在您机器上的提示词的内联搜索。
+
+        **引用之前的线程**
+
+        在对话输入中输入 `@@` 以通过初始提示词、线程 ID、智能体、分支或工作目录搜索最近线程。选择一个结果以插入一个 `@@(thread:<thread-id>)` 引用。当其上下文与您的请求相关时，Deep Agents Code 可以检查引用的对话。
+
+        在 `@@` 后添加文本以过滤结果。在建议打开时，按下 `Ctrl+R` 以浏览具有相同搜索的所有线程。在完整线程选择器中，按下 `Ctrl+C` 以复制选定的线程 ID。
+
+        <Note>
+            **macOS `Cmd+Left` / `Cmd+Right` / `Cmd+Delete`**
+
+            终端模拟器在按键到达终端进程之前拦截 `Cmd`-修改的按键，因此 Deep Agents Code 直接接收不到它们。相反，终端将它们转换为上述 readline 快捷键。
+
+            - **Ghostty:** 即用即走。`Cmd+Left`、`Cmd+Right` 和 `Cmd+Delete` 默认转换为 `Ctrl+A`、`Ctrl+E` 和 `Ctrl+U`。
+            - **iTerm2:** 默认未绑定。在 **设置 > 配置文件 > 键盘 > 键盘映射** 下添加以下内容作为 `Send Text with vim special chars`：
+                - `Cmd+Left` → `\x01` (Ctrl+A)
+                - `Cmd+Right` → `\x05` (Ctrl+E)
+                - `Cmd+Delete` → `\x15` (Ctrl+U)
+            - **Terminal.app:** 没有此重映射的原生 UI。直接使用基于 `Ctrl` 的快捷键。
+
+            单词级移动（`Option+Left` / `Option+Right`）以相同方式处理：终端发送 `Esc+b` / `Esc+f`，Deep Agents Code 将其解释为向左/向右移动单词。
+        </Note>
+    </Accordion>
+</AccordionGroup>
+
+### 检查上下文窗口使用情况
+
+运行 `/context` 以打开当前模型的上下文窗口使用情况的彩色编码报告。报告显示模型的上下文限制、已用 Token、剩余容量，以及在可用时，对话和系统提示词以及工具之间的分解。
+
+提供商报告的总量与本地对话估计保持区分。当提供商总量不可用时，报告将对话计数标记为估计值，并将总使用量标记为不可用。当您希望在对话转录中获取文本摘要时，使用 `/tokens`。
+
+当使用量增长超出预期时，运行 `/context-doctor` 以将 Token 分配给每个注入的组件：基础系统提示词、记忆文件、技能索引、内置工具模式以及 MCP 工具模式。要确认智能体当前可以调用的工具，运行 `/tools`。对于线程的运行成本估计，运行 `/cost`；相同的数字出现在状态栏中。参见 [诊断和审计会话](/langchain/oss/deepagents/code/cli-reference#诊断和审计会话)。
+
+### 外部编辑器
+
+按下 `Ctrl+G` 或输入 `/editor` 以在外部编辑器中编写提示词。Deep Agents Code 检查 `$VISUAL`，然后 `$EDITOR`，然后回退到 `vi` (macOS/Linux) 或 `notepad` (Windows)。GUI 编辑器（VS Code、Cursor、Zed 等）自动接收一个 `--wait` 标志，因此 Deep Agents Code 会阻塞直到您关闭文件。
+
+```bash
+# Set in your shell profile (~/.zshrc, ~/.bashrc, etc.)
+export VISUAL="code"    # GUI editor (--wait auto-injected)
+export EDITOR="nvim"    # Terminal fallback
+```
+
+## 非交互模式和管道
+
+使用 `-n` 以运行单个任务而不启动交互式 UI：
+
+```bash
+dcode -n "Write a Python script that prints hello world"
+```
+
+每次非交互运行都会启动一个新线程——对话历史不会在调用之间传递。基于文件的状态（记忆、技能、配置）会持续存在。
+
+您还可以通过 stdin 管道输入。当输入被管道传输时，Deep Agents Code 会自动以非交互方式运行：
+
+```bash
+echo "Explain this code" | dcode
+cat error.log | dcode -n "What's causing this error?"
+git diff | dcode -n "Review these changes"
+git diff | dcode --skill code-review -n 'summarize changes'
+```
+
+当您将管道输入与 `-n` 或 `-m` 结合使用时，管道内容会首先出现，然后是您传递给标志的文本。
+
+<Note>
+    管道输入的最大大小为 10 MiB。
+</Note>
+
+非交互模式下默认禁用 Shell 执行。使用 `-S`/`--shell-allow-list` 启用特定命令（例如，`-S "pytest,git,make"`），`recommended` 用于安全默认值，或 `all` 以允许任何命令。
+
+<AccordionGroup>
+    <Accordion title="Cap turn count" icon="gauge">
+        CI/CD 管道中的长时间运行或行为不当的智能体可能会无限循环。`--max-turns N` 为操作员提供了一个硬上限，而无需触摸 SDK 内部：
+
+        ```bash
+        dcode -n "fix the failing tests" --max-turns 10
+        ```
+
+        `N` 必须是一个正整数，并覆盖通常限制失控循环的内部安全默认值。当预算超出时，退出码为 124（与 GNU `timeout` 匹配），因此 CI 可以区分预算命中和通用失败。需要 `-n` 或管道 stdin；否则退出码为 2。
+
+        对于基于时间限制（或作为时间限制的补充）而不是回合数限制，请参阅 [使用 `--timeout`](#非交互模式和管道) 设置时钟时间限制。
+
+    </Accordion>
+
+    <Accordion title="Cap wall-clock time" icon="clock">
+        `--timeout SECONDS` 对非交互运行施加一个硬时钟时间限制。它通过基于时间的预算补充 `--max-turns`（回合数）——无论哪个限制首先达到，都会取消智能体。
+
+        ```bash
+        # Fail fast in CI if the task takes more than 2 minutes
+        dcode -n "run the test suite and summarise failures" --timeout 120
+
+        # Combine with --max-turns—whichever limit is hit first stops the agent
+        dcode -n "refactor auth module" --timeout 300 --max-turns 20
+        ```
+
+        到期时，智能体被取消，进程退出码为 124，与 `--max-turns` 使用相同的退出码，因此 CI 可以将两个预算命中统一处理。需要 `-n` 或管道 stdin；否则退出码为 2。
+    </Accordion>
+
+<Accordion title="Clean output and buffering" icon="buffer">
+        使用 `-q` 以获得干净的输出，适合将结果管道传输到其他命令，使用 `--no-stream` 以缓冲完整响应（而不是流式输出）后再写入 stdout：
+
+        ```bash
+        dcode -n "Generate a .gitignore for Python" -q > .gitignore
+        dcode -n "List dependencies" -q --no-stream | sort
+        ```
+
+        在非交互模式下，智能体被指示做出合理的假设并自主进行操作，而不是询问澄清问题。它也更倾向于非交互式命令变体（例如，`npm init -y`、`apt-get install -y`）。
+    </Accordion>
+
+    <Accordion title="Shell execution examples" icon="shield-check">
+        ```bash
+        # Allow specific commands (validated against the list)
+        dcode -n "Run the tests and fix failures" -S "pytest,git,make"
+
+        # Use the curated safe-command list
+        dcode -n "Build the project" -S recommended
+
+        # Allow any shell command
+        dcode -n "Fix the build" -S all
+        ```
+    </Accordion>
+</AccordionGroup>
+
+<Warning>
+    **谨慎使用。**
+
+    `-S all`（或 `--shell-allow-list all`）允许智能体执行任意 shell 命令，而无需人工确认。
+</Warning>
+
+## 使用 LangSmith 进行跟踪
+
+<ProjectTracingCompatibility />
+
+启用 [LangSmith](https://smith.langchain.com) 跟踪以在 LangSmith 智能体环境中查看智能体操作、工具调用和决策。
+
+运行 `/auth` 并添加您的 LangSmith API 密钥。跟踪在下次启动时启用，并跨会话持久化。有关凭证管理器的详细信息，请参阅 [提供者凭证](/langchain/oss/deepagents/code/credentials#use-%2Fauth-recommended)。
+
+要选择智能体环境或在不使用 TUI 的情况下配置跟踪，请将键添加到 `~/.deepagents/.env`，以便在每次会话中启用跟踪，而无需每个 shell 的导出：
+
+```bash title="~/.deepagents/.env"
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_...
+DEEPAGENTS_CODE_LANGSMITH_PROJECT="<coding-agent-tracer-session-name>"
+```
+
+设置 `DEEPAGENTS_CODE_LANGSMITH_PROJECT` 为编码智能体环境的 `tracer_session_name`。此设置控制 Deep Agents Code 自己的跟踪。您仓库的 `.env` 中的 `LANGSMITH_PROJECT` 控制在 shell 命令中运行的代码的跟踪。见下文 **将编码智能体跟踪与 shell 命令跟踪分开**。
+
+要覆盖特定工作目录的目的地，请将 `DEEPAGENTS_CODE_LANGSMITH_PROJECT` 添加到该目录中的 `.env`。请参阅 [环境变量](/langchain/oss/deepagents/code/configuration#环境变量) 了解完整的加载顺序。
+
+<Accordion title="Disable agent tracing">
+    启动 `dcode --no-tracing` 以禁用单次会话的 LangSmith 智能体跟踪。对于未来的启动，请在您的 shell 中设置 `DEEPAGENTS_CODE_LANGSMITH_TRACING=false` 或 `~/.deepagents/.env`。
+
+    该标志会覆盖环境设置。`DEEPAGENTS_CODE_LANGSMITH_TRACING` 中的显式 `false` 会覆盖其他启用跟踪的标志，包括 `LANGSMITH_TRACING=true`。Shell 导出优先于 `.env` 中相同变量的值。
+
+    禁用智能体跟踪不会禁用本地对话历史记录或模型提供者请求。它与跟踪编辑和 shell 命令中运行的智能体发出的跟踪是分开的。
+</Accordion>
+
+<Accordion title="Separate coding-agent traces from shell-command traces">
+    Deep Agents Code 可以生成两种类型的 LangSmith 跟踪：
+
+    - `Agent traces` 是 Deep Agents Code 自己的模型调用、工具调用、编排和中间件。
+    - `Shell-command traces` 是 Deep Agents Code 为您在 shell 中运行的代码发出的跟踪，例如测试、脚本或本地 LangGraph 智能体。
+
+    要选择 Deep Agents Code 自己的跟踪的环境，请设置 `DEEPAGENTS_CODE_LANGSMITH_PROJECT`：
+
+    ```bash title="~/.deepagents/.env"
+    # Use the coding agent environment's tracer_session_name.
+    DEEPAGENTS_CODE_LANGSMITH_PROJECT="<coding-agent-tracer-session-name>"
+    ```
+
+    对于在 shell 命令中运行的代码，此兼容性示例使用 `LANGSMITH_PROJECT` 并使用不同智能体环境的 `tracer_session_name`：
+
+    ```bash title=".env"
+    LANGSMITH_PROJECT="<shell-agent-tracer-session-name>"
+    ```
+
+    例如，假设您要求 Deep Agents Code 调试一个失败的 LangGraph 测试：
+
+    ```bash
+    uv run pytest tests/test_escalation_flow.py
+    ```
+
+    如果测试在启用 LangSmith 跟踪的情况下运行您的智能体，其跟踪将发送到为该智能体配置的环境。Deep Agents Code 自己的推理和工具使用跟踪将发送到编码智能体的环境。
+
+    您还可以使用 [`DEEPAGENTS_CODE_` 前缀](/langchain/oss/deepagents/code/configuration#deepagents_code_-前缀) 将 LangSmith 凭证限定为 Deep Agents Code（例如，`DEEPAGENTS_CODE_LANGSMITH_API_KEY`）。
+</Accordion>
+
+<Accordion title="Copy traces to a second agent environment">
+    要将跟踪镜像到第二个智能体环境，请设置 `DEEPAGENTS_CODE_LANGSMITH_REPLICA_PROJECTS`。这对于将相同的跟踪发送到个人工作空间和共享团队工作空间中的智能体环境很有用。
+
+    ```bash title="~/.deepagents/.env"
+    DEEPAGENTS_CODE_LANGSMITH_REPLICA_PROJECTS="<replica-tracer-session-name>"
+    ```
+
+    当设置且跟踪处于活动状态时，每次运行都会写入主要目的地和副本目的地。设置两个变量为相应环境的 `tracer_session_name` 值。将副本变量留空以写入一个环境。
+</Accordion>
+
+配置后，Deep Agents Code 会显示一条状态行，其中包含指向 LangSmith 跟踪目的地的链接。在支持的终端中，单击该链接可直接打开它。您也可以使用 `/trace` 打印 URL 并在浏览器中打开它。
+
+```sh
+✓ LangSmith tracing: '<coding-agent-tracer-session-name>'
+```
+
+<Tip>
+我们建议您还设置 [LangSmith 引擎](https://docs.langchain.com/langsmith/engine)，它监控您的跟踪、检测问题并建议修复。
+</Tip>
+
+## 参见
+
+- [Deep Agents Code 概述](/langchain/oss/deepagents/code/overview)
+- [配置](/langchain/oss/deepagents/code/configuration)
+- [提供者凭证](/langchain/oss/deepagents/code/credentials)
+- [CLI 参考](/langchain/oss/deepagents/code/cli-reference)
+- [提供者](/langchain/oss/deepagents/code/providers)
+- [记忆和技能](/langchain/oss/deepagents/code/memory-and-skills)
+
+---
+
+> 官方原文：[src/oss/deepagents/code/quickstart.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/code/quickstart.mdx) · 译文由 AI 生成，以英文原文为准。

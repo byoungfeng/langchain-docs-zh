@@ -1,0 +1,153 @@
+---
+title: "OllamaEmbeddings 集成"
+description: "使用 LangChain Python 集成 OllamaEmbeddings 嵌入模型。"
+integration:
+  name: OllamaEmbeddings
+  featured: true
+  pypi: langchain-ollama
+---
+
+
+这将帮助您使用LangChain启动Ollama嵌入模型。关于 `OllamaEmbeddings` 功能和配置选项的详细文档，请参考 [API reference](https://reference.langchain.com/python/langchain-ollama/embeddings/OllamaEmbeddings)。
+
+## 概述
+
+### 集成细节
+
+<ItemTable category="embeddings" item="Ollama" />
+
+## 配置
+
+首先，按照 [这些说明](https://github.com/ollama/ollama?tab=readme-ov-file#ollama) 设置并运行本地Ollama实例：
+
+* [下载](https://ollama.ai/download) 并安装Ollama到支持的平台上（包括Windows Subsystem for Linux即WSL、macOS和Linux）
+  * macOS用户可通过Homebrew使用 `brew install ollama` 安装并启动 `brew services start ollama`
+* 通过 `ollama pull <name-of-model>` 获取可用LLM模型
+  * 通过 [模型库](https://ollama.ai/library) 查看可用模型列表
+  * 例如 `ollama pull llama3`
+* 此操作会下载模型的默认版本。通常默认指向最新且参数最少的模型。
+
+> 在Mac上，模型将下载到 `~/.ollama/models`
+>
+> 在Linux（或WSL）上，模型存储于 `/usr/share/ollama/.ollama/models`
+
+* 指定目标模型的精确版本格式 `ollama pull vicuna:13b-v1.5-16k-q4_0`（查看此实例中 `Vicuna` 模型的 [各种标签](https://ollama.ai/library/vicuna/tags)）
+* 使用 `ollama list` 查看已拉取的模型
+* 通过 `ollama run <name-of-model>` 从命令行直接与模型对话
+*更多信息请参考 [Ollama文档](https://github.com/ollama/ollama/tree/main/docs)，在终端运行 `ollama help` 可查看可用命令。
+
+要启用模型调用的自动化追踪，设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API密钥：
+
+```python
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+```
+
+### 安装
+
+LangChain的Ollama集成位于 `langchain-ollama` 包中：
+
+```python
+pip install -qU langchain-ollama
+```
+
+## 实例化
+
+现在可以实例化模型对象并生成嵌入：
+
+```python
+from langchain_ollama import OllamaEmbeddings
+
+embeddings = OllamaEmbeddings(
+    model="llama3",
+)
+```
+
+如果模型支持输出维度配置（例如 `qwen3-embedding`），可通过 `dimensions` 参数指定：
+
+```python
+from langchain_ollama import OllamaEmbeddings
+
+embeddings = OllamaEmbeddings(
+    model="qwen3-embedding:8b",
+    dimensions=1024,
+)
+```
+
+## 索引与检索
+
+嵌入模型常用于检索增强生成（RAG）流程，既用于数据索引也用于后续检索。更多详细步骤请参考我们的 [RAG教程](/langchain/oss/deepagents/rag)。
+
+以下展示如何使用之前初始化的 `embeddings` 对象进行索引与检索。本例将索引并检索 `InMemoryVectorStore` 中的样本文档。
+
+```python
+# Create a vector store with a sample text
+from langchain_core.vectorstores import InMemoryVectorStore
+
+text = "LangChain is the framework for building context-aware reasoning applications"
+
+vectorstore = InMemoryVectorStore.from_texts(
+    [text],
+    embedding=embeddings,
+)
+
+# Use the vectorstore as a retriever
+retriever = vectorstore.as_retriever()
+
+# Retrieve the most similar text
+retrieved_documents = retriever.invoke("What is LangChain?")
+
+# Show the retrieved document's content
+print(retrieved_documents[0].page_content)
+```
+
+```text
+LangChain is the framework for building context-aware reasoning applications
+```
+
+## 直接使用
+
+底层中，向量存储和检索器通过 `embeddings.embed_documents(...)` 和 `embeddings.embed_query(...)` 分别为 `from_texts` 和检索 `invoke` 操作生成嵌入。
+
+您可直接调用这些方法实现自定义场景的嵌入生成。
+
+### 单文本嵌入
+
+可通过 `embed_query` 嵌入单文本或文档：
+
+```python
+single_vector = embeddings.embed_query(text)
+print(str(single_vector)[:100])  # Show the first 100 characters of the vector
+```
+
+```text
+[-0.0039849705, 0.023019705, -0.001768838, -0.0058736936, 0.00040999008, 0.017861595, -0.011274585,
+```
+
+### 多文本嵌入
+
+可通过 `embed_documents` 嵌入多文本：
+
+```python
+text2 = (
+    "LangGraph is a library for building stateful, multi-actor applications with LLMs"
+)
+two_vectors = embeddings.embed_documents([text, text2])
+for vector in two_vectors:
+    print(str(vector)[:100])  # Show the first 100 characters of the vector
+```
+
+```text
+[-0.0039849705, 0.023019705, -0.001768838, -0.0058736936, 0.00040999008, 0.017861595, -0.011274585,
+[-0.0066985516, 0.009878328, 0.008019467, -0.009384944, -0.029560851, 0.025744654, 0.004872892, -0.0
+```
+
+---
+
+## API参考
+
+关于 `OllamaEmbeddings` 功能和配置选项的详细文档，请参考 [API reference](https://reference.langchain.com/python/langchain-ollama/embeddings/OllamaEmbeddings)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/ollama.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/ollama.mdx) · 译文由 AI 生成，以英文原文为准。

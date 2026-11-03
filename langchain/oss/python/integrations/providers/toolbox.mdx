@@ -1,0 +1,36 @@
+---
+title: "MCP 工具箱集成"
+description: "使用 LangChain Python 集成 Mcp 工具箱。"
+---
+
+LangChain 中的 [MCP 工具箱](https://mcp-toolbox.dev/documentation/introduction/) 允许您为智能体配备一组工具。当智能体接收到查询时，它可以智能地选择并使用 MCP 工具箱提供的最合适的工具来满足请求。
+
+## 它是什么？
+
+MCP 工具箱本质上是一个工具的容器。您可以将其视为智能体的多功能工具；它可以容纳您创建的任何工具。然后，智能体根据用户的输入决定使用哪个特定的工具。
+
+当您有一个需要执行各种任务且这些任务需要不同能力的智能体时，这特别有用。
+
+## 安装
+
+要开始使用，您需要安装必要的包：
+
+<CodeGroup>
+```bash pip
+pip install toolbox-langchain
+```
+
+```bash uv
+uv add toolbox-langchain
+```
+</CodeGroup>
+
+## 教程
+
+有关如何创建、配置和使用 MCP 工具箱与您的智能体的完整、分步指南，请参阅我们的详细 Jupyter 笔记本教程。
+
+**[➡️ 在此处查看完整教程](/langchain/oss/python/integrations/tools/mcp_toolbox)**。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/toolbox.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/toolbox.mdx) · 译文由 AI 生成，以英文原文为准。

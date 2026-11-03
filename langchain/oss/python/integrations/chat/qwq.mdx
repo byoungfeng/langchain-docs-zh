@@ -1,0 +1,218 @@
+---
+title: "ChatQwQ 集成"
+description: "ChatQwQ 将 Qwen 思维模型连接到 LangChain 的 对话模型接口。langchain-qwq 包还提供了 ChatQwen，通过构造函数参数暴露思维控制功能。"
+integration:
+  name: ChatQwQ
+  pypi: langchain-qwq
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: true
+---
+
+  
+`ChatQwQ` 将 Qwen 思维模型连接到 LangChain 的 [对话模型接口](/langchain/oss/langchain/models)。`langchain-qwq` 包还提供了 [`ChatQwen`](/langchain/oss/python/integrations/chat/qwen)，通过构造函数参数暴露思维控制功能。
+
+<Warning>  
+阿里巴巴于 2026 年 10 月 10 日在北京和新加坡区域退役 `qwq-plus`。请参考 [模型退役通知](https://www.alibabacloud.com/en/notice/model_studionotice_on_the_decommissioning_of_certain_historical_mainline_models_731)。
+
+`ChatQwQ` 默认仍使用 `qwq-plus`。显式设置 `model` 并启用思维模式如下。包名称和导入语句保持不变。  
+</Warning>  
+
+## 概览  
+
+### 集成细节  
+
+| 类 | 包 | 可序列化 | 下载量 | 版本 |  
+| :--- | :--- | :---: | :---: | :---: |  
+| [`ChatQwQ`](https://pypi.org/project/langchain-qwq/) | [`langchain-qwq`](https://pypi.org/project/langchain-qwq/) | beta | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-qwq?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-qwq?style=flat-square&label=%20) |  
+
+### 模型特性  
+
+本指南使用的 Qwen Plus 文本模型支持以下功能。模型能力和可用性因端点及区域而异。  
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#multimodal) | 音频输入 | 视频输入 | [Token 级别流式输出](/langchain/oss/langchain/streaming#llm-tokens) | 原生异步 | [Token 使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |  
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |  
+| ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |  
+
+## 配置  
+
+使用 Alibaba Cloud 模型工作室账户（需访问所选模型）。示例要求 Python 3.10 或更高版本。  
+
+### 凭据  
+
+在 [Alibaba API 密钥页面](https://account.alibabacloud.com/login/login.htm?oauth_callback=https%3A%2F%2Fbailian.console.alibabacloud.com%2F%3FapiKey%3D1&lang=en#/api-key) 生成 API 密钥，然后设置 `DASHSCOPE_API_KEY`：  
+
+```python
+import getpass
+import os
+
+if not os.getenv("DASHSCOPE_API_KEY"):
+    os.environ["DASHSCOPE_API_KEY"] = getpass.getpass("Enter your DashScope API key: ")
+```
+  
+默认基础 URL 是 `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`。设置 `DASHSCOPE_API_BASE` 或传递 `base_url` 以使用您所在区域的端点。该端点必须提供 API 密钥和模型。  
+
+### 安装  
+
+安装 `langchain-qwq` 包：  
+
+```bash
+pip install -qU "langchain-qwq>=0.4.0"
+```
+  
+
+## 实例化  
+
+选择支持的 Qwen 模型并通过 `extra_body` 启用思维模式：  
+
+```python
+from langchain_qwq import ChatQwQ
+
+llm = ChatQwQ(
+    model="qwen-plus-2025-12-01",
+    extra_body={"enable_thinking": True},
+    max_tokens=3_000,
+    timeout=None,
+    max_retries=2,
+)
+```
+  
+ alternatively，使用 `ChatQwen` 并指定 `enable_thinking` 参数：  
+
+```python
+from langchain_qwq import ChatQwen
+
+qwen = ChatQwen(model="qwen-plus-2025-12-01", enable_thinking=True)
+response = qwen.invoke("What is 17 multiplied by 19?")
+print(response.content_blocks)
+```
+  
+ 支持的模型和思维控制选项请参考 Alibaba 的 [思维模式文档](https://www.alibabacloud.com/help/en/model-studio/deep-thinking)。
+
+## 调用  
+
+以下示例使用 `llm` 实例化 `ChatQwQ`：  
+
+```python
+messages = [
+    (
+        "system",
+        "You are a helpful assistant that translates English to French. "
+        "Translate the user sentence.",
+    ),
+    ("human", "I love programming."),
+]
+ai_msg = llm.invoke(messages)
+print(ai_msg.content_blocks)
+```
+  
+ 当提供方返回推理过程时，`additional_kwargs` 还包含其 `reasoning_content` 字段：  
+
+```python
+print(ai_msg.additional_kwargs.get("reasoning_content", ""))
+```
+  
+ `content_blocks` 提供 LangChain 的标准化文本和推理视图。访问此属性无需 `output_version="v1"`（本集成不支持该功能）。
+
+## 流式响应  
+
+流式返回模型生成响应时的消息片段：  
+
+```python
+for chunk in llm.stream("What is 17 multiplied by 19?"):
+    print(chunk.content_blocks)
+```
+  
+ 异步调用使用 `ainvoke`：  
+
+```python
+import asyncio
+
+from langchain_qwq import ChatQwQ
+
+
+async def main() -> None:
+    model = ChatQwQ(
+        model="qwen-plus-2025-12-01",
+        extra_body={"enable_thinking": True},
+    )
+    response = await model.ainvoke("What is 17 multiplied by 19?")
+    print(response.content_blocks)
+
+
+asyncio.run(main())
+```
+  
+ 在具有活动事件循环的笔记本中，使用 `await main()` 而非 `asyncio.run(main())`。
+
+## 工具调用  
+
+工具调用允许模型请求函数并传递参数。`bind_tools` 将工具定义发送给模型，但不执行工具。
+
+### 与 `bind_tools` 结合使用  
+
+```python
+from langchain.tools import tool
+from langchain_qwq import ChatQwQ
+
+
+@tool
+def multiply(first_int: int, second_int: int) -> int:
+    """Multiply two integers together."""
+    return first_int * second_int
+
+
+llm = ChatQwQ(
+    model="qwen-plus-2025-12-01",
+    extra_body={"enable_thinking": True},
+)
+llm_with_tools = llm.bind_tools([multiply])
+msg = llm_with_tools.invoke("Use multiply to calculate 5 times forty two.")
+print(msg.tool_calls)
+```
+  
+<Note>  
+ 完整的工具参数缓冲需要 `langchain-qwq>=0.4.0`。  
+</Note>  
+
+`ChatQwQ` 缓冲工具参数直到提供方完成生成或干净结束流。它保留有效 JSON 并仅在组装完整参数后尝试修复损坏的 JSON。文本和推理流立即继续。错误或取消的流不会发出未完成的工具调用。此行为适用于同步和异步流，包括回调。
+
+## 结构化输出
+
+`ChatQwQ` 使用函数调用返回结构化结果。通过 Pydantic schema 验证解析后的结果：
+
+```python
+from langchain_qwq import ChatQwQ
+from pydantic import BaseModel
+
+
+class Person(BaseModel):
+    name: str
+    age: int
+
+
+model = ChatQwQ(
+    model="qwen-plus-2025-12-01",
+    extra_body={"enable_thinking": True},
+)
+structured = model.with_structured_output(Person, method="function_calling")
+person = structured.invoke("Extract the person: Alice is 30 years old.")
+print(person)
+```
+
+将 `method="json_mode"` 或 `method="json_schema"` 传递给 `ChatQwQ` 同样会启用函数调用。这些值不会在本次包装器中启用原生 JSON 模式。
+
+## 视觉支持
+
+本指南中的文本模型不接受图像或视频输入。对于视觉任务，请通过 `ChatQwen` 选择兼容的模型和端点。在发送 [多模态消息](/langchain/oss/langchain/messages#multimodal) 之前，请先确认服务提供商支持的输入格式。
+
+## 参考文档
+
+- [包文档](https://pypi.org/project/langchain-qwq/)
+- [ChatQwen 集成](/langchain/oss/python/integrations/chat/qwen)
+- [对话模型](/langchain/oss/langchain/models)
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/qwq.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/qwq.mdx) · 译文由 AI 生成，以英文原文为准。

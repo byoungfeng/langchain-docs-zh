@@ -1,0 +1,187 @@
+---
+title: "Portkey 集成"
+sidebarTitle: "Portkey"
+description: "使用 LangChain Python 与 Portkey 集成。"
+---
+
+[Portkey](https://portkey.ai) 是 AI 应用的控制面板。凭借其流行的 AI 网关和可观察性套件，数百个团队可以部署 **可靠**、**成本高效**、**快速** 的应用。
+
+## LangChain 的 LLMOps
+
+Portkey 为 LangChain 带来了生产就绪能力。使用 Portkey，您可以
+
+- [x] 通过统一 API 连接到 150+ 个模型，
+- [x] 查看 42+ 个 **指标和日志** 以监控所有请求，
+- [x] 启用 **语义缓存** 以降低延迟和成本，
+- [x] 为失败的请求实现自动 **重试和回退**，
+- [x] 为请求添加 **自定义标签** 以更好地跟踪和分析和 [更多](https://portkey.ai/docs)。
+
+## 快速入门 - portkey & LangChain
+
+由于 Portkey 完全兼容 OpenAI 签名，您可以通过 @[`ChatOpenAI`] 接口连接到 Portkey AI 网关。
+
+- 将 `base_url` 设置为 `PORTKEY_GATEWAY_URL`
+- 使用 `createHeaders` 辅助方法添加 `default_headers` 以消耗 Portkey 所需的头部信息。
+
+首先，通过 [在此注册](https://app.portkey.ai/signup) 获取您的 Portkey API 密钥。（点击左下角的个人资料图标，然后点击“复制 API 密钥”）或部署开源 AI 网关到 [您自己的环境](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md)。
+
+接下来，安装 Portkey SDK
+
+```python
+pip install -U portkey_ai
+```
+
+现在，通过更新 LangChain 中的 @[`ChatOpenAI`] 模型，我们可以连接到 Portkey AI 网关
+
+```python
+from langchain_openai import ChatOpenAI
+from portkey_ai import createHeaders, PORTKEY_GATEWAY_URL
+
+PORTKEY_API_KEY = "..." # Not needed when hosting your own gateway
+PROVIDER_API_KEY = "..." # Add the API key of the AI provider being used
+
+portkey_headers = createHeaders(api_key=PORTKEY_API_KEY,provider="openai")
+
+llm = ChatOpenAI(api_key=PROVIDER_API_KEY, base_url=PORTKEY_GATEWAY_URL, default_headers=portkey_headers)
+
+llm.invoke("What is the meaning of life, universe and everything?")
+```
+
+请求会通过您的 Portkey AI 网关路由到指定的 `provider`。Portkey 还会记录您帐户中所有请求的日志，使调试变得极其简单。
+
+![在 Portkey 中查看 LangChain 日志](https://assets.portkey.ai/docs/langchain-logs.gif)
+
+## 通过 AI 网关使用 150+ 个模型
+
+AI 网关的强大功能体现在您能够使用上述代码片段连接到通过 AI 网关支持的 20 多家提供商的 150 多个模型。
+
+让我们修改上述代码以调用 Anthropic 的 `claude-opus-4-8` 模型。
+
+Portkey 支持 **[虚拟密钥](https://docs.portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/virtual-keys)**，它们是安全保险库中存储和管理 API 密钥的便捷方式。让我们尝试使用虚拟密钥进行 LLM 调用。您可以在 Portkey 中的虚拟密钥选项卡中为 Anthropic 创建一个新的密钥。
+
+`virtual_key` 参数设置了正在使用的 AI 提供商的认证和提供商。在我们的案例中，我们使用的是 Anthropic 虚拟密钥。
+
+> 注意，`api_key` 可以留空，因为该认证不会被使用。
+
+```python
+from langchain_openai import ChatOpenAI
+from portkey_ai import createHeaders, PORTKEY_GATEWAY_URL
+
+PORTKEY_API_KEY = "..."
+VIRTUAL_KEY = "..." # Anthropic's virtual key we copied above
+
+portkey_headers = createHeaders(api_key=PORTKEY_API_KEY,virtual_key=VIRTUAL_KEY)
+
+llm = ChatOpenAI(api_key="X", base_url=PORTKEY_GATEWAY_URL, default_headers=portkey_headers, model="claude-opus-4-8")
+
+llm.invoke("What is the meaning of life, universe and everything?")
+```
+
+Portkey AI 网关将认证对 Anthropic 的 API 请求，并将响应以 OpenAI 格式返回供您使用。
+
+AI 网关扩展了 LangChain 的 @[`ChatOpenAI`] 类，使其成为调用任何提供商和任何模型的单一接口。
+
+## 高级路由 - 负载均衡、回退、重试
+
+Portkey AI 网关通过配置优先的方法为 LangChain 带来了负载均衡、回退、实验和金丝雀测试等功能。
+
+让我们以一个 **示例** 来说明我们可能希望将流量在 `gpt-4` 和 `claude-opus` 之间 50:50 分流以测试这两个大型模型。此网关配置如下：
+
+```python
+config = {
+    "strategy": {
+         "mode": "loadbalance"
+    },
+    "targets": [{
+        "virtual_key": "openai-25654", # OpenAI's virtual key
+        "override_params": {"model": "gpt4"},
+        "weight": 0.5
+    }, {
+        "virtual_key": "anthropic-25654", # Anthropic's virtual key
+        "override_params": {"model": "claude-opus-4-8"},
+        "weight": 0.5
+    }]
+}
+```
+
+然后，我们可以在从 langchain 发起的请求中使用此配置。
+
+```python
+portkey_headers = createHeaders(
+    api_key=PORTKEY_API_KEY,
+    config=config
+)
+
+llm = ChatOpenAI(api_key="X", base_url=PORTKEY_GATEWAY_URL, default_headers=portkey_headers)
+
+llm.invoke("What is the meaning of life, universe and everything?")
+```
+
+当 LLM 被调用时，Portkey 将按定义的权重比例将请求分配给 `gpt-4` 和 `claude-opus-4-8`。
+
+您可以找到更多 [Portkey 配置示例](https://docs.portkey.ai/docs/api-reference/config-object#examples)。
+
+## **跟踪链和智能体**
+
+Portkey 的 LangChain 集成让您可以完全了解智能体的运行情况。让我们以一个 [流行的智能体工作流](/langchain/oss/langchain/agents) 为例。
+
+我们只需要修改 @[`ChatOpenAI`] 类以使用上述 AI 网关。
+
+```python
+from langchain_classic import hub
+from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
+from langchain_openai import ChatOpenAI
+from langchain.tools import tool
+from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders
+
+prompt = hub.pull("hwchase17/openai-tools-agent")
+
+portkey_headers = createHeaders(
+    api_key=PORTKEY_API_KEY,
+    virtual_key=OPENAI_VIRTUAL_KEY,
+    trace_id="uuid-uuid-uuid-uuid"
+)
+
+@tool
+def multiply(first_int: int, second_int: int) -> int:
+    """Multiply two integers together."""
+    return first_int * second_int
+
+
+@tool
+def exponentiate(base: int, exponent: int) -> int:
+    "Exponentiate the base to the exponent power."
+    return base**exponent
+
+
+tools = [multiply, exponentiate]
+
+model = ChatOpenAI(api_key="X", base_url=PORTKEY_GATEWAY_URL, default_headers=portkey_headers, temperature=0)
+
+# Construct the OpenAI Tools agent
+agent = create_openai_tools_agent(model, tools, prompt)
+
+# Create an agent executor by passing in the agent and tools
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+agent_executor.invoke({
+    "input": "Take 3 to the fifth power and multiply that by thirty six, then square the result"
+})
+```
+
+**您可以在 Portkey 仪表板上查看请求的日志以及跟踪 ID：**
+![Portkey 上的 LangChain 智能体日志](https://assets.portkey.ai/docs/agent_tracing.gif)
+
+此处还有其他文档：
+
+- 可观察性 - [portkey.ai/docs/product/observability-modern-monitoring-for-llms](https://portkey.ai/docs/product/observability-modern-monitoring-for-llms)
+- AI 网关 - [portkey.ai/docs/product/ai-gateway-streamline-llm-integrations](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations)
+- 提示词库 - [portkey.ai/docs/product/prompt-library](https://portkey.ai/docs/product/prompt-library)
+
+您可以在 [github.com/portkey-ai/gateway](https://github.com/portkey-ai/gateway) 查看我们流行的开源 AI 网关。
+
+有关每个功能的详细信息以及如何使用它，[请参阅 Portkey 文档](https://portkey.ai/docs)。如果您有任何问题或需要进一步协助，[请通过 Twitter 联系我们.](https://twitter.com/portkeyai) 或我们的 [支持邮箱](mailto:hello@portkey.ai)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/portkey/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/portkey/index.mdx) · 译文由 AI 生成，以英文原文为准。

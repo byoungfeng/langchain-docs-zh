@@ -1,0 +1,153 @@
+---
+title: "中间件概述"
+sidebarTitle: "概述"
+description: "在每一步精确控制和自定义智能体执行"
+keywords: ["middleware", "agent middleware"]
+---
+
+中间件提供了一种更严格地控制智能体内部行为的方式。中间件适用于以下场景：
+
+- 通过日志记录、分析和调试追踪智能体行为。
+- 转换提示词、[工具选择](/langchain/oss/langchain/middleware/built-in#llm-工具选择器)和输出格式。
+- 添加[重试](/langchain/oss/langchain/middleware/built-in#工具重试)、[回退方案](/langchain/oss/langchain/middleware/built-in#模型回退)和早期终止逻辑。
+- 应用[速率限制](/langchain/oss/langchain/middleware/built-in#模型调用限制)、安全守卫规则和[PII检测](/langchain/oss/langchain/middleware/built-in#pii-检测)。
+
+:::python
+通过将中间件传递给@[`create_agent`]进行添加：
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware, HumanInTheLoopMiddleware
+
+agent = create_agent(
+    model="gpt-5.5",
+    tools=[...],
+    middleware=[
+        SummarizationMiddleware(...),
+        HumanInTheLoopMiddleware(...)
+    ],
+)
+```
+:::
+
+:::js
+通过将中间件传递给`createAgent`进行添加：
+
+```typescript
+import {
+  createAgent,
+  summarizationMiddleware,
+  humanInTheLoopMiddleware,
+} from "langchain";
+
+const agent = createAgent({
+  model: "gpt-5.5",
+  tools: [...],
+  middleware: [summarizationMiddleware, humanInTheLoopMiddleware],
+});
+```
+:::
+
+## 智能体循环
+
+智能体的核心循环包括调用模型、让模型选择要执行的工具有效，并在调用完所有工具后结束：
+
+<img
+    src="/langchain/oss/images/core_agent_loop.png"
+    alt="核心智能体循环示意图"
+    style={{height: "200px", width: "auto", justifyContent: "center"}}
+    className="rounded-lg block mx-auto"
+/>
+
+中间件在每次调用步骤前/后暴露钩子：
+
+<img
+    src="/langchain/oss/images/middleware_final.png"
+    alt="中间件流程示意图"
+    style={{height: "300px", width: "auto", justifyContent: "center"}}
+    className="rounded-lg mx-auto"
+/>
+
+## 在LangGraph工作流中使用中间件
+
+中间件并非独立运行时：钩子会在编译后的[LangGraph](/langchain/oss/langgraph/overview)（由@[`create_agent`]返回）中运行。可将整个智能体（包括中间件）作为节点或子图嵌入更大的@[StateGraph]中，所有中间件钩子将继续生效。
+
+当环境拓扑结构超出"循环直到完成"的标准模式时（如输入分类后路由到多个智能体、并行分发任务或通过确定性步骤整合智能体调用），应采用此模式。
+
+`HumanInTheLoopMiddleware`匹配每个工具的`.name`。
+
+:::python
+`@tool`-装饰的函数名称来自函数本身，因此键对应`"send_email"`。
+
+```python
+from langchain.agents import AgentState, create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langgraph.graph import START, StateGraph
+
+# Assumes read_email, send_email, classify_node, and route are defined elsewhere.
+email_agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[read_email, send_email],
+    middleware=[HumanInTheLoopMiddleware(interrupt_on={"send_email": True})],
+)
+
+graph = (
+    StateGraph(AgentState)
+    .add_node("classify", classify_node)
+    .add_node("email_agent", email_agent)
+    .add_edge(START, "classify")
+    .add_conditional_edges("classify", route)
+    .compile()
+)
+```
+:::
+
+:::js
+键匹配你传递给`tool({...}, { name })`的`name`。
+
+```typescript
+import { AgentState, createAgent, humanInTheLoopMiddleware } from "langchain";
+import { StateGraph, START } from "@langchain/langgraph";
+
+// Assumes readEmail, sendEmail, classifyNode, and route are defined elsewhere.
+// readEmail / sendEmail are registered with name: "read_email" / "send_email".
+const emailAgent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools: [readEmail, sendEmail],
+  middleware: [humanInTheLoopMiddleware({ interruptOn: { send_email: true } })],
+});
+
+const graph = new StateGraph(AgentState)
+  .addNode("classify", classifyNode)
+  .addNode("emailAgent", emailAgent)
+  .addEdge(START, "classify")
+  .addConditionalEdges("classify", route)
+  .compile();
+```
+:::
+
+所有HITL中断、总结、PII去敏、重试和自定义钩子都随智能体节点传递。查看[使用子图](/langchain/oss/langgraph/use-subgraphs)获取完整的组合模式，包括子图检查点作用域（按调用次数而非线程）。
+
+## 扩展资源
+
+<CardGroup cols={2}>
+    <Card title="Built-in middleware" icon="box" href="/langchain/oss/langchain/middleware/built-in">
+        探索适用于常见场景的内置中间件。
+    </Card>
+    <Card title="Custom middleware" icon="code" href="/langchain/oss/langchain/middleware/custom">
+        通过钩子和装饰器自定义中间件。
+    </Card>
+    <Card title="Middleware API reference" icon="book" href="https://reference.langchain.com/python/langchain/middleware/">
+        中间件完整API参考。
+    </Card>
+    <Card title="Middleware integrations" icon="plug" href="/langchain/oss/python/integrations/middleware/">
+        Anthropic、AWS、OpenAI等供应商特定中间件。
+    </Card>
+    <Card title="Testing agents" icon="scale" href="/langchain/oss/langchain/test/">
+        使用LangSmith测试智能体。
+    </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/langchain/middleware/overview.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/middleware/overview.mdx) · 译文由 AI 生成，以英文原文为准。

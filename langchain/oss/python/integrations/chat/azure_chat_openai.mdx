@@ -1,0 +1,429 @@
+---
+title: "AzureChatOpenAI 集成"
+description: "使用 LangChain Python 集成 AzureChatOpenAI 对话模型。"
+integration:
+  name: AzureChatOpenAI
+  pypi: langchain-openai
+  featured: true
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: true
+---
+
+你可以在 [Azure 文档](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) 中找到 Azure OpenAI 最新模型的信息，包括它们的成本、上下文窗口和支持的输入类型。有关 LangChain 中 Microsoft 集成（包括 Azure AI 搜索、Azure PostgreSQL 数据库和 M365 套件等工具）的完整信息，请参阅 [Microsoft 提供者页面](/langchain/oss/python/integrations/providers/microsoft)。
+
+<Info>
+    **Azure OpenAI 与 OpenAI**
+
+    Azure OpenAI 指的是在 [Microsoft Azure 平台](https://azure.microsoft.com/en-us/products/ai-services/openai-service) 上托管的 OpenAI 模型。在 Azure 上托管的模型具有额外的企业级功能，包括支持 Entra ID 的无密钥认证。
+</Info>
+
+<Info>
+    **使用 `ChatOpenAI` 与 v1 API（推荐）**
+
+    Azure OpenAI 的 [v1 API](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?tabs=python)（截至 2025 年 8 月已正式发布）允许你直接使用 [`ChatOpenAI`](/langchain/oss/python/integrations/chat/openai/#与-azure-openai-一起使用) 与 Azure 端点。这消除了对过时 `api-version` 参数的需求，并提供对 Microsoft Entra ID 认证的本地支持，自动刷新 Token。
+
+    我们继续支持 @[`AzureChatOpenAI`]，它现在与 @[`ChatOpenAI`] 共享相同的底层基础实现，该实现直接与 OpenAI 服务接口。
+
+    本页面作为快速入门指南，用于认证和连接你的 Azure OpenAI 对话模型到 LangChain。
+</Info>
+
+<Tip>
+    **API 参考**
+
+    有关所有功能和配置选项的详细文档，请访问 @[`AzureChatOpenAI`] API 参考。有关可用功能的详细信息，请访问 [`ChatOpenAI` 文档](/langchain/oss/python/integrations/chat/openai/)。
+</Tip>
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | 支持 JS/TS | 下载量 | 最新版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| @[`AzureChatOpenAI`] | @[`langchain-openai`] | beta | ✅ [(npm)](/langchain/oss/javascript/integrations/chat/openai) | <a href="https://pypi.org/project/langchain-openai/" target="_blank"><img src="https://static.pepy.tech/badge/langchain-openai/month" alt="Downloads per month" noZoom height="100" class="rounded" /></a> | <a href="https://pypi.org/project/langchain-openai/" target="_blank"><img src="https://img.shields.io/pypi/v/langchain-openai?style=flat-square&label=%20&color=orange" alt="PyPI - Latest version" noZoom height="100" class="rounded" /></a> |
+
+### 模型功能
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token 级流式输出](/langchain/oss/langchain/streaming/) | 原生异步 | [Token 使用量](/langchain/oss/langchain/models#token-使用) | [Logprobs](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: |  :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+
+## 设置
+
+要访问 Azure OpenAI 模型，你需要 [创建 Azure 账户](https://account.azure.com/signup)、创建 Azure OpenAI 模型的部署、获取你的部署名称和端点，并安装 `langchain-openai` 集成包。
+
+### 安装
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-openai
+    ```
+    ```bash uv
+    uv add langchain-openai
+    ```
+</CodeGroup>
+
+## 凭证
+
+@[`ChatOpenAI`] 和 @[`AzureChatOpenAI`] 都支持使用 **Microsoft Entra ID**（推荐）或 **API 密钥** 认证到 Azure OpenAI。
+
+### Microsoft Entra ID
+
+[Microsoft Entra ID](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/managed-identity) 提供无密钥认证和自动 Token 刷新。安装 `azure-identity` 包并创建一个 Token 提供者——该提供者适用于 `ChatOpenAI` 和 `AzureChatOpenAI`：
+
+```bash
+pip install azure-identity
+```
+
+```python
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+token_provider = get_bearer_token_provider(
+    DefaultAzureCredential(),
+    "https://cognitiveservices.azure.com/.default",
+)
+```
+
+### API 密钥
+
+前往 [Azure 文档](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line%2Cpython-new&pivots=programming-language-python) 创建你的部署并生成 API 密钥。设置 `AZURE_OPENAI_API_KEY` 和 `AZURE_OPENAI_ENDPOINT` 环境变量：
+
+```python
+import getpass
+import os
+
+if "AZURE_OPENAI_API_KEY" not in os.environ:
+    os.environ["AZURE_OPENAI_API_KEY"] = getpass.getpass(
+        "Enter your AzureOpenAI API key: "
+    )
+os.environ["AZURE_OPENAI_ENDPOINT"] = "https://YOUR-RESOURCE-NAME.openai.azure.com/"
+```
+
+要启用模型调用的自动跟踪，设置你的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+## 实例化
+
+### ChatOpenAI 与 v1 API
+
+将 `base_url` 设置为你的 Azure 端点，并附加 `/openai/v1/`。使用 v1 API，你可以通过将 `model` 指向你的部署名称，通过单一接口调用 [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/) 中部署的任何模型（包括 OpenAI、Llama、DeepSeek、Mistral 和 Phi）。
+
+<Tabs>
+    <Tab title="Entra ID (recommended)">
+        将 Token 提供者传递给 `api_key`：
+
+        ```python
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model="gpt-5.4-mini",  # your Azure deployment name
+            base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+            api_key=token_provider,  # callable that handles token refresh
+        )
+        ```
+    </Tab>
+    <Tab title="API key">
+        ```python
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model="gpt-5.4-mini",  # your Azure deployment name
+            base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+            api_key="your-azure-api-key",
+        )
+        ```
+    </Tab>
+</Tabs>
+
+### AzureChatOpenAI
+
+在处理需要 `api_version` 的传统 Azure OpenAI API 版本时，使用 @[`AzureChatOpenAI`]。
+
+<Tabs>
+    <Tab title="Entra ID (recommended)">
+        将 Token 提供者传递给 `azure_ad_token_provider`：
+
+        ```python
+        from langchain_openai import AzureChatOpenAI
+
+        llm = AzureChatOpenAI(
+            azure_deployment="gpt-5.4-mini",  # or your deployment
+            api_version="2025-04-01-preview",  # or your api version
+            azure_ad_token_provider=token_provider,
+        )
+        ```
+    </Tab>
+    <Tab title="API key">
+        从环境变量中读取 `AZURE_OPENAI_API_KEY` 和 `AZURE_OPENAI_ENDPOINT`：
+
+        ```python
+        from langchain_openai import AzureChatOpenAI
+
+        llm = AzureChatOpenAI(
+            azure_deployment="gpt-5.4-mini",  # or your deployment
+            api_version="2025-04-01-preview",  # or your api version
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+            # other params...
+        )
+        ```
+    </Tab>
+</Tabs>
+
+## 调用
+
+```python
+messages = [
+    (
+        "system",
+        "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ),
+    ("human", "I love programming."),
+]
+ai_msg = llm.invoke(messages)
+print(ai_msg.text)
+```
+
+```text
+J'adore la programmation.
+```
+
+## 工具调用
+
+使用 Pydantic 类、字典模式、LangChain 工具或函数将工具绑定到模型：
+
+```python
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
+
+
+class GetWeather(BaseModel):
+    """Get the current weather in a given location"""
+
+    location: str = Field(description="The city and state, e.g. San Francisco, CA")
+
+
+llm = ChatOpenAI(
+    model="gpt-5.4-mini",
+    base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+    api_key="your-azure-api-key",
+)
+
+llm_with_tools = llm.bind_tools([GetWeather])
+
+ai_msg = llm_with_tools.invoke("What is the weather like in San Francisco?")
+ai_msg.tool_calls
+```
+
+```text
+[{'name': 'GetWeather',
+  'args': {'location': 'San Francisco, CA'},
+  'id': 'call_jUqhd8wzAIzInTJl72Rla8ht',
+  'type': 'tool_call'}]
+```
+
+有关绑定工具和工具调用输出的更多信息，请访问 [工具调用](/langchain/oss/langchain/tools) 文档。
+
+## 构建智能体
+
+使用 @[`create_agent`] 和工具构建智能体：
+
+```python
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model="gpt-5.4-mini",
+    base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+    api_key="your-azure-api-key",
+)
+
+
+def get_weather(city: str) -> str:
+    """Get weather for a given city."""
+    return f"It's always sunny in {city}!"
+
+
+agent = create_agent(
+    model=llm,
+    tools=[get_weather],
+    system_prompt="You are a helpful assistant",
+)
+
+# Stream agent responses
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "What is the weather in SF?"}]},
+    version="v3",
+)
+for snapshot in stream.values:
+    print(snapshot["messages"][-1].text)
+```
+
+## 流式输出元数据
+
+OpenAI 的 Chat Completions API 默认不流式传输 Token 使用统计信息（有关流式选项的详细信息，请参阅 [OpenAI API 参考](https://platform.openai.com/docs/api-reference/completions/create#completions-create-stream_options)）。
+
+要流式传输时恢复 Token 计数，将 `stream_usage=True` 作为初始化参数或在调用时设置：
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model="gpt-5.4-mini",
+    base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+    api_key="your-azure-api-key",
+    stream_usage=True,  # [!code highlight]
+)
+```
+
+## 响应 API
+
+Azure OpenAI 支持 [响应 API](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses)，它提供有状态对话、内置服务器端工具（代码解释器、图像生成、文件搜索和远程 MCP）以及结构化推理摘要。@[`ChatOpenAI`] 在你设置 `reasoning` 参数时自动路由到响应 API，或者你可以使用 `use_responses_api=True` 显式启用：
+
+<Tabs>
+    <Tab title="Entra ID (recommended)">
+        ```python
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model="gpt-5.4-mini",  # your Azure deployment name
+            base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+            api_key=token_provider,
+            use_responses_api=True,  # [!code highlight]
+        )
+
+        # Bind a built-in server-side tool
+        llm_with_tools = llm.bind_tools(  # [!code highlight]
+            [{"type": "code_interpreter", "container": {"type": "auto"}}]  # [!code highlight]
+        )  # [!code highlight]
+
+        response = llm_with_tools.invoke(
+            "Use the code interpreter to compute the 25th Fibonacci number."
+        )
+        print(response.text)
+        ```
+    </Tab>
+    <Tab title="API key">
+        ```python
+        from langchain_openai import ChatOpenAI
+
+        llm = ChatOpenAI(
+            model="gpt-5.4-mini",  # your Azure deployment name
+            base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+            api_key="your-azure-api-key",
+            use_responses_api=True,  # [!code highlight]
+        )
+
+        # Bind a built-in server-side tool
+        llm_with_tools = llm.bind_tools(  # [!code highlight]
+            [{"type": "code_interpreter", "container": {"type": "auto"}}]  # [!code highlight]
+        )  # [!code highlight]
+
+        response = llm_with_tools.invoke(
+            "Use the code interpreter to compute the 25th Fibonacci number."
+        )
+        print(response.text)
+        ```
+    </Tab>
+</Tabs>
+
+有关内置工具的详细信息以及如何使用它们，请参阅 [Azure OpenAI 响应 API 文档](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses)。
+
+## 推理努力和摘要
+
+Azure OpenAI [推理模型](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/reasoning)（例如，`o4-mini`、`gpt-5`）在生成最终答案之前会花费额外的 Token 进行推理。通过 `ChatOpenAI` 在 v1 API 上，你可以配置模型花费的推理努力，并可选择请求其推理链的摘要。
+
+### 推理努力
+
+将 `reasoning_effort` 设置为 `"low"`、`"medium"` 或 `"high"`。更高的设置允许模型花费更多 Token 进行推理，这通常会以延迟为代价提高复杂任务的输出质量：
+
+```python
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    model="gpt-5.4-mini",  # your Azure reasoning model deployment
+    base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+    api_key=token_provider,
+    reasoning_effort="medium",
+)
+
+response = llm.invoke("Tell me about the bitter lesson.")
+print(response.text)
+```
+
+<Note>
+    推理模型使用 Token 进行内部推理（`reasoning_tokens` 在 `completion_tokens_details` 中）。这些 Token 不会返回在消息内容中，但会计入输出 Token 限制。如果你看到空响应，请增加 `max_tokens` 或将其留空，以便模型有空间进行推理和输出。
+</Note>
+
+### 推理摘要
+
+通过响应 API 使用推理模型时，可以通过传递一个 `reasoning` 字典来请求模型的推理链摘要。设置 `reasoning` 会自动将 `ChatOpenAI` 路由到响应 API：
+
+```python
+from langchain_openai import ChatOpenAI
+
+reasoning = {
+    "effort": "high",    # 'low', 'medium', or 'high'
+    "summary": "auto",   # 'auto', 'concise', or 'detailed'
+}
+
+llm = ChatOpenAI(
+    model="gpt-5.4-mini",  # your Azure reasoning model deployment
+    base_url="https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/",
+    api_key=token_provider,
+    reasoning=reasoning,
+)
+
+response = llm.invoke("What's the optimal strategy to win at poker?")
+
+# Final answer
+print(response.text)
+
+# Reasoning summary blocks
+for block in response.content_blocks:
+    if block["type"] == "reasoning":
+        print(block["reasoning"])
+```
+
+<Warning>
+    尝试通过除推理摘要参数以外的其他方法提取原始推理 Token 不受支持，并且可能违反 Azure 的可接受使用政策。使用 `summary` 字段访问模型推理。
+</Warning>
+
+<Note>
+    即使启用，推理摘要也不保证为每个步骤或请求提供——这是预期行为。
+</Note>
+
+## 指定模型版本（旧版 API）
+
+<Note>
+    本节仅适用于使用 `AzureChatOpenAI` 与传统 API 版本时。v1 API 不需要 `api_version` 参数。
+</Note>
+
+使用 `AzureChatOpenAI` 时，Azure OpenAI 响应包含一个 `model_name` 响应元数据属性。与原生 OpenAI 响应不同，它不包含模型的具体版本（该版本在 Azure 中的部署上设置）。传递 `model_version` 以区分不同版本：
+
+```python
+from langchain_openai import AzureChatOpenAI
+
+llm = AzureChatOpenAI(
+    azure_deployment="gpt-5.4-mini",  # or your deployment
+    api_version="2025-04-01-preview",  # or your api version
+    model_version="0301",
+)
+```
+
+---
+
+## API 参考
+
+有关所有功能和配置选项的详细文档，请前往 @[`AzureChatOpenAI`] API 参考。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/azure_chat_openai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/azure_chat_openai.mdx) · 译文由 AI 生成，以英文原文为准。

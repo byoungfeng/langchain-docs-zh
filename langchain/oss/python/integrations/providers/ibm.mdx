@@ -1,0 +1,68 @@
+---
+title: "IBM 集成"
+description: "使用 LangChain Python 集成 IBM。"
+---
+
+与 IBM 技术相关的 LangChain 集成，包括 [IBM watsonx.ai](https://www.ibm.com/products/watsonx-ai) 平台和 DB2 数据库。
+
+## Watsonx AI
+
+IBM® watsonx.ai™ AI 工作室是 IBM [watsonx](https://www.ibm.com/watsonx)™ AI 和数据平台的一部分，将基于 [foundation models](https://www.ibm.com/products/watsonx-ai/foundation-models) 的新生成式 AI 能力和传统机器学习 (ML) 集成到一个覆盖 AI 生命周期的强大工作室中。使用易于使用的工具，通过您的企业数据调整和指导模型以满足您的需求，构建和优化高性能提示词。使用 watsonx.ai，您可以在几分之一的时间内，使用几分之一的数据构建 AI 应用程序。Watsonx.ai 提供：
+
+- **多模型多样性和灵活性**：选择 IBM 开发的、开源的和第三方模型，或构建您自己的模型。
+- **差异化的客户端保护**：IBM 支持 IBM 开发的模型，并为客户免除了第三方知识产权索赔。
+- **端到端的 AI 治理**：企业可以使用跨业务的可信数据，无论数据驻留在何处，扩展和加速 AI 的影响。
+- **混合、多云部署**：IBM 提供将您的 AI 工作负载集成和部署到您选择的混合云堆栈的灵活性。
+
+### 模型接口
+
+<Columns cols={2}>
+    <Card title="ChatWatsonx" href="/langchain/oss/python/integrations/chat/ibm_watsonx" cta="Get started" icon="message" arrow>
+        IBM watsonx.ai 对话模型。
+    </Card>
+    <Card title="WatsonxLLM" href="/langchain/oss/python/integrations/llms/ibm_watsonx" cta="Get started" icon="cursor-text" arrow>
+        （遗留）IBM watsonx.ai 文本完成模型。
+    </Card>
+    <Card title="WatsonxEmbeddings" href="/langchain/oss/python/integrations/embeddings/ibm_watsonx" cta="Get started" icon="stack-2" arrow>
+        IBM watsonx.ai 嵌入模型。
+    </Card>
+</Columns>
+
+### 工具和工具包
+
+<Columns cols={2}>
+    <Card title="WatsonxToolkit" href="/langchain/oss/python/integrations/tools/ibm_watsonx" cta="Get started" icon="tools" arrow>
+        IBM watsonx.ai 工具包。
+    </Card>
+    <Card title="WatsonxSQLDatabaseToolkit" href="/langchain/oss/python/integrations/tools/ibm_watsonx_sql" cta="Get started" icon="tools" arrow>
+        IBM watsonx.ai SQL 数据库工具包。
+    </Card>
+</Columns>
+
+### 检索器
+
+<Columns cols={2}>
+    <Card title="WatsonxRerank" href="/langchain/oss/python/integrations/retrievers/ibm_watsonx_ranker" cta="Get started" icon="download" arrow>
+        IBM watsonx.ai 文档检索器。
+    </Card>
+</Columns>
+
+## DB2
+
+IBM DB2 关系数据库 v12.1.2 及以上版本提供向量存储和向量搜索功能。安装 `langchain-db2` 软件包将为 LangChain 用户支持 DB2 向量存储和向量搜索。
+
+<Note>
+`langchain-db2` 是仅用于向量存储功能的单独软件包，可以在不安装 `langchain-ibm` 软件包的情况下运行。
+</Note>
+
+### 向量存储
+
+<Columns cols={2}>
+    <Card title="DB2VS" href="https://github.com/langchain-ai/langchain-ibm/tree/main/libs/langchain-db2" cta="Get started" icon="database" arrow>
+        IBM DB2 向量存储和向量搜索
+    </Card>
+</Columns>
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/ibm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/ibm.mdx) · 译文由 AI 生成，以英文原文为准。

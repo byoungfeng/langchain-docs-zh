@@ -1,0 +1,428 @@
+---
+title: "容错性"
+description: "使用速率限制、重试、回退和错误处理使您的深度智能体更具弹性"
+---
+
+故障容忍中间件可在异常发生时保持深度智能体持续运行。并非所有错误都应同等处理：瞬态故障（网络超时、速率限制）应自动重试，LLM可恢复的错误（工具输出异常、解析失败）应反馈给模型，而需要人工介入的错误应暂停智能体。
+
+## 错误处理策略
+
+不同错误类型需要不同的处理策略：
+
+| 错误类型 | 谁修复 | 策略 | 中间件或功能 |
+|----------|--------|------|--------------|
+| 瞬态错误（网络问题、速率限制） | 系统自动 | 指数退避重试 | @[ModelRetryMiddleware], @[ToolRetryMiddleware] |
+:::python
+| LLM可恢复错误（工具失败、解析问题） | LLM | 转换为错误 `ToolMessage` 并让模型调整 | @[ToolErrorMiddleware] |
+::: | 需人工介入错误（信息缺失、指令不明确） | 人工 | 使用 `interrupt()` 暂停 | [Human-in-the-loop](/langchain/oss/deepagents/human-in-the-loop) |
+| 服务商宕机 | 系统自动 | 切换至备用模型 | @[ModelFallbackMiddleware] |
+| 调用过多（无限循环） | 系统自动 | 限制单次运行模型和工具调用次数 | @[ModelCallLimitMiddleware], @[ToolCallLimitMiddleware] |
+| 不可预知错误 | 开发者 | 让异常冒泡 | 无中间件；让异常传播 |
+
+以下部分将详细说明每个策略的代码示例。
+
+<Tabs>
+  <Tab title="Transient errors" icon="rotate">
+
+  添加重试中间件以自动重试网络问题和速率限制。模型调用和工具调用各自有独立的重试中间件并采用指数退避：
+
+:::python
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import ModelRetryMiddleware, ToolRetryMiddleware
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search_tool, fetch_url_tool],
+    middleware=[
+        ModelRetryMiddleware(max_retries=3, backoff_factor=2.0, initial_delay=1.0),
+        ToolRetryMiddleware(
+            max_retries=2,
+            tools=["search", "fetch_url"],
+            retry_on=(TimeoutError, ConnectionError),
+        ),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import { createAgent, modelRetryMiddleware, toolRetryMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  tools: [searchTool, fetchUrlTool],
+  middleware: [
+    modelRetryMiddleware({ maxRetries: 3, backoffFactor: 2.0, initialDelayMs: 1000 }),
+    toolRetryMiddleware({
+      maxRetries: 2,
+      tools: ["search", "fetch_url"],
+      retryOn: [TimeoutError, TypeError],
+    }),
+  ],
+});
+```
+:::
+
+  </Tab>
+
+:::python
+  <Tab title="LLM-recoverable" icon="brain">
+
+  使用 @[ToolErrorMiddleware] 捕获工具异常并转换为错误 `ToolMessage`，使LLM能查看错误详情并重试：
+
+  <Note>
+  `ToolErrorMiddleware` 需要 `langchain>=1.3.14`。
+  </Note>
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import ToolErrorMiddleware
+
+
+def on_error(exc: Exception, request: ToolCallRequest) -> str | None:
+    if isinstance(exc, ValueError):
+        return f"Tool `{request.tool_call['name']}` failed: {type(exc).__name__}. Fix the input and retry."
+    # propagate everything else
+
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search_tool],
+    middleware=[ToolErrorMiddleware(on_error)],
+)
+```
+
+  </Tab>
+:::
+
+  <Tab title="User-fixable" icon="user">
+
+  当需要人工介入时（如获取账户ID、订单号或澄清指令），使用 `interrupt_on` 在特定工具调用前暂停智能体：
+
+:::python
+```python
+from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[send_email_tool, delete_record_tool],
+    interrupt_on={
+        "send_email": True,
+        "delete_record": True,
+    },
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent } from "deepagents";
+
+const agent = createDeepAgent({
+  model: "google:gemini-3.6-flash",
+  tools: [sendEmailTool, deleteRecordTool],
+  interruptOn: {
+    send_email: true,
+    delete_record: true,
+  },
+});
+```
+:::
+
+  关于完整的人机协同指南，请参考 [Human-in-the-loop](/langchain/oss/deepagents/human-in-the-loop)。
+
+  </Tab>
+
+  <Tab title="Provider outage" icon="arrows-exchange">
+
+  若主模型服务商完全宕机，使用 @[ModelFallbackMiddleware] 切换至备用模型：
+
+:::python
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import ModelFallbackMiddleware
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search_tool],
+    middleware=[
+        ModelFallbackMiddleware("gpt-5.5"),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import { createAgent, modelFallbackMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  tools: [searchTool],
+  middleware: [
+    modelFallbackMiddleware("gpt-5.5"),
+  ],
+});
+```
+:::
+
+  </Tab>
+
+  <Tab title="Excessive calls" icon="gauge">
+
+  无限制时，困惑的智能体可能因无限循环或数百次调用迅速耗尽LLM API预算。对模型调用和工具执行设置单次运行限制：
+
+:::python
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
+
+agent = create_agent(
+    model="google_genai:gemini-3.6-flash",
+    tools=[search_tool],
+    middleware=[
+        ModelCallLimitMiddleware(run_limit=50),
+        ToolCallLimitMiddleware(run_limit=200),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import { createAgent, modelCallLimitMiddleware, toolCallLimitMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  tools: [searchTool],
+  middleware: [
+    modelCallLimitMiddleware({ runLimit: 50 }),
+    toolCallLimitMiddleware({ runLimit: 200 }),
+  ],
+});
+```
+:::
+
+  </Tab>
+
+  <Tab title="Unexpected" icon="alert-triangle">
+
+:::python
+  让它们冒泡以供调试。不要捕获无法处理的异常。@[ToolErrorMiddleware] 仅处理显式返回内容的异常；其余异常保持原样传播：
+
+```python
+def on_error(exc: Exception, request: ToolCallRequest) -> str | None:
+    if isinstance(exc, (ValueError, KeyError)):
+        # Surface known, recoverable errors to the model
+        return f"Tool `{request.tool_call['name']}` failed: {type(exc).__name__}."
+    # Everything else (unexpected errors) propagates and halts the run
+```
+:::
+
+:::js
+  让它们冒泡以供调试。不要捕获无法处理的异常。此模式同样适用于JavaScript SDK的自定义中间件。
+:::
+
+  </Tab>
+</Tabs>
+
+## 速率限制
+
+有两种互补的资源限制方式：控制对模型服务商的请求频率，以及限制单次运行的调用总量。
+
+### 服务商速率限制
+
+对话模型服务商对单段时间内的调用次数设限。通过初始化模型时配置 `rate_limiter` 控制请求频率：
+
+:::python
+```python
+from langchain.rate_limiters import InMemoryRateLimiter
+from langchain.chat_models import init_chat_model
+
+rate_limiter = InMemoryRateLimiter(
+    requests_per_second=0.1,  # 1 request every 10s
+    check_every_n_seconds=0.1,  # Check every 100ms whether allowed to make a request
+    max_bucket_size=10,  # Controls the maximum burst size
+)
+
+model = init_chat_model(
+    model="google_genai:gemini-3.6-flash",
+    rate_limiter=rate_limiter,  # [!code highlight]
+)
+
+agent = create_deep_agent(model=model, tools=[search_tool])
+```
+:::
+
+:::python
+完整配置请参考 [Rate limiting](/langchain/oss/langchain/models#速率限制)。
+:::
+
+### 调用限制
+
+无限制时，困惑的智能体可能因无限循环或数百次调用迅速耗尽LLM API预算。对模型调用和工具执行设置单次运行限制：
+
+:::python
+```python
+from deepagents import create_deep_agent
+from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.6-flash",
+    middleware=[
+        ModelCallLimitMiddleware(run_limit=50),
+        ToolCallLimitMiddleware(run_limit=200),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import { createAgent, modelCallLimitMiddleware, toolCallLimitMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  middleware: [
+    modelCallLimitMiddleware({ runLimit: 50 }),
+    toolCallLimitMiddleware({ runLimit: 200 }),
+  ],
+});
+```
+:::
+
+使用 `run_limit` 在单次调用内限制调用次数（每次会话重置）。使用 `thread_limit` 跨整个对话限制调用次数（需检查点）。完整配置请参考 @[ModelCallLimitMiddleware] 和 @[ToolCallLimitMiddleware]。
+
+## 重试
+
+瞬态故障（网络超时、速率限制）应自动重试。模型调用和工具调用各自有独立的重试中间件并采用指数退避：
+
+:::python
+```python
+from deepagents import create_deep_agent
+from langchain.agents.middleware import ModelRetryMiddleware, ToolRetryMiddleware
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.6-flash",
+    middleware=[
+        # Retry model calls on rate limits, timeouts, and 5xx errors
+        ModelRetryMiddleware(max_retries=3, backoff_factor=2.0, initial_delay=1.0),
+        # Retry specific tools that hit external APIs (not all tools)
+        ToolRetryMiddleware(
+            max_retries=2,
+            tools=["search", "fetch_url"],
+            retry_on=(TimeoutError, ConnectionError),
+        ),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import {
+  createAgent,
+  modelRetryMiddleware,
+  toolRetryMiddleware,
+} from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  middleware: [
+    // Retry model calls on rate limits, timeouts, and 5xx errors
+    modelRetryMiddleware({ maxRetries: 3, backoffFactor: 2.0, initialDelayMs: 1000 }),
+    // Retry specific tools that hit external APIs (not all tools)
+    toolRetryMiddleware({
+      maxRetries: 2,
+      tools: ["search", "fetch_url"],
+      retryOn: [TimeoutError, TypeError],
+    }),
+  ],
+});
+```
+:::
+
+将 @[ToolRetryMiddleware] 限制在特定工具上。文件系统 `read_file` 失败无需重试，但网络搜索超时则可能需要。完整配置请参考 @[ModelRetryMiddleware]。
+
+:::python
+<Note>
+主流集成包抛出标准异常类型（@[ModelAuthenticationError]、@[ModelRateLimitError]、@[ModelTimeoutError] 等），携带 `is_retryable` 标志供重试中间件默认识别。完整异常列表请参考 [Model exceptions](/langchain/oss/langchain/models#模型异常)。
+</Note>
+:::
+
+## 备用方案
+
+若主模型服务商完全宕机，备用中间件将切换至替代模型：
+
+:::python
+```python
+from deepagents import create_deep_agent
+from langchain.agents.middleware import ModelFallbackMiddleware
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.6-flash",
+    middleware=[
+        # If the primary model is fully down, fall back to an alternative
+        ModelFallbackMiddleware("gpt-5.5"),
+    ],
+)
+```
+:::
+
+:::js
+```typescript
+import {
+  createAgent,
+  modelFallbackMiddleware,
+} from "langchain";
+
+const agent = createAgent({
+  model: "google:gemini-3.6-flash",
+  middleware: [
+    // If the primary model is fully down, fall back to an alternative
+    modelFallbackMiddleware("gpt-5.5"),
+  ],
+});
+```
+:::
+
+完整配置请参考 @[ModelFallbackMiddleware]。
+
+## 错误处理
+
+:::python
+当工具执行期间抛出异常时，智能体运行将默认中断。使用 @[ToolErrorMiddleware] 捕获特定异常并转换为 `ToolErrorMiddleware`，使模型能查看错误详情并恢复，而非直接崩溃。
+
+<Note>
+`langchain>=1.3.14` 需要 `ToolErrorMiddleware`。
+</Note>
+
+```python
+from deepagents import create_deep_agent
+from langchain.agents.middleware import ToolErrorMiddleware
+
+
+def on_error(exc: Exception, request: ToolCallRequest) -> str | None:
+    if isinstance(exc, ValueError):
+        return f"`{request.tool_call['name']}` failed with {type(exc).__name__}."
+    # propagate everything else
+
+
+agent = create_deep_agent(
+    model="google_genai:gemini-3.6-flash",
+    middleware=[ToolErrorMiddleware(on_error)],
+)
+```
+
+完整配置选项和使用模式（包括异步处理和与重试中间件组合）请参考 [Prebuilt middleware](/langchain/oss/langchain/middleware/built-in#工具错误)。
+:::
+
+:::js
+当工具执行期间抛出异常时，智能体运行将默认中断。 `ToolErrorMiddleware` 在JavaScript SDK中尚未支持。
+:::
+
+---
+
+> 官方原文：[src/oss/deepagents/fault-tolerance.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/fault-tolerance.mdx) · 译文由 AI 生成，以英文原文为准。

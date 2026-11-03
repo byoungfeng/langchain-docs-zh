@@ -1,0 +1,102 @@
+---
+title: "使用 MongoDB Atlas 的短期记忆"
+sidebarTitle: "MongoDB 短期记忆"
+description: "使用 MongoDBSaver 和 MongoDB Atlas 持久化智能体短期记忆。"
+---
+
+[短期记忆](/langchain/oss/langchain/short-term-memory) 允许您的智能体在单个线程或会话中记住之前的交互。本指南演示如何使用 [MongoDB Atlas](https://www.mongodb.com/docs/atlas/) 作为持久化检查点后端。
+
+MongoDB 将会话状态存储为集合中的文档，因此线程可以在进程重启和部署时恢复。
+
+<Tip>
+需要跨会话记忆信息？使用 [使用 MongoDB Atlas 的长期记忆](/langchain/oss/python/integrations/memory/mongodb-long-term-memory) 来存储和检索跨不同线程和会话的数据。
+</Tip>
+
+## 设置
+
+### 安装
+
+<CodeGroup>
+```bash npm
+npm install @langchain/langgraph-checkpoint-mongodb mongodb
+```
+
+```bash yarn
+yarn add @langchain/langgraph-checkpoint-mongodb mongodb
+```
+
+```bash pnpm
+pnpm add @langchain/langgraph-checkpoint-mongodb mongodb
+```
+</CodeGroup>
+
+### 凭据
+设置你的Atlas连接字符串：
+
+```bash
+export MONGODB_ATLAS_URI="your-atlas-connection-string"
+```
+
+若需自动追踪模型调用，请设置[LangSmith](https://docs.langchain.com/langsmith/home) API密钥：
+
+```bash
+export LANGSMITH_API_KEY="your-api-key"
+export LANGSMITH_TRACING="true"
+```
+
+## 使用方法
+
+创建一个`MongoClient`，构造`MongoDBSaver`，并调用`setup()`一次以创建索引。没有`MongoDBSaver.fromConnString`辅助工具。
+
+```typescript
+import { createAgent, tool } from "langchain";
+import { MongoDBSaver } from "@langchain/langgraph-checkpoint-mongodb";
+import { MongoClient } from "mongodb";
+import * as z from "zod";
+
+const getUserInfo = tool(() => "No user profile on file.", {
+  name: "get_user_info",
+  description: "Look up information about the current user.",
+  schema: z.object({}),
+});
+
+const MONGODB_ATLAS_URI = process.env.MONGODB_ATLAS_URI;
+if (!MONGODB_ATLAS_URI) {
+  throw new Error("MONGODB_ATLAS_URI is required");
+}
+
+const client = new MongoClient(MONGODB_ATLAS_URI);
+const checkpointer = new MongoDBSaver({ client });
+await checkpointer.setup();
+
+const agent = createAgent({
+  model: "anthropic:claude-sonnet-4-6",
+  tools: [getUserInfo],
+  checkpointer,
+});
+
+const threadConfig = { configurable: { thread_id: "1" } };
+let result = await agent.invoke(
+  { messages: [{ role: "user", content: "Hi! My name is Bob." }] },
+  threadConfig,
+);
+console.log(result.messages.at(-1)?.content);
+
+result = await agent.invoke(
+  { messages: [{ role: "user", content: "What's my name?" }] },
+  threadConfig,
+);
+console.log(result.messages.at(-1)?.content);
+
+await client.close();
+```
+
+## 下一步骤
+
+- 在[短期记忆](/langchain/oss/langchain/short-term-memory)指南中自定义智能体状态、截断或总结历史记录，并从工具中访问记忆。需将相同的`MongoDBSaver`传递给`checkpointer`。
+- 关于跨线程持久化，请参考[使用MongoDB Atlas实现长期记忆](/langchain/oss/python/integrations/memory/mongodb-long-term-memory)。
+- 查看包含其他后端支持的[检查点库列表](/langchain/oss/langgraph/checkpointers#检查点库)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/memory/mongodb-short-term-memory.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/memory/mongodb-short-term-memory.mdx) · 译文由 AI 生成，以英文原文为准。

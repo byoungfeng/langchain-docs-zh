@@ -1,0 +1,145 @@
+---
+title: "Perplexity 搜索集成"
+description: "使用 LangChain Python 与 Perplexity 搜索工具集成。"
+integration:
+  name: Perplexity search
+  pypi: langchain-perplexity
+---
+
+[困惑度搜索](https://docs.perplexity.ai/docs/search/quickstart)是一个网页搜索API，返回排序且带有来源标注的结果，专为LLMs和智能体设计。它为[perplexity.ai](https://www.perplexity.ai/)的答案引擎提供支持，并通过专门的[搜索API端点](https://docs.perplexity.ai/api-reference/search-post)公开。
+
+本页面介绍了如何将困惑度搜索API作为LangChain工具使用。
+
+## 设置
+
+### 安装
+
+安装LangChain困惑度集成包：
+
+```python
+pip install -qU langchain-perplexity
+
+# and some deps for this notebook
+pip install -qU langchain langchain-openai
+```
+
+### 凭证
+
+使用此集成需要Perplexity API密钥。请在[Perplexity API密钥控制面板](https://www.perplexity.ai/account/api/keys)中创建一个。
+
+```python
+import getpass
+import os
+
+if not os.environ.get("PPLX_API_KEY"):
+    os.environ["PPLX_API_KEY"] = getpass.getpass("Perplexity API key:\n")
+```
+
+集成也接受`PERPLEXITY_API_KEY`，如果你更喜欢这个名字。
+
+## 使用PerplexitySearchResults工具
+
+`PerplexitySearchResults`是一个可与LangChain智能体一起使用以执行困惑度搜索的工具。调用它将返回一个JSON数组，其中包含`title`、`url`、`snippet`、`date`和`last_updated`字段。
+
+```python
+from langchain_perplexity import PerplexitySearchResults
+
+# Initialize the PerplexitySearchResults tool
+search_tool = PerplexitySearchResults(max_results=5)
+
+# Perform a search query
+search_results = search_tool.invoke("When was the last time the New York Knicks won the NBA Championship?")
+
+print("Search Results:", search_results)
+```
+
+### PerplexitySearchResults的高级功能
+
+该工具接受以下构造函数和调用时参数：
+
+- `max_results` — 返回的结果数量。
+- `country` — ISO国家代码以偏置结果（例如 `"US"`）。
+- `search_domain_filter` — 要包含或排除的域名列表（最多20个）。在域名前缀`-`以排除它。参见[域名过滤文档](https://docs.perplexity.ai/docs/search/filters/domain-filter)。
+- `search_recency_filter` — 之一为`"day"`、`"week"`、`"month"`、`"year"`。参见[日期和时间过滤文档](https://docs.perplexity.ai/docs/search/filters/date-time-filters)。
+- `search_after_date` / `search_before_date` — `MM/DD/YYYY`格式的日期字符串。
+
+```python
+from langchain_perplexity import PerplexitySearchResults
+
+# Restrict results to a recent timeframe and a specific set of domains
+search_tool = PerplexitySearchResults(
+    max_results=10,
+    country="US",
+    search_recency_filter="week",
+    search_domain_filter=["nytimes.com", "reuters.com", "-pinterest.com"],
+)
+
+results = search_tool.invoke("Latest AI research papers")
+print(results)
+```
+
+```python
+from langchain_perplexity import PerplexitySearchResults
+
+# Restrict results to a specific date range
+search_tool = PerplexitySearchResults(
+    max_results=5,
+    search_after_date="01/01/2025",
+    search_before_date="06/30/2025",
+)
+
+results = search_tool.invoke("US Federal Reserve interest rate decisions")
+print(results)
+```
+
+## 在智能体中使用
+
+我们可以使用`PerplexitySearchResults`工具与LangGraph智能体。这使智能体能够动态搜索网络以获取有据可查、带有来源标注的信息。
+
+首先，设置语言模型。你需要提供你的OpenAI API密钥：
+
+```python
+import getpass
+
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API key:\n")
+```
+
+```python
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langchain_perplexity import PerplexitySearchResults
+
+
+# Initialize the language model
+model = init_chat_model(model="gpt-5.5", temperature=0)
+
+# Initialize the Perplexity search tool
+perplexity_search = PerplexitySearchResults(
+    max_results=5,
+    search_recency_filter="month",
+)
+
+# Create the agent
+agent = create_agent(model, [perplexity_search])
+
+# Run the agent
+user_input = "What are the latest developments in quantum computing?"
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": user_input}]},
+    version="v3",
+)
+for snapshot in stream.values:
+    snapshot["messages"][-1].pretty_print()
+```
+
+---
+
+## API参考
+
+有关Perplexity搜索API及其所有选项的详细文档，请参阅[搜索API参考](https://docs.perplexity.ai/api-reference/search-post)和[Perplexity API文档](https://docs.perplexity.ai)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/perplexity_search.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/perplexity_search.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,59 @@
+---
+title: "Unstructured 集成"
+description: "使用 LangChain Python 集成 Unstructured。"
+---
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>The `unstructured` 包来自
+[Unstructured.IO](https://www.unstructured.io/)，用于从原始源文档（如 PDF 和 Word 文档）中提取干净的文本。
+本页面介绍了如何在 LangChain 中使用 [`unstructured`](https://github.com/Unstructured-IO/unstructured)
+生态系统。
+
+## 安装和设置
+
+如果您使用的是本地运行的加载器，请按照以下步骤来运行 `unstructured` 及其依赖项。
+
+- 为了获得最小的安装体积，并利用开源 `unstructured` 包中不可用的功能，请使用 `pip install unstructured-client`
+  安装 Python SDK，并使用 `pip install langchain-unstructured` 来使用 `UnstructuredLoader` 并通过 Unstructured API 进行远程分区。
+  此加载器位于 LangChain 合作伙伴的存储库中，而不是 `langchain-community` 存储库，您需要一个 `api_key`。您可以通过 [Unstructured 平台](https://platform.unstructured.io/) 获取 API 密钥（参见 [定价](https://unstructured.io/pricing)）。
+    - Unstructured 的 SDK 文档可以在这里找到：
+      https://docs.unstructured.io/api-reference/overview
+
+- 为了在本地运行所有内容，请使用 `pip install unstructured`
+  安装开源的 Python 包，并使用 `pip install langchain-community`，并使用上述提到的相同 `UnstructuredLoader`。
+    - 您可以使用 extras 安装特定文档的依赖项，例如 `pip install "unstructured[docx]"`。有关 extras 的更多信息，请参阅 [完整的安装文档](https://docs.unstructured.io/open-source/installation/full-installation)。
+    - 要安装所有文档类型的依赖项，请使用 `pip install "unstructured[all-docs]"`。
+- 如果您的系统上尚未提供，请使用例如 `brew install`（针对 Mac）安装以下系统依赖项。
+  根据您解析的文档类型，您可能不需要所有这些依赖项。
+    - `libmagic-dev`（文件类型检测）
+    - `poppler-utils`（图像和 PDF）
+    - `tesseract-ocr`(图像和 PDF)
+    - `qpdf` (PDFs)
+    - `libreoffice` (MS Office 文档)
+    - `pandoc` (EPUBs)
+- 在本地运行时，Unstructured 还建议使用 Docker [按照此指南](https://docs.unstructured.io/open-source/installation/docker-installation) 来确保所有
+  系统依赖项都正确安装。
+
+Unstructured API 需要API密钥来发起请求。
+您可以 [请求一个 API 密钥](https://unstructured.io/api-key-hosted) 并立即开始使用它！
+查看 [Unstructured API README](https://github.com/Unstructured-IO/unstructured-api) 以开始进行 API 调用。
+我们很乐意听到您的反馈，请告诉我们您的使用情况在我们的 [社区 slack](https://join.slack.com/t/unstructuredw-kbe4326/shared_invite/zt-1x7cgo0pg-PTptXWylzPQF9xZolzCnwQ)。
+并关注质量和性能的改进！
+如果您希望自托管 Unstructured API 或在本地运行它，请查看 [Docker 自托管说明](https://github.com/Unstructured-IO/unstructured-api#dizzy-instructions-for-using-the-docker-image)。
+
+## 数据加载器
+
+`Unstructured` 的主要用途是在数据加载器中。
+
+### UnstructuredLoader
+
+查看一个 [使用示例](/langchain/oss/python/integrations/document_loaders/unstructured_file)，了解如何使用此加载器进行本地和远程分区，并使用无服务器的 Unstructured API。
+
+```python
+from langchain_unstructured import UnstructuredLoader
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/unstructured.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/unstructured.mdx) · 译文由 AI 生成，以英文原文为准。

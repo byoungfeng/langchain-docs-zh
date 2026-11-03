@@ -1,0 +1,96 @@
+---
+title: "Browserbase 集成"
+description: "Browserbase 运行云端浏览器供智能体使用，具有 会话录制 和 实时视图 用于调试。相同的 API 密钥涵盖 搜索 和 获取，它们可以在不启动浏览器会话的情况下查找和读取页面。"
+---
+
+[Browserbase](https://www.browserbase.com) 运行云端浏览器供智能体使用，具有 [会话录制](https://docs.browserbase.com/platform/browser/observability/observability) 和 [实时视图](https://docs.browserbase.com/platform/browser/observability/session-live-view) 用于调试。相同的 API 密钥涵盖 [搜索](https://docs.browserbase.com/platform/search/overview) 和 [获取](https://docs.browserbase.com/platform/fetch/overview)，它们可以在不启动浏览器会话的情况下查找和读取页面。
+
+本页面介绍如何使用 [深度智能体](/langchain/oss/deepagents/overview)：一个由 Stagehand 驱动的云端浏览器，以及作为智能体工具的搜索和获取。
+
+## 安装和设置
+
+从 [Browserbase](https://www.browserbase.com) 获取 API 密钥并将其设置为环境变量：
+
+```bash
+export BROWSERBASE_API_KEY="your-browserbase-api-key"
+```
+
+安装 [Browserbase Python SDK](https://github.com/browserbase/sdk-python)：
+
+<CodeGroup>
+```bash pip
+pip install "browserbase>=1.21.0"
+```
+
+```bash uv
+uv add "browserbase>=1.21.0"
+```
+</CodeGroup>
+
+## 深度智能体
+
+一个 [深度智能体](/langchain/oss/deepagents/overview) 可以通过两种方式使用 Browserbase：通过 Stagehand 工具驱动的云端浏览器，以及用于不需要浏览器的页面的搜索和获取工具。关于何时给智能体分配浏览器，请参阅 [浏览器使用](/langchain/oss/deepagents/browser-use)。
+
+### 使用 Stagehand 的浏览器工具
+
+[Stagehand 集成](/langchain/oss/python/integrations/tools/stagehand) 通过原生 Python 中间件添加 `run`、`snapshot` 和 `screenshot`。将配置好的 Stagehand 客户端传递给 `StagehandMiddleware`，然后在智能体的 `middleware` 列表中包含它。不需要 MCP 服务器或自定义浏览器系统提示。
+
+您的应用程序拥有浏览器，并且可以在多次运行中保持其打开状态以重用标签和登录。有关安装、完整智能体和清理的说明，请参阅 [与深度智能体一起使用](/langchain/oss/python/integrations/tools/stagehand#与-deep-agent-一起使用)。有关会话隔离，请参阅 [选择浏览器范围](/langchain/oss/deepagents/browser-use#选择浏览器范围)。
+
+### 搜索和获取工具
+
+将搜索和获取作为智能体工具公开。这些 API 可以在不启动浏览器会话的情况下查找和读取页面。获取不会执行 JavaScript。
+
+在运行此示例之前安装智能体包并设置模型提供者凭证：
+
+<CodeGroup>
+```bash pip
+pip install "browserbase>=1.21.0" deepagents langchain-openai
+```
+
+```bash uv
+uv add "browserbase>=1.21.0" deepagents langchain-openai
+```
+</CodeGroup>
+
+```bash
+export OPENAI_API_KEY="your-openai-api-key"
+```
+
+示例使用 OpenAI 的 [GPT-5.5 快照](https://developers.openai.com/api/docs/models/gpt-5.5)。要在 `search.web` 中省略 `provider` 以使用您项目的默认搜索提供者：
+
+```python
+import os
+
+from browserbase import Browserbase
+from deepagents import create_deep_agent
+from langchain.tools import tool
+
+bb = Browserbase(api_key=os.environ["BROWSERBASE_API_KEY"])
+
+
+@tool
+def web_search(query: str) -> str:
+    """Search the web and return result titles and URLs."""
+    response = bb.search.web(query=query, num_results=5)
+    return "\n".join(f"{result.title}: {result.url}" for result in response.results)
+
+
+@tool
+def fetch_page(url: str) -> str:
+    """Fetch a page as markdown without opening a browser."""
+    return bb.fetch_api.create(url=url, format="markdown").content
+
+
+agent = create_deep_agent(
+    model="openai:gpt-5.5-2026-04-23",
+    tools=[web_search, fetch_page],
+    system_prompt="Search to find pages, then fetch the pages you need to read.",
+)
+```
+
+有关结合搜索、获取和 Stagehand 的完整示例，请参阅 Browserbase 的 [深度智能体指南](https://docs.browserbase.com/integrations/langchain/deepagents)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/browserbase.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/browserbase.mdx) · 译文由 AI 生成，以英文原文为准。

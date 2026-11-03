@@ -1,0 +1,131 @@
+---
+title: "(MODULE_NAME) 集成"
+description: "使用 LangChain Python 集成 (MODULE_NAME) 中间件。"
+---
+
+如何使用这个 Python 中间件模板：
+
+
+- [ ] 将 (MODULE_NAME) 替换为中间件包的名称或主类名称（`command + F`在这里会很有帮助）
+- [ ] 更新链接以指向正确的中间件
+- [ ] 在详细信息表格下，替换占位符类名和链接；如果您的包导出多个主中间件类，请添加行
+- [ ] 在功能部分，列出中间件的作用（钩子、模型配对、工具等）
+- [ ] 如有必要，更新 PyPI 或注册包的名称
+- [ ] 如果中间件不使用API密钥，请更新或删除凭据部分
+
+模板从此行开始...
+
+本指南提供了快速入门 (MODULE_NAME) [中间件](/langchain/oss/langchain/middleware/overview/) 的概述。如需了解 (MODULE_NAME) 的所有功能、参数和配置的详细列表，请访问 [(MODULE_NAME) API 参考](<LINK>)。
+
+## 概述
+
+### 详情
+
+| 类 | 包 | 可序列化 | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: |
+| [(`MODULE_NAME`)](https://reference.langchain.com/python/integrations/overview) | [`langchain-(MODULE_NAME)`](https://reference.langchain.com/python/integrations/overview) | beta/❌ | ![PyPI - 下载](https://img.shields.io/pypi/dm/langchain-(MODULE_NAME)?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-(MODULE_NAME)?style=flat-square&label=%20) |
+
+### 功能
+
+- 在此处列出功能（例如，提示词缓存、特定提供者的工具、护栏）。
+
+---
+
+## 设置
+
+要使用 (MODULE_NAME) 中间件，您需要创建一个 (MODULE_NAME) 账户，获取一个 API 密钥，并安装 `langchain-(MODULE_NAME)` 集成包。
+
+### 凭证
+
+```python Set API key icon="key"
+import getpass
+import os
+
+if "(MODULE_NAME)_API_KEY" not in os.environ:
+    os.environ["(MODULE_NAME)_API_KEY"] = getpass.getpass("Enter your (MODULE_NAME) API key: ")
+```
+
+设置 LangSmith 用于可观察性和 <Tooltip tip="Log each step of a model's execution to debug and improve it">跟踪</Tooltip>也是有帮助的（但不是必须的）。要启用自动跟踪，设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python Enable tracing icon="flask"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+(MODULE_NAME) 中间件位于 `langchain-(MODULE_NAME)` 包中：
+
+<CodeGroup>
+    ```python pip
+    pip install -U langchain-(MODULE_NAME)
+    ```
+    ```python uv
+    uv add langchain-(MODULE_NAME)
+    ```
+</CodeGroup>
+
+---
+
+## 实例化
+
+导入并配置你的中间件。如果你的类位于子模块下（例如，`langchain_(MODULE_NAME).middleware.prompt_caching`），请调整导入路径。
+
+```python Initialize middleware icon="arrows-shuffle"
+from langchain_(MODULE_NAME).middleware import (MODULE_NAME)
+
+middleware = (MODULE_NAME)(...)
+```
+
+---
+
+## 与智能体一起使用
+
+按顺序将中间件传递给 @[`create_agent`] 或 @[`create_deep_agent`]。你可以将提供者中间件与 [内置中间件](/langchain/oss/langchain/middleware/built-in) 结合使用。
+
+```python Agent with middleware icon="robot"
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[...],
+    middleware=[middleware],
+)
+
+agent.invoke({"messages": [{"role": "user", "content": "INSERT QUERY"}]})
+```
+
+<Tip>
+    中间件在 [智能体循环](/langchain/oss/langchain/middleware/overview#智能体循环) 中运行。如需自定义行为，请参阅 [自定义中间件](/langchain/oss/langchain/middleware/custom)。
+</Tip>
+
+---
+
+## TODO：任何特定于此中间件的功能
+
+如不相关，请删除。
+
+如果你暴露了多个中间件类，请在介绍后添加一个简短概述表（参见 [Anthropic 中间件](/langchain/oss/python/integrations/middleware/anthropic)），并为每个类分配一个自己的部分，包含 API 参考、代码示例、配置选项和完整示例。
+
+参考现有中间件文档获取示例，例如：
+
+- [Anthropic](/langchain/oss/python/integrations/middleware/anthropic)
+- [AWS](/langchain/oss/python/integrations/middleware/aws)
+- [OpenAI](/langchain/oss/python/integrations/middleware/openai)
+
+示例：
+
+- <Icon icon="database" size={16}/> 提示词或上下文缓存
+- <Icon icon="terminal" size={16}/> 带执行策略的提供者原生工具
+- <Icon icon="shield-lock" size={16}/> 内容审核或护栏
+- <Icon icon="user-check" size={16}/> 人机交互或审批流程
+
+---
+
+## API 参考
+
+有关所有 (MODULE_NAME) 功能和配置的详细文档，请访问 [API 参考](<LINK>)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/middleware/TEMPLATE.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/middleware/TEMPLATE.mdx) · 译文由 AI 生成，以英文原文为准。

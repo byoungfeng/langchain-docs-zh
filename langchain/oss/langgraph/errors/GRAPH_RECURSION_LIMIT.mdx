@@ -1,0 +1,73 @@
+---
+title: GRAPH_RECURSION_LIMIT
+description: "您的 LangGraph @[StateGraph] 达到了最大步骤数并触发了停止条件。 这通常是由于以下示例代码导致的无限循环："
+---
+
+您的 LangGraph @[`StateGraph`] 达到了最大步骤数并触发了停止条件。
+这通常是由于以下示例代码导致的无限循环：
+
+:::python
+```python
+from typing import TypedDict
+
+from langgraph.graph import StateGraph
+
+class State(TypedDict):
+    some_key: str
+
+builder = StateGraph(State)
+builder.add_node("a", ...)
+builder.add_node("b", ...)
+builder.add_edge("a", "b")
+builder.add_edge("b", "a")
+...
+
+graph = builder.compile()
+```
+:::
+
+:::js
+```typescript
+import { StateGraph, StateSchema } from "@langchain/langgraph";
+import { z } from "zod/v4";
+
+const State = new StateSchema({
+  someKey: z.string(),
+});
+
+const builder = new StateGraph(State)
+  .addNode("a", ...)
+  .addNode("b", ...)
+  .addEdge("a", "b")
+  .addEdge("b", "a")
+  ...
+
+const graph = builder.compile();
+```
+:::
+
+然而复杂图结构可能会自然触达默认限制。
+
+## 排查步骤
+
+* 如果您不期望您的图遍历许多迭代，很可能存在循环。请检查无限循环的逻辑。
+
+:::python
+* 如果您有复杂图结构，可以在调用图时向 `config` 对象传递更高的 `recursion_limit` 值，例如这样：
+
+```python
+graph.invoke({...}, {"recursion_limit": 1000})
+```
+:::
+
+:::js
+* 如果您有复杂图结构，可以在调用图时向 `config` 对象传递更高的 `recursionLimit` 值，例如这样：
+
+```typescript
+await graph.invoke({...}, { recursionLimit: 1000 });
+```
+:::
+
+---
+
+> 官方原文：[src/oss/langgraph/errors/GRAPH_RECURSION_LIMIT.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/errors/GRAPH_RECURSION_LIMIT.mdx) · 译文由 AI 生成，以英文原文为准。

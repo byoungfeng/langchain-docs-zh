@@ -1,0 +1,1371 @@
+import SmithdbRunsQueryListAllBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-before-py.mdx';
+import SmithdbRunsQueryListAllAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-after-py.mdx';
+import SmithdbRunsQueryListAllBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-before-js.mdx';
+import SmithdbRunsQueryListAllAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-after-js.mdx';
+import SmithdbRunsQueryListAllBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-before-go.mdx';
+import SmithdbRunsQueryListAllAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-after-go.mdx';
+import SmithdbRunsQuerySelectingFieldsBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-before-py.mdx';
+import SmithdbRunsQuerySelectingFieldsAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-after-py.mdx';
+import SmithdbRunsQuerySelectingFieldsBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-before-js.mdx';
+import SmithdbRunsQuerySelectingFieldsAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-after-js.mdx';
+import SmithdbRunsQuerySelectingFieldsBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-before-go.mdx';
+import SmithdbRunsQuerySelectingFieldsAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-after-go.mdx';
+import SmithdbRunsQueryFilterTimeRangeBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-before-py.mdx';
+import SmithdbRunsQueryFilterTimeRangeAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-after-py.mdx';
+import SmithdbRunsQueryFilterTimeRangeBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-before-js.mdx';
+import SmithdbRunsQueryFilterTimeRangeAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-after-js.mdx';
+import SmithdbRunsQueryFilterTimeRangeBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-before-go.mdx';
+import SmithdbRunsQueryFilterTimeRangeAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-after-go.mdx';
+import SmithdbRunsQueryFilterRootBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-before-py.mdx';
+import SmithdbRunsQueryFilterRootAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-after-py.mdx';
+import SmithdbRunsQueryFilterRootBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-before-js.mdx';
+import SmithdbRunsQueryFilterRootAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-after-js.mdx';
+import SmithdbRunsQueryFilterRootBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-before-go.mdx';
+import SmithdbRunsQueryFilterRootAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-after-go.mdx';
+import SmithdbRunsQueryFetchByIdBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-before-py.mdx';
+import SmithdbRunsQueryFetchByIdAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-after-py.mdx';
+import SmithdbRunsQueryFetchByIdBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-before-js.mdx';
+import SmithdbRunsQueryFetchByIdAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-after-js.mdx';
+import SmithdbRunsQueryFetchByIdBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-before-go.mdx';
+import SmithdbRunsQueryFetchByIdAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-after-go.mdx';
+import SmithdbRunsQueryPaginationBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-before-py.mdx';
+import SmithdbRunsQueryPaginationAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-after-py.mdx';
+import SmithdbRunsQueryPaginationBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-before-js.mdx';
+import SmithdbRunsQueryPaginationAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-after-js.mdx';
+import SmithdbRunsQueryPaginationBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-before-go.mdx';
+import SmithdbRunsQueryPaginationAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-after-go.mdx';
+import SmithdbRunsQueryFilterErrorsBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-before-py.mdx';
+import SmithdbRunsQueryFilterErrorsAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-after-py.mdx';
+import SmithdbRunsQueryFilterErrorsBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-before-js.mdx';
+import SmithdbRunsQueryFilterErrorsAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-after-js.mdx';
+import SmithdbRunsQueryFilterErrorsBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-before-go.mdx';
+import SmithdbRunsQueryFilterErrorsAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-after-go.mdx';
+import SmithdbRunsQueryFilterMetadataBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-before-py.mdx';
+import SmithdbRunsQueryFilterMetadataAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-after-py.mdx';
+import SmithdbRunsQueryFilterMetadataBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-before-js.mdx';
+import SmithdbRunsQueryFilterMetadataAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-after-js.mdx';
+import SmithdbRunsQueryFilterMetadataBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-before-go.mdx';
+import SmithdbRunsQueryFilterMetadataAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-after-go.mdx';
+import SmithdbRunsQueryBooleanFiltersBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-before-py.mdx';
+import SmithdbRunsQueryBooleanFiltersAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-after-py.mdx';
+import SmithdbRunsQueryBooleanFiltersBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-before-js.mdx';
+import SmithdbRunsQueryBooleanFiltersAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-after-js.mdx';
+import SmithdbRunsQueryBooleanFiltersBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-before-go.mdx';
+import SmithdbRunsQueryBooleanFiltersAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-after-go.mdx';
+import SmithdbRunsQueryScopedFiltersBeforePy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-before-py.mdx';
+import SmithdbRunsQueryScopedFiltersAfterPy from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-after-py.mdx';
+import SmithdbRunsQueryScopedFiltersBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-before-js.mdx';
+import SmithdbRunsQueryScopedFiltersAfterJs from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-after-js.mdx';
+import SmithdbRunsQueryScopedFiltersBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-before-go.mdx';
+import SmithdbRunsQueryScopedFiltersAfterGo from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-after-go.mdx';
+import SmithdbRunsQueryListAllBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-before-kt.mdx';
+import SmithdbRunsQueryListAllAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-after-kt.mdx';
+import SmithdbRunsQuerySelectingFieldsBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-before-kt.mdx';
+import SmithdbRunsQuerySelectingFieldsAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-after-kt.mdx';
+import SmithdbRunsQueryFilterTimeRangeBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-before-kt.mdx';
+import SmithdbRunsQueryFilterTimeRangeAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-after-kt.mdx';
+import SmithdbRunsQueryFilterRootBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-before-kt.mdx';
+import SmithdbRunsQueryFilterRootAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-after-kt.mdx';
+import SmithdbRunsQueryFetchByIdBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-before-kt.mdx';
+import SmithdbRunsQueryFetchByIdAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-after-kt.mdx';
+import SmithdbRunsQueryPaginationBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-before-kt.mdx';
+import SmithdbRunsQueryPaginationAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-after-kt.mdx';
+import SmithdbRunsQueryFilterErrorsBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-before-kt.mdx';
+import SmithdbRunsQueryFilterErrorsAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-after-kt.mdx';
+import SmithdbRunsQueryFilterMetadataBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-before-kt.mdx';
+import SmithdbRunsQueryFilterMetadataAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-after-kt.mdx';
+import SmithdbRunsQueryBooleanFiltersBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-before-kt.mdx';
+import SmithdbRunsQueryBooleanFiltersAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-after-kt.mdx';
+import SmithdbRunsQueryScopedFiltersBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-before-kt.mdx';
+import SmithdbRunsQueryScopedFiltersAfterKt from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-after-kt.mdx';
+import SmithdbRunsQueryListAllBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-before-sh.mdx';
+import SmithdbRunsQueryListAllAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-list-all-after-sh.mdx';
+import SmithdbRunsQuerySelectingFieldsBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-before-sh.mdx';
+import SmithdbRunsQuerySelectingFieldsAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-selecting-fields-after-sh.mdx';
+import SmithdbRunsQueryFilterTimeRangeBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-before-sh.mdx';
+import SmithdbRunsQueryFilterTimeRangeAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-time-range-after-sh.mdx';
+import SmithdbRunsQueryFilterRootBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-before-sh.mdx';
+import SmithdbRunsQueryFilterRootAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-root-after-sh.mdx';
+import SmithdbRunsQueryFetchByIdBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-before-sh.mdx';
+import SmithdbRunsQueryFetchByIdAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-fetch-by-id-after-sh.mdx';
+import SmithdbRunsQueryPaginationBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-before-sh.mdx';
+import SmithdbRunsQueryPaginationAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-pagination-after-sh.mdx';
+import SmithdbRunsQueryFilterErrorsBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-before-sh.mdx';
+import SmithdbRunsQueryFilterErrorsAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-errors-after-sh.mdx';
+import SmithdbRunsQueryFilterMetadataBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-before-sh.mdx';
+import SmithdbRunsQueryFilterMetadataAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-filter-metadata-after-sh.mdx';
+import SmithdbRunsQueryBooleanFiltersBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-before-sh.mdx';
+import SmithdbRunsQueryBooleanFiltersAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-boolean-filters-after-sh.mdx';
+import SmithdbRunsQueryScopedFiltersBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-before-sh.mdx';
+import SmithdbRunsQueryScopedFiltersAfterSh from '/langchain/snippets/code-samples/smithdb-migration/runs-query-scoped-filters-after-sh.mdx';
+
+## 运行：查询
+
+查询项目中的运行记录，支持可选过滤和字段投影。返回分页结果集。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.list_runs()` | `client.runs.query()` |
+
+    <Note>
+    `client.runs.query()` 现在是异步的。使用 `await` 调用它。
+    </Note>
+
+    查看完整的参数和字段列表的 [参考](https://reference.langchain.com/python/langsmith/_openapi_client/resources/runs/RunsResource/query_v2)。
+  </Tab>
+  <Tab title="TypeScript">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.listRuns()` | `client.runs.query()` |
+
+    查看完整的参数和字段列表的 [参考](https://reference.langchain.com/javascript/langsmith/_openapi_client/Langsmith/Runs/queryV2)。
+  </Tab>
+  <Tab title="Java">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.runs().query()` | `client.runs().queryV2()` |
+
+    查看完整的参数列表的 [参考](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/RunService.html)。
+  </Tab>
+  <Tab title="Go">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.Runs.Query()` | `client.Runs.QueryV2()` |
+
+    查看完整的参数列表的 [参考](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#RunService.QueryV2AutoPaging)。
+  </Tab>
+  <Tab title="cURL">
+    | 之前 | 之后 |
+    |------|------|
+    | `POST /api/v1/runs/query` | `POST /api/v2/runs/query` |
+
+    查看完整的参数和字段列表的 [API 文档](https://docs.langchain.com/langsmith/smith-api/runs/query-runs)。
+  </Tab>
+</Tabs>
+
+#### 查询参数
+
+<Tabs>
+  <Tab title="Python">
+    <Warning>
+    在 `runs.query` 中不支持 `project_name`。使用项目 UUID 与 `project_ids` 一起传递。要按名称查找 UUID，请使用 `client.read_project(project_name="my-project")`，或在异步代码中使用 `await client.aread_project(project_name="my-project")`。
+    </Warning>
+
+    <Warning>
+    当省略时 `min_start_time` 默认为 **1 天前**。没有 `start_time` 的 `list_runs` 返回所有历史记录；没有 `min_start_time` 的 `runs.query` 默认将查询范围限制为最后 24 小时。如果您需要更宽的时间范围，请传递明确的 `min_start_time`。
+    </Warning>
+
+    | 之前 (`list_runs`) | 之后 (`runs.query`) | 备注 |
+    |---|---|---|
+    | `project_name` | *(已删除)* | 使用 `project_ids` 和 UUID(s)—见上述警告 |
+    | `project_id` | `project_ids` | 现在接收列表；与 `reference_dataset_id` 互斥 |
+    | `run_type` | `run_type` | 现在必须是大写：`"LLM"`、`"CHAIN"`、`"TOOL"`、`"RETRIEVER"`、`"EMBEDDING"`、`"PROMPT"`、`"PARSER"` |
+    | `trace_id` | `trace_id` | 未更改 |
+    | `reference_example_id` | `reference_examples` | 现在接收 UUID 列表 |
+    | `query` | *(已删除)* | 无等效项 |
+    | `filter` | `filter` | 语法未更改 |
+    | `trace_filter` | `trace_filter` | 未更改 |
+    | `tree_filter` | `tree_filter` | 未更改 |
+    | `is_root` | `is_root` | 未更改 |
+    | `parent_run_id` | *(已删除)* | 无等效项 |
+    | `start_time` | `min_start_time` | 已重命名；默认为 1 天前—见上述警告 |
+    | `error` | `has_error` | 已重命名 |
+    | `run_ids` | `ids` | 已重命名 |
+    | `select` | `selects` | 字段名现在是大写 (`"NAME"`、`"STATUS"` 等) |
+    | `limit` | *(已删除)* | 使用 `page_size` 设置每个请求的批处理大小 |
+    | *(不可用)* | `max_start_time` | `start_time` 的上限；默认为当前时间 |
+    | *(不可用)* | `page_size` | 每个请求的结果数量（默认 100，最大 1000） |
+    | *(不可用)* | `reference_dataset_id` | `project_ids` 的替代方案；互斥 |
+    | *(不可用)* | `cursor` | 从前一个响应中传递 `next_cursor` 以获取下一页 |
+  </Tab>
+  <Tab title="TypeScript">
+    <Warning>
+    在 `client.runs.query` 中不支持 `projectName`。使用项目 UUID 与 `project_ids` 一起传递。要按名称查找 UUID，请使用 `client.readProject({ projectName: "my-project" })`。
+    </Warning>
+
+    <Warning>
+    当省略时 `min_start_time` 默认为 **1 天前**。没有 `startTime` 的 `listRuns` 返回所有历史记录；没有 `min_start_time` 的 `client.runs.query` 默认将查询范围限制为最后 24 小时。如果您需要更宽的时间范围，请传递明确的 `min_start_time`。
+    </Warning>
+
+    | 之前 (`listRuns`) | 之后 (`client.runs.query`) | 备注 |
+    |---|---|---|
+    | `projectName` | *(已删除)* | 使用 `project_ids` 和 UUID(s)—见上述警告 |
+    | `projectId` | `project_ids` | 已重命名为 `snake_case`；现在接收列表；与 `reference_dataset_id` 互斥 |
+    | `runType` | `run_type` | 已重命名为 `snake_case`；现在必须是大写：`"LLM"`、`"CHAIN"`、`"TOOL"`、`"RETRIEVER"`、`"EMBEDDING"`、`"PROMPT"`、`"PARSER"` |
+    | `traceId` | `trace_id` | 已重命名为 `snake_case` |
+    | `referenceExampleId` | `reference_examples` | 已重命名为 `snake_case`；现在接收 UUID 列表 |
+    | `query` | *(已删除)* | 无等效项 |
+    | `filter` | `filter` | 语法未更改 |
+    | `traceFilter` | `trace_filter` | 已重命名为 `snake_case` |
+    | `treeFilter` | `tree_filter` | 已重命名为 `snake_case` |
+    | `isRoot` | `is_root` | 已重命名为 `snake_case` |
+    | `parentRunId` | *(已删除)* | 无等效项 |
+    | `startTime` | `min_start_time` | 已重命名为 `snake_case`；默认为 1 天前—见上述警告 |
+    | `error` | `has_error` | 已重命名 |
+    | `id` | `ids` | 已重命名 |
+    | `select` | `selects` | 字段名现在是大写 (`"NAME"`、`"STATUS"` 等) |
+    | `limit` | *(已删除)* | 使用 `page_size` 设置每个请求的批处理大小 |
+    | `order` | *(已删除)* | 无等效项 |
+    | `executionOrder` | *(已删除)* | 无等效项 |
+    | *(不可用)* | `max_start_time` | `start_time` 的上限；默认为当前时间 |
+    | *(不可用)* | `page_size` | 每个请求的结果数量（默认 100，最大 1000） |
+    | *(不可用)* | `reference_dataset_id` | `project_ids` 的替代方案；互斥 |
+    | *(不可用)* | `cursor` | 从前一个响应中传递 `next_cursor` 以获取下一页 |
+  </Tab>
+  <Tab title="Java">
+    <Warning>
+    当省略时 `minStartTime()` 默认为 **1 天前**。没有 `startTime()` 的 `query()` 返回所有历史记录；没有 `minStartTime()` 的 `queryV2()` 默认将查询范围限制为最后 24 小时。如果您需要更宽的时间范围，请传递明确的 `minStartTime()`。
+    </Warning>
+
+    | 之前 (`RunQueryParams`) | 之后 (`RunQueryV2Params`) | 备注 |
+    |---|---|---|
+    | `session()` | `projectIds()` | 已重命名；现在接收明确的项目 UUID |
+    | `runType()` | `runType()` | 现在必须是大写 |
+    | `trace()` | `traceId()` | 已重命名 |
+    | `referenceExample()` | `referenceExamples()` | 已重命名为复数形式 |
+    | `query()` | *(已删除)* | 无等效项 |
+    | `filter()` | `filter()` | 语法未更改 |
+    | `traceFilter()` | `traceFilter()` | 未更改 |
+    | `treeFilter()` | `treeFilter()` | 未更改 |
+    | `isRoot()` | `isRoot()` | 未更改 |
+    | `parentRun()` | *(已删除)* | 无等效项 |
+    | `startTime()` | `minStartTime()` | 已重命名；默认为 1 天前—见上述警告 |
+    | `error()` | `hasError()` | 已重命名 |
+    | `id()` | `ids()` | 已重命名 |
+    | `select()` | `selects()` | 字段名现在是大写 |
+    | `limit()` | *(已删除)* | 使用 `pageSize()` |
+    | `order()` | *(已删除)* | 无等效项 |
+    | `executionOrder()` | *(已删除)* | 无等效项 |
+    | `cursor()` | `cursor()` | 未更改 |
+    | *(不可用)* | `maxStartTime()` | 开始时间的上限；默认为当前时间 |
+    | *(不可用)* | `pageSize()` | 每个请求的结果数量（默认 100，最大 1000） |
+    | *(不可用)* | `referenceDatasetId()` | `projectIds()` 的替代方案 |
+  </Tab>
+  <Tab title="Go">
+    <Warning>
+    当省略时 `MinStartTime` 默认为 **1 天前**。没有 `StartTime` 的 `Query()` 返回所有历史记录；没有 `MinStartTime` 的 `QueryV2()` 默认将查询范围限制为最后 24 小时。如果您需要更宽的时间范围，请传递明确的 `MinStartTime`。
+    </Warning>
+
+| 之前 (`RunQueryParams`) | 之后 (`RunQueryV2Params`) | 备注 |
+    |---|---|---|
+    | `Session` | `ProjectIDs` | 重命名；现在接受明确的项目 UUID |
+    | `RunType` | `RunType` | 值必须现在为大写：`RunQueryV2ParamsRunTypeLLM`、`RunQueryV2ParamsRunTypeChain` 等 |
+    | `Trace` | `TraceID` | 重命名 |
+    | `ReferenceExample` | `ReferenceExamples` | 重命名为复数形式 |
+    | `Query` | *(已删除)* | 无等价项 |
+    | `Filter` | `Filter` | 未更改 |
+    | `TraceFilter` | `TraceFilter` | 未更改 |
+    | `TreeFilter` | `TreeFilter` | 未更改 |
+    | `IsRoot` | `IsRoot` | 未更改 |
+    | `ParentRun` | *(已删除)* | 无等价项 |
+    | `StartTime` | `MinStartTime` | 重命名；默认为 1 天前——见上方警告 |
+    | `Error` | `HasError` | 重命名 |
+    | `ID` | `IDs` | 重命名 |
+    | `Select` | `Selects` | 字段名称常量现在为大写（例如，`RunQueryV2ParamsSelectName`） |
+    | `Limit` | *(已删除)* | 使用 `PageSize` |
+    | `Order` | *(已删除)* | 无等价项 |
+    | `ExecutionOrder` | *(已删除)* | 无等价项 |
+    | `Cursor` | `Cursor` | 未更改 |
+    | *(不可用)* | `MaxStartTime` | 开始时间的上限；默认为当前时间 |
+    | *(不可用)* | `PageSize` | 每请求结果数量（默认 100，最大 1000） |
+    | *(不可用)* | `ReferenceDatasetID` | `ProjectIDs` 的替代方案 |
+  </Tab>
+  <Tab title="cURL">
+
+    <Warning>
+    `min_start_time` 在省略时默认为 **1 天前**。`POST /api/v1/runs/query` 在没有 `start_time` 时返回所有历史运行；`POST /api/v2/runs/query` 在没有 `min_start_time` 时将查询范围静默限制为最后 24 小时。如果您需要一个更宽的时间窗口，请传递一个明确的 `min_start_time`。
+    </Warning>
+
+    | 之前 (v1 `POST /api/v1/runs/query` body 字段) | 之后 (v2 `POST /api/v2/runs/query` body 字段) | 备注 |
+    |---|---|---|
+    | `session` | `project_ids` | 重命名；两者都接受项目 UUID 的数组。`project_ids` 与 `reference_dataset_id` 互斥 |
+    | `run_type` | `run_type` | 值必须现在为大写：`"LLM"`、`"CHAIN"`、`"TOOL"`、`"RETRIEVER"`、`"EMBEDDING"`、`"PROMPT"`、`"PARSER"` |
+    | `trace` | `trace_id` | 重命名 |
+    | `reference_example` | `reference_examples` | 重命名为复数形式；现在接受 UUID 的数组 |
+    | `query` | *(已删除)* | 无等价项 |
+    | `filter` | `filter` | 语法未更改 |
+    | `trace_filter` | `trace_filter` | 未更改 |
+    | `tree_filter` | `tree_filter` | 未更改 |
+    | `is_root` | `is_root` | 未更改 |
+    | `parent_run` | *(已删除)* | 无等价项 |
+    | `start_time` | `min_start_time` | 重命名；默认为 1 天前——见上方警告 |
+    | `error` | `has_error` | 重命名 |
+    | `id` | `ids` | 重命名为复数形式 |
+    | `select` | `selects` | 字段名称现在为大写（`"NAME"`、`"STATUS"` 等） |
+    | `limit` | *(已删除)* | 使用 `page_size` 作为每请求批处理大小 |
+    | *(不可用)* | `max_start_time` | `start_time` 的上限；默认为当前时间 |
+    | *(不可用)* | `page_size` | 每请求结果数量（默认 100，最大 1000） |
+    | *(不可用)* | `reference_dataset_id` | `project_ids` 的替代方案；互斥 |
+    | *(不可用)* | `cursor` | 从前一个响应中传递 `next_cursor` 以获取下一页 |
+  </Tab>
+</Tabs>
+
+#### 响应字段
+
+<Warning>
+Token 和成本字段不再包含子运行的使用情况。在 v1 中，每个父运行（包括根运行）都携带其下方 LLM 运行的累计使用量。在 v2 中，这些字段仅报告运行自身的使用情况。一个未进行任何模型调用的根或链运行将返回空值（`None`、`null` 或从 JSON 中省略），而不是跟踪总计数。
+
+要读取跟踪的总 Token 和成本，请使用 [跟踪：查询](https://docs.langchain.com/langsmith/smithdb-sdk-migration-traces) 并从 `trace_aggregates` 读取 `total_tokens` 和 `total_cost`。`trace_aggregates` 没有提示词或完成分割。
+</Warning>
+
+<Tabs>
+  <Tab title="Python">
+    将 SCREAMING_SNAKE_CASE 字符串传递给 `selects`（例如 `"ID"`、`"NAME"`、`"STATUS"`）以控制每个 `Run` 中填充哪些字段；仅选定的字段是非 `None`。默认的 `selects` 仅包含 `"ID"`。
+
+| 之前（v1 `Run`属性） | 之后（v2 `Run`属性） | 备注 |
+    |---|---|---|
+    | `run.id` | `run.id` | 未变更；当`selects`省略时默认返回 |
+    | `run.name` | `run.name` | 未变更 |
+    | `run.run_type` | `run.run_type` | 值现在是大写字面量：`"LLM"`、`"CHAIN"`等 |
+    | `run.status` | `run.status` | 值：`"SUCCESS"`、`"ERROR"`、`"PENDING"` |
+    | `run.start_time` | `run.start_time` | 未变更 |
+    | `run.end_time` | `run.end_time` | 未变更 |
+    | `run.error` | `run.error` | 未变更 |
+    | `run.inputs` | `run.inputs` | 未变更 |
+    | `run.outputs` | `run.outputs` | 未变更 |
+    | `run.tags` | `run.tags` | 未变更 |
+    | `run.extra` | `run.extra` | 未变更 |
+    | `run.metadata` | `run.metadata` | 未变更 |
+    | `run.events` | `run.events` | 未变更 |
+    | `run.reference_example_id` | `run.reference_example_id` | 未变更 |
+    | `run.trace_id` | `run.trace_id` | 未变更 |
+    | `run.dotted_order` | `run.dotted_order` | 未变更 |
+    | `run.parent_run_id` | *(已删除)* | 使用`run.parent_run_ids`（所有祖先UUID列表，从根开始） |
+    | `run.parent_run_ids` | `run.parent_run_ids` | 未变更 |
+    | `run.session_id` | `run.project_id` | 已重命名；`session_id`是项目UUID |
+    | `run.feedback_stats` | `run.feedback_stats` | 未变更 |
+    | `run.app_path` | `run.app_path` | 未变更 |
+    | `run.attachments` | `run.attachments` | v2返回预签名下载URL，而不是原始字节 |
+    | `run.total_tokens` | `run.total_tokens` | 仅自用；不再从子运行中汇总 |
+    | `run.prompt_tokens` | `run.prompt_tokens` | 仅自用；不再从子运行中汇总 |
+    | `run.completion_tokens` | `run.completion_tokens` | 仅自用；不再从子运行中汇总 |
+    | `run.total_cost` | `run.total_cost` | 仅自用；不再从子运行中汇总 |
+    | `run.prompt_cost` | `run.prompt_cost` | 仅自用；不再从子运行中汇总 |
+    | `run.completion_cost` | `run.completion_cost` | 仅自用；不再从子运行中汇总 |
+    | `run.first_token_time` | `run.first_token_time` | 未变更 |
+    | `run.latency` (属性) | `run.latency_seconds` | 已重命名；原本是计算`timedelta`属性，现在是原生`float`字段 |
+    | `run.in_dataset` | `run.is_in_dataset` | 已重命名 |
+    | `run.child_run_ids` | *(已删除)* | 无等价项 |
+    | `run.child_runs` | *(已删除)* | 无等价项 |
+    | `run.serialized` | *(已删除)* | 使用`run.manifest` |
+    | `run.manifest_id` | *(已删除)* | 使用`run.manifest` |
+    | *(不可用)* | `run.is_root` | 新增 |
+    | *(不可用)* | `run.manifest` | 新增：完整清单对象（替换`serialized`和`manifest_id`） |
+    | *(不可用)* | `run.error_preview` | 新增：截断的错误片段 |
+    | *(不可用)* | `run.inputs_preview` | 新增：截断的输入预览 |
+    | *(不可用)* | `run.outputs_preview` | 新增：截断的输出预览 |
+    | *(不可用)* | `run.thread_id` | 新增：对话线程UUID |
+    | *(不可用)* | `run.reference_dataset_id` | 新增：参考示例的数据集UUID |
+    | *(不可用)* | `run.share_url` | 新增：公开分享URL（仅在运行被分享时设置） |
+    | `run.prompt_token_details` | `run.prompt_token_details.raw` | 字段现在包装了字典；访问`.raw`获取`dict[str, int]`（元素类型未变更） |
+    | `run.completion_token_details` | `run.completion_token_details.raw` | 字段现在包装了字典；访问`.raw`获取`dict[str, int]`（元素类型未变更） |
+    | `run.prompt_cost_details` | `run.prompt_cost_details.raw` | 字段现在包装了字典；访问`.raw`获取`dict[str, float]`（原`dict[str, Decimal]`） |
+    | `run.completion_cost_details` | `run.completion_cost_details.raw` | 字段现在包装了字典；访问`.raw`获取`dict[str, float]`（原`dict[str, Decimal]`） |
+  </Tab>
+  <Tab title="TypeScript">
+    将 SCREAMING_SNAKE_CASE 字符串传递给`selects`（例如`"ID"`、`"NAME"`、`"STATUS"`），以控制每个`Run`填充哪些字段。默认`selects`仅包含`"ID"`。
+
+| 之前（v1 `Run`属性） | 之后（v2 `Run`属性） | 备注 |
+    |---|---|---|
+    | `run.id` | `run.id` | 未更改 |
+    | `run.name` | `run.name` | 未更改 |
+    | `run.runType` | `run.run_type` | 重命名为 `snake_case`；值现在为大写：`"LLM"`、`"CHAIN"`等。 |
+    | `run.status` | `run.status` | 值：`"SUCCESS"`、`"ERROR"`、`"PENDING"` |
+    | `run.startTime` | `run.start_time` | 重命名为 `snake_case` |
+    | `run.endTime` | `run.end_time` | 重命名为 `snake_case` |
+    | `run.error` | `run.error` | 未更改 |
+    | `run.inputs` | `run.inputs` | 未更改 |
+    | `run.outputs` | `run.outputs` | 未更改 |
+    | `run.tags` | `run.tags` | 未更改 |
+    | `run.extra` | `run.extra` | 未更改 |
+    | *(不可用)* | `run.metadata` | 新增：之前通过 `run.extra.metadata` 访问 |
+    | `run.events` | `run.events` | 未更改 |
+    | `run.referenceExampleId` | `run.reference_example_id` | 重命名为 `snake_case` |
+    | `run.traceId` | `run.trace_id` | 重命名为 `snake_case` |
+    | `run.dottedOrder` | `run.dotted_order` | 重命名为 `snake_case` |
+    | `run.parentRunId` | *(已移除)* | 使用 `run.parent_run_ids`（所有祖先UUID列表，从根开始） |
+    | `run.parentRunIds` | `run.parent_run_ids` | 重命名为 `snake_case` |
+    | `run.sessionId` | `run.project_id` | 重命名；`sessionId` 是项目UUID |
+    | `run.feedbackStats` | `run.feedback_stats` | 重命名为 `snake_case` |
+    | `run.appPath` | `run.app_path` | 重命名为 `snake_case` |
+    | `run.attachments` | `run.attachments` | v2 返回预签名下载URL，而不是原始字节 |
+    | `run.totalTokens` | `run.total_tokens` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.promptTokens` | `run.prompt_tokens` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.completionTokens` | `run.completion_tokens` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.totalCost` | `run.total_cost` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.promptCost` | `run.prompt_cost` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.completionCost` | `run.completion_cost` | 重命名为 `snake_case`；仅用于自用；不再从子运行中汇总 |
+    | `run.firstTokenTime` | `run.first_token_time` | 重命名为 `snake_case` |
+    | `run.latency` | `run.latency_seconds` | 重命名；原本是计算属性，现在是原生 `number` 字段（秒） |
+    | `run.inDataset` | `run.is_in_dataset` | 重命名 |
+    | `run.childRunIds` | *(已移除)* | 无等价项 |
+    | `run.childRuns` | *(已移除)* | 无等价项 |
+    | `run.serialized` | *(已移除)* | 使用 `run.manifest` |
+    | `run.manifestId` | *(已移除)* | 使用 `run.manifest` |
+    | `run.shareToken` | *(已移除)* | 使用 `run.share_url`（完整URL，仅在运行已共享时设置） |
+    | *(不可用)* | `run.is_root` | 新增 |
+    | *(不可用)* | `run.manifest` | 新增：完整清单对象（替换 `serialized` 和 `manifestId`） |
+    | *(不可用)* | `run.error_preview` | 新增：截断的错误片段 |
+    | *(不可用)* | `run.inputs_preview` | 新增：截断的输入预览 |
+    | *(不可用)* | `run.outputs_preview` | 新增：截断的输出预览 |
+    | *(不可用)* | `run.thread_id` | 新增：对话线程UUID |
+    | *(不可用)* | `run.reference_dataset_id` | 新增：参考示例的数据集UUID |
+    | *(不可用)* | `run.share_url` | 新增：公开共享URL（仅在运行已共享时设置） |
+    | *(不可用)* | `run.prompt_token_details` | 新增：按类别的提示词分解 |
+    | *(不可用)* | `run.completion_token_details` | 新增：按类别的完成词分解 |
+    | *(不可用)* | `run.prompt_cost_details` | 新增：按类别的提示成本分解 |
+    | *(不可用)* | `run.completion_cost_details` | 新增：按类别的完成成本分解 |
+  </Tab>
+  <Tab title="Java">
+    通过 `.addSelect(...)` 添加 `RunQueryV2Params.Select` 值（例如 `Select.NAME`、`Select.STATUS`），以控制哪些字段被填充；未选择的字段返回空的 `Optional` 值。`selects()` 默认为 `ID`。
+
+| 之前（`RunSchema`方法） | 之后（`Run`方法） | 备注 |
+    |---|---|---|
+    | `run.id()` | `run.id()` | 未变更 |
+    | `run.name()` | `run.name()` | 未变更 |
+    | `run.runType()` | `run.runType()` | 值现在为大写：`"LLM"`、`"CHAIN"`等 |
+    | `run.status()` | `run.status()` | 值：`"SUCCESS"`、`"ERROR"`、`"PENDING"` |
+    | `run.startTime()` | `run.startTime()` | 未变更 |
+    | `run.endTime()` | `run.endTime()` | 未变更 |
+    | `run.error()` | `run.error()` | 未变更 |
+    | `run.inputs()` | `run.inputs()` | 未变更 |
+    | `run.outputs()` | `run.outputs()` | 未变更 |
+    | `run.tags()` | `run.tags()` | 未变更 |
+    | `run.extra()` | `run.extra()` | 未变更 |
+    | `run.events()` | `run.events()` | 未变更 |
+    | `run.feedbackStats()` | `run.feedbackStats()` | 未变更 |
+    | `run.inputsPreview()` | `run.inputsPreview()` | 未变更 |
+    | `run.outputsPreview()` | `run.outputsPreview()` | 未变更 |
+    | `run.referenceExampleId()` | `run.referenceExampleId()` | 未变更 |
+    | `run.traceId()` | `run.traceId()` | 未变更 |
+    | `run.dottedOrder()` | `run.dottedOrder()` | 未变更 |
+    | `run.parentRunId()` | *(已删除)* | 使用 `run.parentRunIds()`（所有祖先UUID列表，从根开始） |
+    | `run.parentRunIds()` | `run.parentRunIds()` | 未变更 |
+    | `run.sessionId()` | `run.projectId()` | 已重命名；`sessionId()`返回项目UUID |
+    | `run.appPath()` | `run.appPath()` | 未变更 |
+    | `run.firstTokenTime()` | `run.firstTokenTime()` | 未变更 |
+    | `run.totalTokens()` | `run.totalTokens()` | 仅自用；不再从子运行中求和 |
+    | `run.promptTokens()` | `run.promptTokens()` | 仅自用；不再从子运行中求和 |
+    | `run.completionTokens()` | `run.completionTokens()` | 仅自用；不再从子运行中求和 |
+    | `run.totalCost()` | `run.totalCost()` | 返回类型从 `Optional<String>`变为 `Optional<Double>`；仅自用；不再从子运行中求和 |
+    | `run.promptCost()` | `run.promptCost()` | 返回类型从 `Optional<String>`变为 `Optional<Double>`；仅自用；不再从子运行中求和 |
+    | `run.completionCost()` | `run.completionCost()` | 返回类型从 `Optional<String>`变为 `Optional<Double>`；仅自用；不再从子运行中求和 |
+    | `run.promptTokenDetails()` | `run.promptTokenDetails()` | 未变更 |
+    | `run.completionTokenDetails()` | `run.completionTokenDetails()` | 未变更 |
+    | `run.promptCostDetails()` | `run.promptCostDetails()` | 未变更 |
+    | `run.completionCostDetails()` | `run.completionCostDetails()` | 未变更 |
+    | `run.priceModelId()` | `run.priceModelId()` | 未变更 |
+    | `run.inDataset()` | `run.isInDataset()` | 已重命名 |
+    | `run.referenceDatasetId()` | `run.referenceDatasetId()` | 未变更 |
+    | `run.threadId()` | `run.threadId()` | 未变更 |
+    | `run.shareToken()` | *(已删除)* | 使用 `run.shareUrl()`（完整URL，仅在运行被共享时设置） |
+    | `run.childRunIds()` | *(已删除)* | 无等价项 |
+    | `run.directChildRunIds()` | *(已删除)* | 无等价项 |
+    | `run.serialized()` | *(已删除)* | 使用 `run.manifest()` |
+    | `run.manifestId()` | *(已删除)* | 使用 `run.manifest()` |
+    | `run.messages()` | *(已删除)* | 无等价项 |
+    | `run.executionOrder()` | *(已删除)* | 无等价项 |
+    | `run.lastQueuedAt()` | *(已删除)* | 无等价项 |
+    | `run.traceFirstReceivedAt()` | *(已删除)* | 无等价项 |
+    | `run.traceMaxStartTime()` | *(已删除)* | 无等价项 |
+    | `run.traceMinStartTime()` | *(已删除)* | 无等价项 |
+    | `run.traceTier()` | *(已删除)* | 无等价项 |
+    | `run.traceUpgrade()` | *(已删除)* | 无等价项 |
+    | `run.ttlSeconds()` | *(已删除)* | 无等价项 |
+    | *(不可用)* | `run.attachments()` | 新增：附件预签名下载URL（替换S3 URL字段） |
+    | *(不可用)* | `run.latencySeconds()` | 新增：时钟时间（秒） |
+    | *(不可用)* | `run.isRoot()` | 新增 |
+    | *(不可用)* | `run.errorPreview()` | 新增：截断的错误片段 |
+    | *(不可用)* | `run.manifest()` | 新增：完整清单，类型为 `Optional<Manifest>`（替换 `serialized()` 和 `manifestId()`） |
+    | *(不可用)* | `run.metadata()` | 新增：元数据，类型为 `Optional<Metadata>`（源自 `extra.metadata`） |
+    | *(不可用)* | `run.shareUrl()` | 新增：公开共享URL（仅在运行被共享时设置） |
+    | *(不可用)* | `run.threadEvaluationTime()` | 新增 |
+  </Tab>
+  <Tab title="Go">
+    将 `RunQueryV2ParamsSelect`常量（如 `RunQueryV2ParamsSelectName`、`RunQueryV2ParamsSelectStatus`）传递给 `Selects`以控制哪些字段被填充；未选择的字段在返回的结构体中为零值。`Selects`默认为 `ID`。
+
+| 之前（`RunSchema`字段） | 之后（`Run`字段） | 备注 |
+    |---|---|---|
+    | `run.ID` | `run.ID` | 未更改 |
+    | `run.Name` | `run.Name` | 未更改 |
+    | `run.RunType` | `run.RunType` | 值更改为大写：`"LLM"`、`"CHAIN"`等 |
+    | `run.Status` | `run.Status` | 值：`"SUCCESS"`、`"ERROR"`、`"PENDING"` |
+    | `run.TraceID` | `run.TraceID` | 未更改 |
+    | `run.DottedOrder` | `run.DottedOrder` | 未更改 |
+    | `run.AppPath` | `run.AppPath` | 未更改 |
+    | `run.StartTime` | `run.StartTime` | 未更改 |
+    | `run.EndTime` | `run.EndTime` | 未更改 |
+    | `run.Error` | `run.Error` | 未更改 |
+    | `run.Events` | `run.Events` | 未更改；元素类型现为 `RunEvent`（原为 `map[string]interface{}`） |
+    | `run.Extra` | `run.Extra` | 未更改；类型现为 `interface{}`（原为 `map[string]interface{}`） |
+    | `run.FeedbackStats` | `run.FeedbackStats` | 未更改；元素类型现为 `RunFeedbackStat` |
+    | `run.FirstTokenTime` | `run.FirstTokenTime` | 未更改 |
+    | `run.Inputs` | `run.Inputs` | 未更改；类型现为 `interface{}`（原为 `map[string]interface{}`） |
+    | `run.InputsPreview` | `run.InputsPreview` | 未更改 |
+    | `run.Outputs` | `run.Outputs` | 未更改；类型现为 `interface{}`（原为 `map[string]interface{}`） |
+    | `run.OutputsPreview` | `run.OutputsPreview` | 未更改 |
+    | `run.ParentRunIDs` | `run.ParentRunIDs` | 未更改 |
+    | `run.PriceModelID` | `run.PriceModelID` | 未更改 |
+    | `run.PromptCost` | `run.PromptCost` | 仅自用；不再从子运行中汇总 |
+    | `run.PromptCostDetails` | `run.PromptCostDetails.Raw` | 字段现包装映射；访问 `.Raw` 获取 `map[string]float64`（原为 `map[string]string`） |
+    | `run.PromptTokenDetails` | `run.PromptTokenDetails.Raw` | 字段现包装映射；访问 `.Raw` 获取 `map[string]int64`（元素类型未更改） |
+    | `run.PromptTokens` | `run.PromptTokens` | 仅自用；不再从子运行中汇总 |
+    | `run.CompletionCost` | `run.CompletionCost` | 仅自用；不再从子运行中汇总 |
+    | `run.CompletionCostDetails` | `run.CompletionCostDetails.Raw` | 字段现包装映射；访问 `.Raw` 获取 `map[string]float64`（原为 `map[string]string`） |
+    | `run.CompletionTokenDetails` | `run.CompletionTokenDetails.Raw` | 字段现包装映射；访问 `.Raw` 获取 `map[string]int64`（元素类型未更改） |
+    | `run.CompletionTokens` | `run.CompletionTokens` | 仅自用；不再从子运行中汇总 |
+    | `run.TotalCost` | `run.TotalCost` | 仅自用；不再从子运行中汇总 |
+    | `run.TotalTokens` | `run.TotalTokens` | 仅自用；不再从子运行中汇总 |
+    | `run.ReferenceDatasetID` | `run.ReferenceDatasetID` | 未更改 |
+    | `run.ReferenceExampleID` | `run.ReferenceExampleID` | 未更改 |
+    | `run.Tags` | `run.Tags` | 未更改 |
+    | `run.ThreadID` | `run.ThreadID` | 未更改 |
+    | `run.SessionID` | `run.ProjectID` | 已重命名 |
+    | `run.InDataset` | `run.IsInDataset` | 已重命名 |
+    | `run.ChildRunIDs` | *(已删除)* | 无等效项 |
+    | `run.DirectChildRunIDs` | *(已删除)* | 无等效项 |
+    | `run.ExecutionOrder` | *(已删除)* | 无等效项 |
+    | `run.InputsS3URLs` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `run.LastQueuedAt` | *(已删除)* | 无等效项 |
+    | `run.ManifestID` | *(已删除)* | 使用 `run.Manifest` |
+    | `run.ManifestS3ID` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `run.Messages` | *(已删除)* | 无等效项 |
+    | `run.OutputsS3URLs` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `run.ParentRunID` | *(已删除)* | 使用 `run.ParentRunIDs` |
+    | `run.S3URLs` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `run.Serialized` | *(已删除)* | 使用 `run.Manifest` |
+    | `run.ShareToken` | *(已删除)* | 使用 `run.ShareURL` |
+    | `run.TraceFirstReceivedAt` | *(已删除)* | 无等效项 |
+    | `run.TraceMaxStartTime` | *(已删除)* | 无等效项 |
+    | `run.TraceMinStartTime` | *(已删除)* | 无等效项 |
+    | `run.TraceTier` | *(已删除)* | 无等效项 |
+    | `run.TraceUpgrade` | *(已删除)* | 无等效项 |
+    | `run.TtlSeconds` | *(已删除)* | 无等效项 |
+    | *(不可用)* | `run.Attachments` | 新增：将附件文件名映射到预签名下载 URL |
+    | *(不可用)* | `run.ErrorPreview` | 新增：截断错误片段 |
+    | *(不可用)* | `run.IsRoot` | 新增 |
+    | *(不可用)* | `run.LatencySeconds` | 新增：秒级墙上时间 |
+    | *(不可用)* | `run.Manifest` | 新增：完整清单对象（替换 `Serialized` 和 `ManifestID`） |
+    | *(不可用)* | `run.Metadata` | 新增：任意用户定义的 JSON 元数据 |
+    | *(不可用)* | `run.ShareURL` | 新增：公开分享 URL（仅在运行被分享时设置） |
+    | *(不可用)* | `run.ThreadEvaluationTime` | 新增 |
+  </Tab>
+  <Tab title="cURL">
+    JSON 响应中的字段名使用 `snake_case`。
+
+    将 SCREAMING_SNAKE_CASE 字符串作为 `selects` JSON 数组中的值（例如 `"ID"`、`"NAME"`、`"STATUS"`）以控制哪些字段被填充。默认 `selects` 包含仅 `"ID"`。
+
+| 之前 (v1 响应字段) | 之后 (v2 响应字段) | 备注 |
+    |---|---|---|
+    | `id` | `id` | 未变更 |
+    | `name` | `name` | 未变更 |
+    | `run_type` | `run_type` | 值已更改为大写：`"LLM"`、`"CHAIN"`、等 |
+    | `status` | `status` | 值：`"SUCCESS"`、`"ERROR"`、`"PENDING"` |
+    | `trace_id` | `trace_id` | 未变更 |
+    | `dotted_order` | `dotted_order` | 未变更 |
+    | `app_path` | `app_path` | 未变更 |
+    | `start_time` | `start_time` | 未变更 |
+    | `end_time` | `end_time` | 未变更 |
+    | `error` | `error` | 未变更 |
+    | `events` | `events` | 未变更 |
+    | `extra` | `extra` | 未变更 |
+    | `feedback_stats` | `feedback_stats` | 未变更 |
+    | `first_token_time` | `first_token_time` | 未变更 |
+    | `inputs` | `inputs` | 未变更 |
+    | `inputs_preview` | `inputs_preview` | 未变更 |
+    | `outputs` | `outputs` | 未变更 |
+    | `outputs_preview` | `outputs_preview` | 未变更 |
+    | `parent_run_ids` | `parent_run_ids` | 未变更 |
+    | `price_model_id` | `price_model_id` | 未变更 |
+    | `prompt_cost` | `prompt_cost` | 仅自用；不再从子运行中求和 |
+    | `prompt_cost_details` | `prompt_cost_details.raw` | 字段现在包装了对象；读取 `.raw` 获取相同的 `{category: cost}` 映射，现在为数值（原为字符串） |
+    | `prompt_token_details` | `prompt_token_details.raw` | 字段现在包装了对象；读取 `.raw` 获取相同的 `{category: count}` 映射（值未变更） |
+    | `prompt_tokens` | `prompt_tokens` | 仅自用；不再从子运行中求和 |
+    | `completion_cost` | `completion_cost` | 仅自用；不再从子运行中求和 |
+    | `completion_cost_details` | `completion_cost_details.raw` | 字段现在包装了对象；读取 `.raw` 获取相同的 `{category: cost}` 映射，现在为数值（原为字符串） |
+    | `completion_token_details` | `completion_token_details.raw` | 字段现在包装了对象；读取 `.raw` 获取相同的 `{category: count}` 映射（值未变更） |
+    | `completion_tokens` | `completion_tokens` | 仅自用；不再从子运行中求和 |
+    | `total_cost` | `total_cost` | 仅自用；不再从子运行中求和 |
+    | `total_tokens` | `total_tokens` | 仅自用；不再从子运行中求和 |
+    | `reference_dataset_id` | `reference_dataset_id` | 未变更 |
+    | `reference_example_id` | `reference_example_id` | 未变更 |
+    | `tags` | `tags` | 未变更 |
+    | `thread_id` | `thread_id` | 未变更 |
+    | `session_id` | `project_id` | 已重命名 |
+    | `in_dataset` | `is_in_dataset` | 已重命名 |
+    | `child_run_ids` | *(已删除)* | 无等效项 |
+    | `direct_child_run_ids` | *(已删除)* | 无等效项 |
+    | `execution_order` | *(已删除)* | 无等效项 |
+    | `inputs_s3_urls` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `last_queued_at` | *(已删除)* | 无等效项 |
+    | `manifest_id` | *(已删除)* | 使用 `manifest` |
+    | `manifest_s3_id` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `messages` | *(已删除)* | 无等效项 |
+    | `outputs_s3_urls` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `parent_run_id` | *(已删除)* | 使用 `parent_run_ids` |
+    | `s3_urls` | *(已删除)* | 内部存储 URL；v2 中未公开 |
+    | `serialized` | *(已删除)* | 使用 `manifest` |
+    | `share_token` | *(已删除)* | 使用 `share_url` |
+    | `trace_first_received_at` | *(已删除)* | 无等效项 |
+    | `trace_max_start_time` | *(已删除)* | 无等效项 |
+    | `trace_min_start_time` | *(已删除)* | 无等效项 |
+    | `trace_tier` | *(已删除)* | 无等效项 |
+    | `trace_upgrade` | *(已删除)* | 无等效项 |
+    | `ttl_seconds` | *(已删除)* | 无等效项 |
+    | *(不可用)* | `attachments` | 新增：将附件文件名映射到预签名下载 URL |
+    | *(不可用)* | `error_preview` | 新增：截断的错误片段 |
+    | *(不可用)* | `is_root` | 新增 |
+    | *(不可用)* | `latency_seconds` | 新增：秒级墙上时间 |
+    | *(不可用)* | `manifest` | 新增：完整清单对象（替换 `serialized` 和 `manifest_id`） |
+    | *(不可用)* | `metadata` | 新增：原嵌套在 `extra.metadata` 下 |
+    | *(不可用)* | `share_url` | 新增：公开共享 URL（仅在运行已共享时设置） |
+    | *(不可用)* | `thread_evaluation_time` | 新增 |
+  </Tab>
+</Tabs>
+
+#### 速率限制
+
+基于 SmithDB 的方法具有比它所替换的方法更高的专用、更快的速率限制。限制适用于云端，每个 API 密钥。
+
+<Tabs>
+  <Tab title="Python">
+    | | 之前 (`client.list_runs()`) | 之后 (`client.runs.query()`) |
+    |--------|--------|-------|
+    | 限制 | 每秒 10 个请求 | 每秒 300 个请求 |
+  </Tab>
+  <Tab title="TypeScript">
+    | | 之前 (`client.listRuns()`) | 之后 (`client.runs.query()`) |
+    |--------|--------|-------|
+    | 限制 | 每秒 10 个请求 | 每秒 300 个请求 |
+  </Tab>
+  <Tab title="Java">
+    | | 之前 (`client.runs().query()`) | 之后 (`client.runs().queryV2()`) |
+    |--------|--------|-------|
+    | 限制 | 每秒 10 个请求 | 每秒 300 个请求 |
+  </Tab>
+  <Tab title="Go">
+    | | 之前 (`client.Runs.Query()`) | 之后 (`client.Runs.QueryV2()`) |
+    |--------|--------|-------|
+    | 限制 | 每秒 10 个请求 | 每秒 300 个请求 |
+  </Tab>
+  <Tab title="cURL">
+    | | 之前 (`POST /api/v1/runs/query`) | 之后 (`POST /api/v2/runs/query`) |
+    |--------|--------|-------|
+    | 限制 | 每秒 10 个请求 | 每秒 300 个请求 |
+  </Tab>
+</Tabs>
+
+已弃用的方法也受租户级限制，这些限制因查询形状而异，详见 [使用 SDK 进行查询跟踪](https://docs.langchain.com/langsmith/export-traces#rate-limits)。基于 SmithDB 的方法不受这些租户级限制。
+
+超出限制的请求返回 `429 Too Many Requests`。有关一般速率限制信息，请参阅 [使用和计费](https://docs.langchain.com/langsmith/usage-and-billing#rate-limits)。
+
+### 示例
+
+#### 列出项目中的所有运行
+
+<Tabs>
+  <Tab title="Python">
+    `runs.query` 不直接接受项目名称。首先使用 `client.aread_project()` 解析项目 UUID，然后将其作为字符串传递给 `project_ids`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListAllBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListAllAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `client.runs.query` 不直接接受项目名称。首先使用 `client.readProject()` 解析项目 UUID，然后将其作为字符串传递给 `project_ids`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListAllBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListAllAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `queryV2()` 不直接接受项目名称。首先使用 `client.sessions().list()` 解析项目 UUID，然后将其作为字符串传递给 `projectIds()`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListAllBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListAllAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `QueryV2()` 不直接接受项目名称。首先使用 `client.Sessions.List()` 解析项目 UUID，然后将其作为字符串传递给 `ProjectIDs`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListAllBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListAllAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `POST /api/v2/runs/query` 不直接接受项目名称。首先使用 `GET /api/v1/sessions` 请求解析项目 UUID，然后将其作为字符串传递给 `project_ids`。对于智能体环境、实验或评估器，[解析它](https://docs.langchain.com/langsmith/resolve-an-agent)，这是 Beta 版本，以获取项目 UUID。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryListAllBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryListAllAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 选择字段
+
+<Tabs>
+  <Tab title="Python">
+    `list_runs` 返回一组默认字段，无需选择。`runs.query` 默认只返回 `id`—传递 `selects=[...]` 以请求更多。字段名现在为大写（`"name"` → `"NAME"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQuerySelectingFieldsBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQuerySelectingFieldsAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `listRuns` 返回一组默认字段，无需选择。`client.runs.query` 默认只返回 `id`—传递 `selects: [...]` 以请求更多。字段名现在为大写（`"name"` → `"NAME"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQuerySelectingFieldsBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQuerySelectingFieldsAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `query()` 返回一组默认字段，无需选择。`queryV2()` 默认只返回 `id`—为每个需要的字段调用 `.addSelect(RunQueryV2Params.Select.X)`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQuerySelectingFieldsBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQuerySelectingFieldsAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `Query` 返回一组默认字段，无需选择。`QueryV2` 默认只返回 `ID`—传递 `Selects` 与您需要的字段常量（例如 `RunQueryV2ParamsSelectName`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQuerySelectingFieldsBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQuerySelectingFieldsAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `POST /api/v1/runs/query` 返回一组默认字段，无需选择。`POST /api/v2/runs/query` 默认只返回 `id`—传递 `selects` 与您需要的字段名（例如 `"NAME"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQuerySelectingFieldsBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQuerySelectingFieldsAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 按运行类型和时间范围筛选
+
+<Tabs>
+  <Tab title="Python">
+    `start_time` 已重命名为 `min_start_time`，`run_type` 值现在为大写（`"llm"` → `"LLM"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterTimeRangeBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterTimeRangeAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `startTime`（驼峰式）变为 `min_start_time`（下划线式，匹配 v2 请求体），`runType` 值现在为大写（`"llm"` → `"LLM"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterTimeRangeBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterTimeRangeAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `.startTime()` 已重命名为 `.minStartTime()`，`.runType()` 现在采用新的 `RunQueryV2Params.RunType` 枚举而不是 `RunTypeEnum`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterTimeRangeBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterTimeRangeAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `StartTime` 已重命名为 `MinStartTime`，`RunType` 现在采用新的 `RunQueryV2ParamsRunType` 枚举而不是 `RunTypeEnum`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterTimeRangeBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterTimeRangeAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `start_time` 已重命名为 `min_start_time`，`run_type` 值现在为大写（`"llm"` → `"LLM"`）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterTimeRangeBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterTimeRangeAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 仅筛选根运行
+
+<Tabs>
+  <Tab title="Python">
+    `is_root` 未更改。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterRootBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterRootAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `isRoot`（驼峰式）变为 `is_root`（下划线式，匹配 v2 请求体）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterRootBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterRootAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `.isRoot()` 未更改。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterRootBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterRootAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `IsRoot` 未更改。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterRootBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterRootAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `is_root` 未更改。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterRootBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterRootAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+<Warning>
+要列出跟踪，请使用 `traces.query` 而不是 `is_root=True`。来自 `runs.query` 的根运行不携带跨跟踪的 token 或成本总计：它们的 token 和成本字段仅涵盖根运行自身的使用情况，当根未进行模型调用时为空。`traces.query` 在 `trace_aggregates` 下返回跨跟踪的 `total_tokens` 和 `total_cost`。参见 [跟踪：查询](https://docs.langchain.com/langsmith/smithdb-sdk-migration-traces).
+
+</Warning>
+
+#### 通过 ID 列表获取运行
+
+<Tabs>
+  <Tab title="Python">
+    `id=[...]` 已重命名为 `ids=[...]`。`project_ids` 即使按运行 ID 筛选也现在是必需的—v1 允许省略项目上下文。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFetchByIdBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFetchByIdAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `id: [...]` 已重命名为 `ids: [...]`。`project_ids` 即使按运行 ID 筛选也现在是必需的—v1 允许省略项目上下文。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFetchByIdBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFetchByIdAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `.addId(...)` 未更改—为每个运行 ID 调用一次。`.addProjectId(...)` 即使按运行 ID 筛选也现在是必需的—v1 允许省略项目上下文。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFetchByIdBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFetchByIdAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `ID: [...]` 已重命名为 `IDs: [...]`。`ProjectIDs` 即使按运行 ID 筛选也现在是必需的—v1 允许省略项目上下文。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFetchByIdBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFetchByIdAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `id` 已重命名为 `ids`。`project_ids` 即使按运行 ID 筛选也现在在请求体中是必需的—v1 允许省略项目上下文。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFetchByIdBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFetchByIdAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 遍历运行
+
+<Tabs>
+  <Tab title="Python">
+    `list_runs` 自动分页透明地工作，每次 API 调用最多获取 100 个运行，并在返回 `limit` 结果后停止。`runs.query` 不接受总数 `limit`；当您获取足够数据后，使用 `async for` 和 `break` 进行迭代，或使用返回页面的 `has_next_page()`/`get_next_page()` 进行手动分页控制。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryPaginationBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryPaginationAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `listRuns` 自动分页透明地工作。`client.runs.query` 返回一个异步可迭代对象，包含单个运行—当您获取足够数据后，使用 `for await` 和 `break`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryPaginationBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryPaginationAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `.autoPager()` 在 `query()` 和 `queryV2()` 上都以相同方式使用—当您获取足够运行后，跳出循环。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryPaginationBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryPaginationAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `QueryAutoPaging` 已重命名为 `QueryV2AutoPaging`；两者都使用相同的 `iter.Next()`/`iter.Current()` 模式—当您获取足够运行后，跳出循环。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryPaginationBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryPaginationAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    v1 API 在一个响应中返回所有匹配的运行，不使用游标。v2 API 分页—将响应的 `next_cursor` 字段的 `cursor` 传递给下一个页面的获取。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryPaginationBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryPaginationAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 筛选出现错误的运行
+
+<Tabs>
+  <Tab title="Python">
+    `error=True/False` 已重命名为 `has_error=True/False`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterErrorsBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterErrorsAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    `error: true/false` is renamed to `has_error: true/false`.
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterErrorsBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterErrorsAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `.error(true/false)` is renamed to `.hasError(true/false)`.
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterErrorsBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterErrorsAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `Error` is renamed to `HasError`.
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterErrorsBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterErrorsAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `error` is renamed to `has_error`.
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterErrorsBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterErrorsAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 按元数据过滤
+
+<Tabs>  
+  <Tab title="Python">  
+    `filter`字符串语法保持不变：`eq(metadata_key, ...)`用于检查键的存在，与`eq(metadata_value, ...)`结合以匹配特定值。  
+
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterMetadataBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterMetadataAfterPy />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="TypeScript">
+    The `filter` 字符串语法保持不变：`eq(metadata_key, ...)` 检查键是否存在，结合 `eq(metadata_value, ...)` 匹配特定值。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterMetadataBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterMetadataAfterJs />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="Java">
+    The `.filter(...)` 字符串语法保持不变：`eq(metadata_key, ...)` 检查键是否存在，结合 `eq(metadata_value, ...)` 匹配特定值。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterMetadataBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterMetadataAfterKt />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="Go">
+    The `Filter` 字符串语法保持不变：`eq(metadata_key, ...)` 检查键是否存在，结合 `eq(metadata_value, ...)` 匹配特定值。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterMetadataBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterMetadataAfterGo />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="cURL">
+    The `filter` 字符串语法保持不变：`eq(metadata_key, ...)` 检查键是否存在，结合 `eq(metadata_value, ...)` 匹配特定值。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryFilterMetadataBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryFilterMetadataAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 复杂布尔过滤器
+
+嵌套 `and()` / `or()` 过滤表达式仍然有效。保持 `or()` 操作数位于同一字段类型上：SmithDB 在一个表达式中拒绝跨运行字段和反馈字段的 OR 操作（例如混合 `status` 与 `feedback_key`）。
+
+<Tabs>
+  <Tab title="Python">
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryBooleanFiltersBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryBooleanFiltersAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryBooleanFiltersBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryBooleanFiltersAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryBooleanFiltersBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryBooleanFiltersAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryBooleanFiltersBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryBooleanFiltersAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryBooleanFiltersBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryBooleanFiltersAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 有作用域的过滤器: filter, trace_filter, tree_filter
+
+<Tabs>
+  <Tab title="Python">
+    `filter`、`trace_filter`和`tree_filter`保持不变。`filter`适用于匹配的运行，`trace_filter`适用于其跟踪的根，`tree_filter`适用于跟踪树中的其他运行（兄弟和子运行）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryScopedFiltersBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryScopedFiltersAfterPy />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="TypeScript">
+    `filter`、`trace_filter`和`tree_filter`保持不变。`filter`适用于匹配的运行，`trace_filter`适用于其跟踪的根，`tree_filter`适用于跟踪树中的其他运行（兄弟和子运行）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryScopedFiltersBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryScopedFiltersAfterJs />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="Java">
+    `.filter()`、`.traceFilter()`和`.treeFilter()`保持不变。`filter`适用于匹配的运行，`traceFilter`适用于其跟踪的根，`treeFilter`适用于跟踪树中的其他运行（兄弟和子运行）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryScopedFiltersBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryScopedFiltersAfterKt />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="Go">
+    `Filter`、`TraceFilter`和`TreeFilter`保持不变。`Filter`适用于匹配的运行，`TraceFilter`适用于其跟踪的根，`TreeFilter`适用于跟踪树中的其他运行（兄弟和子运行）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryScopedFiltersBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryScopedFiltersAfterGo />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="cURL">
+    `filter`、`trace_filter`和`tree_filter`保持不变。`filter`适用于匹配的运行，`trace_filter`适用于其跟踪的根，`tree_filter`适用于跟踪树中的其他运行（兄弟和子运行）。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbRunsQueryScopedFiltersBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbRunsQueryScopedFiltersAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>

@@ -1,0 +1,149 @@
+---
+title: "Exa 集成"
+description: "与 Exa 集成，使用 LangChain Python."
+---
+
+>[Exa](https://exa.ai/) 是面向 AI 和开发者的知识 API。
+>
+
+## 安装与设置
+
+`Exa` 集成存在于其独立的 [合作伙伴包](https://pypi.org/project/langchain-exa/) 中。您可以通过以下方式安装它：
+
+```python
+pip install -qU langchain-exa
+```
+
+为了使用该包，您还需要将 `EXA_API_KEY` 环境变量设置为您的 Exa API 密钥。
+
+## 检索器
+
+您可以在标准的检索流程中使用 [`ExaSearchRetriever`](/langchain/oss/python/integrations/tools/exa_search#使用-exasearchretriever)。您可以通过以下方式导入它。
+
+查看一个 [使用示例](/langchain/oss/python/integrations/tools/exa_search)。
+
+```python
+from langchain_exa import ExaSearchRetriever
+```
+
+## 工具
+
+您可以将 Exa 作为智能体工具，如 [Exa 工具调用文档](/langchain/oss/python/integrations/tools/exa_search#在智能体中应用) 中所述。
+
+查看一个 [使用示例](/langchain/oss/python/integrations/tools/exa_search)。
+
+### ExaFindSimilarResults
+
+一个查询 Metaphor 搜索 API 并返回 JSON 的工具。
+
+```python
+from langchain_exa.tools import ExaFindSimilarResults
+```
+
+### ExaSearchResults
+
+Exa 搜索工具。
+
+```python
+from langchain_exa.tools import ExaSearchResults
+```
+
+## Exa 搜索检索器
+
+您可以按以下方式检索搜索结果
+
+```python
+from langchain_exa import ExaSearchRetriever
+
+exa_api_key = "YOUR API KEY"
+
+# Create a new instance of the ExaSearchRetriever
+exa = ExaSearchRetriever(exa_api_key=exa_api_key)
+
+# Search for a query and save the results
+results  = exa.invoke("What is the capital of France?")
+
+# Print the results
+print(results)
+```
+
+### 高级功能
+
+您可以使用文本限制、摘要和实时爬取等高级功能：
+
+```python
+from langchain_exa import ExaSearchRetriever, TextContentsOptions
+
+# Create a new instance with advanced options
+exa = ExaSearchRetriever(
+    exa_api_key="YOUR API KEY",
+    k=20,  # Number of results (1-100)
+    type="auto",  # Can be "neural", "keyword", or "auto"
+    livecrawl="always",  # Can be "always", "fallback", or "never"
+    summary=True,  # Get an AI-generated summary of each result
+    text_contents_options={"max_characters": 3000}  # Limit text length
+)
+
+# Search for a query with custom summary prompt
+exa_with_custom_summary = ExaSearchRetriever(
+    exa_api_key="YOUR API KEY",
+    summary={"query": "generate one line summary in simple words."}  # Custom summary prompt
+)
+```
+
+## Exa 搜索结果
+
+您可以按以下方式运行 ExaSearchResults 模块
+
+```python
+from langchain_exa import ExaSearchResults
+
+# Initialize the ExaSearchResults tool
+search_tool = ExaSearchResults(exa_api_key="YOUR API KEY")
+
+# Perform a search query
+search_results = search_tool._run(
+    query="When was the last time the New York Knicks won the NBA Championship?",
+    num_results=5,
+    text_contents_options=True,
+    highlights=True
+)
+
+print("Search Results:", search_results)
+```
+
+## Exa 找相似结果
+
+您可以按以下方式运行 ExaFindSimilarResults 模块
+
+```python
+from langchain_exa import ExaFindSimilarResults
+
+# Initialize the ExaFindSimilarResults tool
+find_similar_tool = ExaFindSimilarResults(exa_api_key="YOUR API KEY")
+
+# Find similar results based on a URL
+similar_results = find_similar_tool._run(
+    url="http://espn.com",
+    num_results=5,
+    text_contents_options=True,
+    highlights=True
+)
+
+print("Similar Results:", similar_results)
+```
+
+## 配置选项
+
+所有 Exa 工具都支持以下常见参数：
+
+- `num_results` (1-100): 返回的搜索结果数量
+- `type`: 搜索类型 - "神经"、"关键词" 或 "自动"
+- `livecrawl`: 实时爬取模式 - "始终"、"降级" 或 "从不"
+- `summary`: 获取 AI 生成的摘要（True/False 或自定义提示词字典）
+- `text_contents_options`: 限制文本长度的字典（例如 `{"max_characters": 2000}`）
+- `highlights`: 包含高亮文本片段（True/False）
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/exa_search.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/exa_search.mdx) · 译文由 AI 生成，以英文原文为准。

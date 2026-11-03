@@ -1,0 +1,204 @@
+---
+title: "ChatCrusoe 集成"
+description: "使用 LangChain Python 集成 ChatCrusoe 对话模型。"
+integration:
+  name: ChatCrusoe
+  pypi: langchain-crusoe
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: false
+---
+
+本页面将帮助您入门Crusoe AI [对话模型](/langchain/oss/langchain/models)。如需了解所有ChatCrusoe功能及配置的详细文档，请访问[Crusoe托管推理文档](https://docs.crusoecloud.com/managed-inference/overview)。
+
+[Crusoe AI](https://www.crusoe.ai/)通过Crusoe智能工厂为[领先开源模型](https://docs.crusoecloud.com/managed-inference/overview)提供高性能托管推理服务，依托专有的MemoryAlloy™技术实现超低延迟与高吞吐量。
+
+## 概览
+
+### 集成细节
+
+| 类别 | 包名 | 可序列化 | JS支持 | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| [ChatCrusoe](https://docs.crusoecloud.com/managed-inference/overview) | [langchain-crusoe](https://pypi.org/project/langchain-crusoe/) | beta | ❌ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-crusoe?style=flat-square&label=%20&color=blue) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-crusoe?style=flat-square&label=%20&color=orange) |
+
+### 模型特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token级流式](/langchain/oss/langchain/streaming#llm-tokens) | 原生异步 | [Token使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+## 安装
+
+要访问Crusoe模型，您需要创建Crusoe云账户、获取推理API密钥并安装`langchain-crusoe`集成包。
+
+### 凭据
+前往[Crusoe云控制台](https://console.crusoecloud.com/)注册。然后导航至**安全**标签页并选择**推理API密钥**生成密钥。完成此操作后，设置CRUSOE_API_KEY环境变量：
+
+```python
+import getpass
+import os
+
+if "CRUSOE_API_KEY" not in os.environ:
+    os.environ["CRUSOE_API_KEY"] = getpass.getpass("Enter your Crusoe API key: ")
+```
+
+为启用模型调用自动追踪，设置您的[LangSmith](https://docs.langchain.com/langsmith/observability) API密钥：
+
+```python
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+LangChain Crusoe集成包包含在`langchain-crusoe`中：
+
+<CodeGroup>
+    ```bash pip
+    pip install -qU langchain-crusoe
+    ```
+    ```bash uv
+    uv add langchain-crusoe
+    ```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化模型对象并生成对话补全：
+
+```python
+from langchain_crusoe import ChatCrusoe
+
+llm = ChatCrusoe(
+    model="meta-llama/Llama-3.3-70B-Instruct",
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    # api_key="...",  # if not set via CRUSOE_API_KEY env var
+    # other params...
+)
+```
+
+### 可用模型
+
+Crusoe通过智能工厂提供领先开源模型。查看[完整模型列表](https://docs.crusoecloud.com/managed-inference/overview)以获取最新可用性信息。
+
+| 模型 | 提供方 | 上下文长度 |
+| :--- | :--- | :---: |
+| `meta-llama/Llama-3.3-70B-Instruct` | Meta | 128k |
+| `openai/gpt-oss-120b` | OpenAI | 128k |
+| `deepseek-ai/DeepSeek-V3-0324` | DeepSeek | 160k |
+| `deepseek-ai/DeepSeek-R1-0528` | DeepSeek | 160k |
+| `deepseek-ai/DeepSeek-V3.1` | DeepSeek | 160k |
+| `Qwen/Qwen3-235B-A22B` | Qwen | 131k |
+| `google/gemma-3-12b-it` | Google | 128k |
+| `moonshotai/Kimi-K2-Thinking` | Moonshot AI | 131k |
+
+## 调用
+
+```python
+messages = [
+    (
+        "system",
+        "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ),
+    ("human", "I love programming."),
+]
+ai_msg = llm.invoke(messages)
+ai_msg
+```
+
+```text
+AIMessage(content="J'adore la programmation.", response_metadata={'token_usage': {'completion_tokens': 9, 'prompt_tokens': 35, 'total_tokens': 44}, 'model_name': 'meta-llama/Llama-3.3-70B-Instruct', 'system_fingerprint': None, 'finish_reason': 'stop', 'logprobs': None}, id='run-...', usage_metadata={'input_tokens': 35, 'output_tokens': 9, 'total_tokens': 44})
+```
+
+```python
+print(ai_msg.content)
+```
+
+```text
+J'adore la programmation.
+```
+
+## 链接
+
+我们可以[链接](/langchain/oss/langchain/overview)模型与提示词模板如下：
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a helpful assistant that translates {input_language} to {output_language}.",
+        ),
+        ("human", "{input}"),
+    ]
+)
+
+chain = prompt | llm
+chain.invoke(
+    {
+        "input_language": "English",
+        "output_language": "German",
+        "input": "I love programming.",
+    }
+)
+```
+
+```text
+AIMessage(content='Ich liebe Programmieren.', response_metadata={...}, id='run-...')
+```
+
+## 流式输出
+
+```python
+stream = llm.stream_events(messages, version="v3")
+for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+## 工具调用
+
+```python
+from pydantic import BaseModel, Field
+
+class GetWeather(BaseModel):
+    """Get the current weather in a given location."""
+    location: str = Field(description="City and state, e.g. San Francisco, CA")
+
+llm_with_tools = llm.bind_tools([GetWeather])
+ai_msg = llm_with_tools.invoke("What's the weather like in San Francisco?")
+print(ai_msg.tool_calls)
+```
+
+## 结构化输出
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class Joke(BaseModel):
+    """Joke to tell user."""
+    setup: str = Field(description="The setup of the joke")
+    punchline: str = Field(description="The punchline to the joke")
+    rating: Optional[int] = Field(description="How funny the joke is, from 1 to 10")
+
+structured_llm = llm.with_structured_output(Joke)
+structured_llm.invoke("Tell me a joke about cats")
+```
+
+```text
+Joke(setup='Why was the cat sitting on the computer?', punchline='To keep an eye on the mouse!', rating=7)
+```
+
+## API参考
+
+如需了解所有ChatCrusoe功能及配置的详细文档，请访问[Crusoe托管推理文档](https://docs.crusoecloud.com/managed-inference/overview)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/crusoe.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/crusoe.mdx) · 译文由 AI 生成，以英文原文为准。

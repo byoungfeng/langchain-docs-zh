@@ -1,0 +1,258 @@
+---
+title: "并行提取集成"
+description: "使用 LangChain Python 集成 ParallelExtractTool 工具。"
+integration:
+  name: Parallel extract
+  pypi: langchain-parallel
+---
+
+>[Parallel](https://platform.parallel.ai/) 是专为 LLM 和 AI 应用设计的实时网页搜索与内容提取平台。
+
+`ParallelExtractTool` 调用 Parallel 的 [Extract API](https://docs.parallel.ai/extract/extract-quickstart)，可获取网页中清洁的、Markdown 格式化的内容，并支持通过 `search_objective` 控制的可选聚焦摘要。搭配 [ParallelSearchTool](/langchain/oss/python/integrations/tools/parallel_search) 构建搜索→提取流水线。
+
+## 概览
+
+### 集成细节
+
+| 类别 | 包名 | 可序列化 | JS 支持 | 最新版本 |
+| :--- | :--- | :---: | :---: | :---: |
+| @[`ParallelExtractTool`] | @[`langchain-parallel`] | ❌ | ❌ | <a href="https://pypi.org/project/langchain-parallel/" target="_blank"><img src="https://img.shields.io/pypi/v/langchain-parallel?style=flat-square&label=%20&color=orange" alt="PyPI - Latest version" noZoom height="100" class="rounded" /></a> |
+
+## 安装
+
+集成模块位于 `langchain-parallel` 包中。
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-parallel
+    ```
+    ```bash uv
+    uv add langchain-parallel
+    ```
+</CodeGroup>
+
+### 凭据
+前往 [Parallel](https://platform.parallel.ai) 注册并生成 API 密钥。在环境中设置 `PARALLEL_API_KEY`：
+
+```python
+import getpass
+import os
+
+if not os.environ.get("PARALLEL_API_KEY"):
+    os.environ["PARALLEL_API_KEY"] = getpass.getpass("Parallel API key:\n")
+```
+
+## 实例化
+
+```python
+from langchain_parallel import ParallelExtractTool
+
+tool = ParallelExtractTool()
+
+# Or pass an explicit key, override the base URL, or cap per-URL `full_content` size:
+# tool = ParallelExtractTool(
+#     api_key="your-api-key",
+#     base_url="https://api.parallel.ai",
+#     max_chars_per_extract=5000,
+# )
+```
+
+## 调用
+
+### 通过参数直接调用
+
+```python
+result = tool.invoke(
+    {"urls": ["https://en.wikipedia.org/wiki/Artificial_intelligence"]}
+)
+
+print(result[0]["title"])
+print(result[0]["url"])
+print(result[0]["content"][:200], "...")
+```
+
+单次调用处理多个 URL：
+
+```python
+result = tool.invoke(
+    {
+        "urls": [
+            "https://en.wikipedia.org/wiki/Machine_learning",
+            "https://en.wikipedia.org/wiki/Deep_learning",
+            "https://en.wikipedia.org/wiki/Natural_language_processing",
+        ]
+    }
+)
+
+for item in result:
+    print(item["title"], "—", item["url"])
+```
+
+### 通过 ToolCall 调用
+
+使用模型生成的 `ToolCall` 调用返回 `ToolMessage`：
+
+```python
+model_generated_tool_call = {
+    "args": {
+        "urls": [
+            "https://en.wikipedia.org/wiki/Climate_change",
+            "https://en.wikipedia.org/wiki/Renewable_energy",
+        ]
+    },
+    "id": "call_123",
+    "name": tool.name,  # "parallel_extract"
+    "type": "tool_call",
+}
+
+result = tool.invoke(model_generated_tool_call)
+```
+
+### 异步使用
+
+```python
+async def extract_async():
+    return await tool.ainvoke(
+        {
+            "urls": [
+                "https://en.wikipedia.org/wiki/Python_(programming_language)",
+                "https://en.wikipedia.org/wiki/JavaScript",
+            ]
+        }
+    )
+
+result = await extract_async()
+```
+
+### 聚焦摘要
+
+驱动摘要选择使用 `search_objective`（或 `search_queries`）。设置 `full_content=False` 跳过完整的Markdown正文，仅返回匹配的摘要：
+
+```python
+result = tool.invoke(
+    {
+        "urls": ["https://en.wikipedia.org/wiki/Artificial_intelligence"],
+        "search_objective": "What are the main applications and ethical concerns of AI?",
+        "excerpts": {"max_chars_per_result": 2000},
+        "full_content": False,
+    }
+)
+```
+
+### 获取策略与完整内容尺寸控制
+
+独立控制缓存、超时和每URL的 `full_content` 限制：
+
+```python
+result = tool.invoke(
+    {
+        "urls": ["https://en.wikipedia.org/wiki/Quantum_computing"],
+        "fetch_policy": {
+            "max_age_seconds": 86400,
+            "timeout_seconds": 60,
+            "disable_cache_fallback": False,
+        },
+        "full_content": {"max_chars_per_result": 5000},
+    }
+)
+```
+
+<Note>
+    **`full_content` 优先级。** 在调用中显式传递 `FullContentSettings`（或字典）始终优先于工具级别的 `max_chars_per_extract`。后者仅在传递 `full_content=True` 作为普通布尔值时生效。
+</Note>
+
+### URL级错误处理
+
+失败URL返回为 `error_type` 设置的项，因此部分成功是默认行为：
+
+```python
+result = tool.invoke(
+    {
+        "urls": [
+            "https://en.wikipedia.org/wiki/Artificial_intelligence",
+            "https://this-domain-does-not-exist-12345.com/",
+        ]
+    }
+)
+
+for item in result:
+    if "error_type" in item:
+        print("failed:", item["url"], "—", item["content"])
+    else:
+        print("ok:", item["url"], f"({len(item['content'])} chars)")
+```
+
+### 参数
+
+#### 必需参数
+- `urls`: 要提取的URL列表。
+
+#### 可选参数
+- `search_objective`: 驱动摘要选择的自然语言描述。
+- `search_queries`: 与 `search_objective` 共同使用（或替换）的关键词字符串列表。
+- `excerpts`: 每结果摘要设置。传递 `ExcerptSettings(max_chars_per_result=…)`（或字典）控制每结果摘要尺寸；省略使用API默认值。
+- `full_content`: `True` 以工具级别 `max_chars_per_extract` 尺寸返回完整Markdown内容， `False` 跳过，或 `FullContentSettings(max_chars_per_result=…)` 进行精细控制。
+- `fetch_policy`: 缓存控制，例如 `{"max_age_seconds": 86400, "timeout_seconds": 60}`。
+- `max_chars_total`: 跨所有URL的输出长度总和限制。
+- `client_model` / `session_id`: 转发至Parallel用于下游归属。
+
+## 链接
+
+将工具绑定到任意工具调用对话模型，并通过 [`create_agent`](/langchain/oss/langchain/agents) 驱动智能体：
+
+```python
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+
+llm = init_chat_model(model="claude-opus-4-8")
+agent = create_agent(model=llm, tools=[tool])
+
+agent.invoke({"messages": [("human", "Summarize https://en.wikipedia.org/wiki/Quantum_computing")]})
+```
+
+### 搜索→提取
+
+将 `ParallelSearchTool` 和 `ParallelExtractTool` 交给同一智能体。模型使用搜索找到URL并提取以深入其选择的条目。
+
+```python
+from langchain_parallel import ParallelSearchTool
+
+search = ParallelSearchTool()
+extract = ParallelExtractTool()
+agent = create_agent(model=llm, tools=[search, extract])
+
+agent.invoke({
+    "messages": [
+        ("human", "Find a recent peer-reviewed paper on net-energy-gain fusion and summarize it."),
+    ]
+})
+```
+
+## 响应格式
+
+```python
+[
+    {
+        "url": "https://example.com/article",
+        "title": "Article Title",
+        "content": "# Article Title\n\nMain content formatted as markdown...",
+        "publish_date": "2026-01-15",
+        "excerpts": ["...", "..."],  # if excerpts/search_objective requested
+    },
+    # Failed extractions:
+    {
+        "url": "https://failed-site.com",
+        "title": None,
+        "content": "Error: 404 Not Found",
+        "error_type": "http_error",
+    },
+]
+```
+
+## API参考
+
+`ParallelExtractTool` API参考或 [Parallel Extract参考](https://docs.parallel.ai/api-reference/extract/extract) 提供详细文档。
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/parallel_extract.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/parallel_extract.mdx) · 译文由 AI 生成，以英文原文为准。

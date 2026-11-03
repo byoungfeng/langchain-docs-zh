@@ -1,0 +1,97 @@
+---
+title: "与 Claude Agent SDK 的比较"
+sidebarTitle: "与 Claude Agent SDK 的比较"
+description: "本页面解释了 Deep Agents 与 Claude Agent SDK 的对比。两者都是构建自定义智能体的工具，但在执行环境、部署和供应商耦合方面做出了不同的权衡。"
+---
+
+本页面解释了 [Deep Agents](/langchain/oss/deepagents/overview) 与 [Claude Agent SDK](https://platform.anthropic.com/docs/en/agent-sdk/overview) 的对比。两者都是构建自定义智能体的工具，但在执行环境、部署和供应商耦合方面做出了不同的权衡。
+
+<Info>
+    Deep Agents 由 [OpenSWE](https://github.com/langchain-ai/open-swe) 和 [LangSmith Fleet](https://docs.langchain.com/langsmith/fleet/index) 用于生产环境。
+</Info>
+
+## 简要概览
+
+| | **Deep Agents** | **Claude Agent SDK** |
+| --- | --- | --- |
+| **智能体运行位置** | 在沙盒内，或在沙盒外远程执行命令 | 在沙盒内 |
+| **执行后端** | 在 [SDK](/langchain/oss/deepagents/backends) 中可插拔：本地、虚拟文件系统、远程沙盒或自定义。[Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-sandboxes) 使用项目中声明的单个管理沙盒。 | 在其运行的沙盒的本地文件系统 |
+| **模型提供方** | 任何（Anthropic、OpenAI、Google、100多家其他） | Claude（Anthropic、Bedrock、Vertex、Azure） |
+| **按提供方/模型微调** | [Harness profiles](/langchain/oss/deepagents/profiles)（Beta）：系统提示词、工具、中间件和子智能体调整的声明式捆绑包，按提供方或特定模型注册 | 在每次模型调用位置以代码方式配置 |
+| **部署** | 默认：[Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview)（`mda deploy` 在 LangSmith 上）。或通过 [`langgraph build`](https://docs.langchain.com/langsmith/cli#build) 自托管 [standalone image](https://docs.langchain.com/langsmith/deploy-standalone-server)。 | [Self-host](https://code.claude.com/docs/en/agent-sdk/hosting)。你需要构建服务器、认证和流式输出层。[Claude managed agents](https://platform.claude.com/docs/en/managed-agents/overview) 是一个独立产品 |
+| **多租户** | [内置](/langchain/oss/deepagents/going-to-production#多租户)：作用域线程、按用户沙盒、RBAC。Managed Deep Agents 添加 [identity](https://docs.langchain.com/langsmith/managed-deep-agents-identity) 和按用户连接。 | 自己构建 |
+| **许可证** | MIT | MIT（Claude Code 本身是专有的） |
+
+## 主要差异
+
+### 智能体和执行环境
+
+连接智能体到沙盒有 [两种模式](https://www.langchain.com/blog/the-two-patterns-by-which-agents-connect-sandboxes)：智能体在沙盒 *内部* 运行，或智能体在沙盒外部运行并 **将沙盒用作工具**。
+
+Claude Agent SDK 仅支持第一种。你的智能体在沙盒内运行，并针对沙盒的本地文件系统执行工具。Anthropic 的托管模型 [Claude managed agents](https://platform.claude.com/docs/en/managed-agents/overview) 使用解耦模型，这反映了生产智能体架构的发展方向。
+
+Deep Agents 支持这两种模式。使用 [Deep Agents SDK](/langchain/oss/deepagents/overview#使用-sdk-自托管)，你可以选择一个 [backend](/langchain/oss/deepagents/backends#快速入门) 将它们连接起来：
+
+- 在沙盒内运行智能体（与 Claude Agent SDK 相同）。
+- 在长生命周期的容器中运行智能体并 [将远程沙盒用作工具](https://www.langchain.com/blog/the-two-patterns-by-which-agents-connect-sandboxes)，通过网络执行命令。
+- 交换虚拟文件系统进行测试，或为你的基础设施使用自定义后端。
+
+使用 [Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-sandboxes)，LangSmith 拥有沙盒生命周期。你在项目中声明沙盒；管理运行时创建它、快照它，并在空闲时停止它。
+
+### 多租户
+
+当你将应用程序投入生产时，通常需要向许多最终用户暴露它，并且必须为每个用户隔离环境。
+
+在 Claude Agent SDK 中，SDK 将智能体与其沙盒绑定。为了给每个用户提供隔离的执行环境，你必须构建一个 API 包装器，该包装器为每个用户启动一个沙盒，跟踪哪个沙盒属于谁，并在之后销毁它。
+
+Deep Agents 直接处理这个问题：在 harness 中配置沙盒 [按用户或按助手](/langchain/oss/deepagents/going-to-production#生命周期)，包含作用域线程、运行历史和 [RBAC](/langchain/oss/deepagents/going-to-production#基于角色的访问控制)。如果你使用 [LangSmith Sandbox](https://docs.langchain.com/langsmith/sandbox-auth-proxy)，你还可以获得一个认证代理，以便最终用户可以从沙盒中调用第三方 API，而无需你为每个用户配置凭证。
+
+Managed Deep Agents 在此基础上构建，为调用者提供管理的 [identity](https://docs.langchain.com/langsmith/managed-deep-agents-identity) 和运行 OAuth 的 [connections](https://docs.langchain.com/langsmith/managed-deep-agents-connections)，因此最终用户可以授权自己的账户，而不是你为每个用户存储凭证。
+
+### 生产智能体服务器
+
+要将 [self-hosted Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/hosting) 应用程序暴露给最终用户，你需要编写自己的 HTTP/WebSocket 或 SSE 服务器，该服务器调用智能体、流式传输 Token 并管理对话线程。该服务器由你构建、运营和 securing。
+
+Deep Agents 部署包括一个 [agent server](https://docs.langchain.com/langsmith/agent-server)：流式输出端点、线程管理、运行历史、webhooks 和 [authentication](https://docs.langchain.com/langsmith/auth)。
+
+使用 Managed Deep Agents，每个部署都在 Agent Server 上运行，而无需你运营它。你获得 Agent Server API、线程、运行、流式输出和 [MCP endpoint](https://docs.langchain.com/langsmith/managed-deep-agents-mcp-endpoint)。参见 [Managed Deep Agents overview](https://docs.langchain.com/langsmith/managed-deep-agents-overview)。
+
+### 管理云或自托管
+
+Claude Agent SDK 部署是 [self-hosted](https://code.claude.com/docs/en/agent-sdk/hosting)。SDK 和 [Claude managed agents](https://platform.claude.com/docs/en/managed-agents/overview) 是独立产品。针对 SDK 编写的代码不会直接部署到托管服务。
+
+Deep Agents 以两种模式运行，你的工具、中间件和子智能体在这两种模式之间可以保持不变：
+
+- **管理：** 使用 [Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview) 在 LangSmith 中创建、运行和运营深度智能体。管理运行时拥有后端、存储和 checkpointer。指令、技能和记忆存储在项目文件和 [Context Hub](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub) 中。参见 [Relationship to Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview#relationship-to-deep-agents)。
+- **自托管：** 自己运行 [Deep Agents SDK](/langchain/oss/deepagents/overview#使用-sdk-自托管)，或使用 [`langgraph build`](https://docs.langchain.com/langsmith/cli#build) 生成一个 [standalone Docker image](https://docs.langchain.com/langsmith/deploy-standalone-server)，你可以将其部署到任何地方。
+
+如果你已经使用 SDK 构建，并且想要管理运行时，请参见 [Move from Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-migrate)。
+
+<Tip>
+    对于跨任何模型提供方的无代码管理智能体平台，请使用 [LangSmith Fleet](https://docs.langchain.com/langsmith/fleet/index)。[Claude managed agents](https://platform.claude.com/docs/en/managed-agents/overview) 仅限于 Anthropic 生态系统。
+</Tip>
+
+### 大语言模型
+
+Claude Agent SDK 将模型、后端和部署捆绑在一起，并优化三者之间的支持。
+
+使用 Deep Agents，你可以独立选择模型提供方、执行后端和部署目标。如果你想要更受管理的方案，Managed Deep Agents 保留模型灵活性，而 LangSmith 拥有运行时。通过选择这个 harness，你保留了模型和基础设施选择上的灵活性。
+
+### 生态系统
+
+Claude 智能体 SDK 专为 Claude 和 Anthropic 的产品界面而设计。深度智能体与更广泛的 LangChain 生态系统集成，包括用于可观察性、评估和部署的 LangSmith，并且可在任何模型提供者上运行。托管深度智能体是同一 harness 的 LangSmith 托管路径。
+
+## 摘要
+
+- 如果您需要模型和基础设施的灵活性、内置的多租户部署以及使用相同智能体代码运行托管或自托管的选项，请选择**深度智能体**。
+- 如果您已经投资于 Anthropic 生态系统，并希望自行托管并构建 API、认证和多租户层，请选择**Claude 智能体 SDK**。
+
+<Note>
+    **发现错误？**
+
+    我们于 2026 年 4 月 16 日起草了此比较。如果产品已更改，请 [提交问题](https://github.com/langchain-ai/docs/issues)。
+</Note>
+
+---
+
+> 官方原文：[src/oss/deepagents/comparison.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/comparison.mdx) · 译文由 AI 生成，以英文原文为准。

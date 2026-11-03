@@ -1,0 +1,804 @@
+---
+title: "LangChain v1 迁移指南"
+sidebarTitle: LangChain v1
+description: "description=\"将代码库迁移至 LangChain v1。\" icon=\"arrow-right\" actions={[\"copy\"]} 将此代码库迁移至 LangChain v1（需要 langchain 和 @langchain/core 在 v1 版本，以及 Node.js 22+）。"
+---
+
+<Prompt
+    description="将代码库迁移至 LangChain v1。"
+    icon="arrow-right"
+    actions={["copy"]}
+>
+将此代码库迁移至 LangChain v1（需要 `langchain` 和 `@langchain/core` 在 v1 版本，以及 Node.js 22+）。
+
+主要变更：
+
+1. **`createReactAgent` → `createAgent`**: 将 `import { createReactAgent } from "@langchain/langgraph/prebuilts"` 替换为 `import { createAgent } from "langchain"`。将 `prompt` 重命名为 `systemPrompt`。
+2. **Hooks 变为 middleware**: 使用 `beforeModel`、`afterModel` 和 `wrapToolCall` 将 `preModelHook` / `postModelHook` 定制替换为 middleware。对于人类参与的工具审批，使用 `humanInTheLoopMiddleware({ interruptOn: {...} })`（来自 `langchain`）。
+3. **结构化输出**: 保留 `responseFormat`，但使用 `toolStrategy` / `providerStrategy`。提示词输出已移除。
+4. **流式节点名称**: 当通过节点名称过滤或匹配流式事件时，将 `"agent"` 重命名为 `"model"`。
+5. **运行时上下文**: 通过 `context` 属性传递静态上下文，而不仅仅是 `config.configurable`。
+6. **包命名空间**: 遗留链、索引和社区重导出已移动至 `@langchain/classic`。安装 `@langchain/classic` 并更新这些导入。
+7. **标准内容块**: 优先使用 `message.contentBlocks` 以提供提供者无关的内容。现有的 `message.content` 仍然有效。
+
+在代码库中搜索 `createReactAgent`、`@langchain/langgraph/prebuilts`、`preModelHook`、`postModelHook` 和应移动至 `@langchain/classic` 的遗留导入，并应用必要的变更。标记任何无法自动迁移的内容。
+</Prompt>
+
+此迁移指南概述了 LangChain v1 中的主要变更。要了解 v1 的新功能，请参阅 [介绍性文章](/langchain/oss/python/releases/langchain-v1)。
+
+要升级，
+
+<CodeGroup>
+```bash npm
+npm install langchain@latest @langchain/core@latest
+```
+```bash pnpm
+pnpm install langchain@latest @langchain/core@latest
+```
+```bash yarn
+yarn add langchain@latest @langchain/core@latest
+```
+```bash bun
+bun add langchain@latest @langchain/core@latest
+```
+</CodeGroup>
+
+## `createAgent`
+
+在 v1 中，react 智能体预构建现已位于 langchain 包中。下表概述了功能变更：
+
+| 部分 | 变更内容 |
+|------|----------|
+| [导入路径](#导入路径) | 包已从 `@langchain/langgraph/prebuilts` 移至 `langchain` |
+| [提示词](#提示词) | 参数重命名为 `systemPrompt`，动态提示词使用 middleware |
+| [预模型钩子](#预模型钩子) | 被 `beforeModel` 方法的 middleware 替换 |
+| [模型后钩子](#模型后钩子) | 被 `afterModel` 方法的 middleware 替换 |
+| [自定义状态](#自定义状态) | 在 middleware 中定义，仅支持 zod 对象 |
+| [模型](#模型) | 通过 middleware 动态选择，不支持预绑定模型 |
+| [工具](#工具) | 工具错误处理已移至 `wrapToolCall` 的 middleware |
+| [结构化输出](#结构化输出) | 提示词输出已移除，使用 `toolStrategy`/`providerStrategy` |
+| [流式节点名称](#流式节点名称重命名) | 节点名称已从 `"agent"` 更改为 `"model"` |
+| [运行时上下文](#运行时上下文) | 使用 `context` 属性，而非 `config.configurable` |
+| [命名空间](#简化包) | 精简以专注于智能体构建块，遗留代码已移至 `@langchain/classic` |
+
+### 导入路径
+
+react 智能体预构建的导入路径已从 `@langchain/langgraph/prebuilts` 更改为 `langchain`。函数名称已从 `createReactAgent` 更改为 `createAgent`：
+
+```typescript
+import { createReactAgent } from "@langchain/langgraph/prebuilts"; // [!code --]
+import { createAgent } from "langchain"; // [!code ++]
+```
+
+### 提示词
+
+#### 静态提示词重命名
+
+`prompt` 参数已被重命名为 `systemPrompt`：
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent } from "langchain";
+
+agent = createAgent({
+  model,
+  tools,
+  systemPrompt: "You are a helpful assistant.", // [!code highlight]
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+const agent = createReactAgent({
+  model,
+  tools,
+  prompt: "You are a helpful assistant.", // [!code highlight]
+});
+```
+</CodeGroup>
+
+#### `SystemMessage`
+
+如果在系统提示词中使用 `SystemMessage` 对象，现在直接使用字符串内容：
+
+<CodeGroup>
+```typescript v1 (new)
+import { SystemMessage, createAgent } from "langchain";
+
+const agent = createAgent({
+  model,
+  tools,
+  systemPrompt: "You are a helpful assistant.", // [!code highlight]
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+const agent = createReactAgent({
+  model,
+  tools,
+  prompt: new SystemMessage(content: "You are a helpful assistant."), // [!code highlight]
+});
+```
+</CodeGroup>
+
+#### 动态提示词
+
+动态提示词是核心上下文工程模式——它们根据当前对话状态调整向模型传递的内容。为此，请使用 `dynamicSystemPromptMiddleware`：
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, dynamicSystemPromptMiddleware } from "langchain";
+import * as z from "zod";
+
+const contextSchema = z.object({
+  userRole: z.enum(["expert", "beginner"]).default("beginner"),
+});
+
+const userRolePrompt = dynamicSystemPromptMiddleware<z.infer<typeof contextSchema>>( // [!code highlight]
+    (_state, runtime) => {
+        const userRole = runtime.context.userRole;
+        const basePrompt = "You are a helpful assistant.";
+
+        if (userRole === "expert") {
+            return `${basePrompt} Provide detailed technical responses.`;
+        } else if (userRole === "beginner") {
+            return `${basePrompt} Explain concepts simply and avoid jargon.`;
+        }
+        return basePrompt; // [!code highlight]
+    }
+);
+
+const agent = createAgent({
+  model,
+  tools,
+  middleware: [userRolePrompt],
+  contextSchema,
+});
+
+await agent.invoke(
+  {
+    messages: [new HumanMessage("Explain async programming")],
+  },
+  {
+    context: {
+      userRole: "expert",
+    },
+  }
+);
+```
+
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+const contextSchema = z.object({
+  userRole: z.enum(["expert", "beginner"]),
+});
+
+const agent = createReactAgent({
+  model,
+  tools,
+  prompt: (state) => {
+    const userRole = state.context.userRole;
+    const basePrompt = "You are a helpful assistant.";
+
+    if (userRole === "expert") {
+      return `${basePrompt} Provide detailed technical responses.`;
+    } else if (userRole === "beginner") {
+      return `${basePrompt} Explain concepts simply and avoid jargon.`;
+    }
+    return basePrompt;
+  },
+  contextSchema,
+});
+
+// Use with context via config.configurable
+await agent.invoke(
+  {
+    messages: [new HumanMessage("Explain async programming")],
+  },
+  {
+    config: {
+      configurable: { userRole: "expert" },
+    },
+  }
+);
+```
+</CodeGroup>
+
+### 预模型钩子
+
+预模型钩子现在作为具有 `beforeModel` 方法的 middleware 实现。这种模式更具可扩展性——您可以定义多个 middleware 在模型调用之前运行，并在多个智能体中重用它们。
+
+常见用例包括：
+- 摘要对话历史
+- 剪辑消息
+- 输入约束，如 PII 匿名化
+
+v1 包含内置摘要 middleware：
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, summarizationMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools,
+  middleware: [
+    summarizationMiddleware({
+      model: "claude-sonnet-4-6",
+      trigger: { tokens: 1000 },
+    }),
+  ],
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+function customSummarization(state) {
+  // Custom logic for message summarization
+}
+
+const agent = createReactAgent({
+  model: "claude-sonnet-4-6",
+  tools,
+  preModelHook: customSummarization,
+});
+```
+</CodeGroup>
+
+### 模型后钩子
+
+模型后钩子现在作为具有 `afterModel` 方法的 middleware 实现。这允许您在模型响应后组合多个处理程序。
+
+常见用例包括：
+- 人类参与的审批
+- 输出约束
+
+v1 包含内置人类参与的 middleware：
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, humanInTheLoopMiddleware } from "langchain";
+
+const agent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools: [readEmail, sendEmail],
+  middleware: [
+    humanInTheLoopMiddleware({
+      interruptOn: {
+        sendEmail: { allowedDecisions: ["approve", "edit", "reject"] },
+      },
+    }),
+  ],
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+function customHumanInTheLoopHook(state) {
+  // Custom approval logic
+}
+
+const agent = createReactAgent({
+  model: "claude-sonnet-4-6",
+  tools: [readEmail, sendEmail],
+  postModelHook: customHumanInTheLoopHook,
+});
+```
+</CodeGroup>
+
+### 自定义状态
+
+自定义状态现在使用 `stateSchema` 属性在 middleware 中定义。使用 Zod 声明将通过智能体运行传递的附加状态字段。
+
+<CodeGroup>
+```typescript v1 (new)
+import * as z from "zod";
+import { createAgent, createMiddleware, tool } from "langchain";
+
+const UserState = z.object({
+  userName: z.string(),
+});
+
+const userState = createMiddleware({
+  name: "UserState",
+  stateSchema: UserState,
+  beforeModel: (state) => {
+    // Access custom state properties
+    const name = state.userName;
+    // Optionally modify messages/system prompt based on state
+    return;
+  },
+});
+
+const greet = tool(
+  async () => {
+    return "Hello!";
+  },
+  {
+    name: "greet",
+    description: "Greet the user",
+    schema: z.object({}),
+  }
+);
+
+const agent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools: [greet],
+  middleware: [userState],
+});
+
+await agent.invoke({
+  messages: [{ role: "user", content: "Hi" }],
+  userName: "Ada",
+});
+```
+```typescript v0 (old)
+import { getCurrentTaskInput } from "@langchain/langgraph";
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+import * as z from "zod";
+
+const UserState = z.object({
+  userName: z.string(),
+});
+
+const greet = tool(
+  async () => {
+    const state = await getCurrentTaskInput();
+    const userName = state.userName;
+    return `Hello ${userName}!`;
+  },
+);
+
+// Custom state was provided via agent-level state schema or accessed ad hoc in hooks
+const agent = createReactAgent({
+  model: "claude-sonnet-4-6",
+  tools: [greet],
+  stateSchema: UserState,
+});
+```
+</CodeGroup>
+
+### 模型
+
+动态模型选择现在通过 middleware 发生。使用 `wrapModelCall` 根据状态或运行时上下文交换模型（和工具）。在 `createReactAgent` 中，这是通过传递给 `model` 参数的函数完成的。
+
+此功能已迁移到 v1 的 middleware 接口。
+
+#### 动态模型选择
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, createMiddleware } from "langchain";
+
+const dynamicModel = createMiddleware({
+  name: "DynamicModel",
+  wrapModelCall: (request, handler) => {
+    const messageCount = request.state.messages.length;
+    const model = messageCount > 10 ? "openai:gpt-5.5" : "openai:gpt-5-nano";
+    return handler({ ...request, model });
+  },
+});
+
+const agent = createAgent({
+  model: "gpt-5-nano",
+  tools,
+  middleware: [dynamicModel],
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+
+function selectModel(state) {
+  return state.messages.length > 10 ? "openai:gpt-5.5" : "openai:gpt-5-nano";
+}
+
+const agent = createReactAgent({
+  model: selectModel,
+  tools,
+});
+```
+</CodeGroup>
+
+#### 预绑定模型
+
+为了更好地支持结构化输出，`createAgent` 应接收一个纯模型（字符串或实例）以及一个单独的 `tools` 列表。在使用结构化输出时，避免传递预绑定工具的模型。
+
+```typescript
+// No longer supported
+// const modelWithTools = new ChatOpenAI({ model: "gpt-5.4-mini" }).bindTools([someTool]);
+// const agent = createAgent({ model: modelWithTools, tools: [] });
+
+// Use instead
+const agent = createAgent({ model: "gpt-5.4-mini", tools: [someTool] });
+```
+
+### 工具
+
+`tools` 参数传递给 `createAgent` 接受：
+
+- 使用 `tool` 创建的函数
+- LangChain 工具实例
+- 表示内置提供者工具的对象
+
+#### 处理工具错误
+
+现在可以通过实现 `wrapToolCall` 方法的 middleware 配置工具错误处理。
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, createMiddleware, ToolMessage } from "langchain";
+
+const handleToolErrors = createMiddleware({
+  name: "HandleToolErrors",
+  wrapToolCall: async (request, handler) => {
+    try {
+      return await handler(request);
+    } catch (error) {
+      // Only handle errors that occur during tool execution due to invalid inputs
+      // that pass schema validation but fail at runtime (e.g., invalid SQL syntax).
+      // Do NOT handle:
+      // - Network failures (use tool retry middleware instead)
+      // - Incorrect tool implementation errors (should bubble up)
+      // - Schema mismatch errors (already auto-handled by the framework)
+      //
+      // Return a custom error message to the model
+      return new ToolMessage({
+        content: `Tool error: Please check your input and try again. (${error})`,
+        tool_call_id: request.toolCall.id!,
+      });
+    }
+  },
+});
+
+const agent = createAgent({
+  model: "claude-sonnet-4-6",
+  tools: [checkWeather, searchWeb],
+  middleware: [handleToolErrors],
+});
+```
+```typescript v0 (old)
+import { createReactAgent, ToolNode } from "@langchain/langgraph/prebuilts";
+
+const agent = createReactAgent({
+  model: "claude-sonnet-4-6",
+  tools: new ToolNode(
+    [checkWeather, searchWeb],
+    { handleToolErrors: true } // [!code highlight]
+  ),
+});
+```
+</CodeGroup>
+
+### 结构化输出
+
+#### 节点变更
+
+结构化输出以前是在主智能体之外的单独节点生成的。现在不再如此。结构化输出在主循环中生成（无需额外的 LLM 调用），从而降低成本和延迟。
+
+#### 工具和提供者策略
+
+在 v1 中，有两种策略：
+
+- `toolStrategy` 使用人工工具调用来生成结构化输出
+- `providerStrategy` 使用提供者原生的结构化输出生成
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, toolStrategy } from "langchain";
+import * as z from "zod";
+
+const OutputSchema = z.object({
+  summary: z.string(),
+  sentiment: z.string(),
+});
+
+const agent = createAgent({
+  model: "gpt-5.4-mini",
+  tools,
+  // explicitly using tool strategy
+  responseFormat: toolStrategy(OutputSchema), // [!code highlight]
+});
+```
+```typescript v0 (old)
+import { createReactAgent } from "@langchain/langgraph/prebuilts";
+import * as z from "zod";
+
+const OutputSchema = z.object({
+  summary: z.string(),
+  sentiment: z.string(),
+});
+
+const agent = createReactAgent({
+  model: "gpt-5.4-mini",
+  tools,
+  // Structured output was driven primarily via tool-calling with fewer options
+  responseFormat: OutputSchema,
+});
+```
+</CodeGroup>
+
+#### 提示词输出已移除
+
+`responseFormat` 中的自定义指令提示词输出已移除，改为使用上述策略。
+
+### 流式节点名称重命名
+
+从智能体流式传输事件时，节点名称已从 `"agent"` 更改为 `"model"`，以更好地反映节点的目的。
+
+### 运行时上下文
+
+调用智能体时，通过 `context` 配置参数传递静态、只读配置。这取代了使用 `config.configurable` 的模式。
+
+<CodeGroup>
+```typescript v1 (new)
+import { createAgent, HumanMessage } from "langchain";
+import * as z from "zod";
+
+const agent = createAgent({
+  model: "gpt-5.5",
+  tools,
+  contextSchema: z.object({ userId: z.string(), sessionId: z.string() }),
+});
+
+const result = await agent.invoke(
+  { messages: [new HumanMessage("Hello")] },
+  { context: { userId: "123", sessionId: "abc" } }, // [!code highlight]
+);
+```
+```typescript v0 (old)
+import { createReactAgent, HumanMessage } from "@langchain/langgraph/prebuilts";
+
+const agent = createReactAgent({ model, tools });
+
+// Pass context via config.configurable
+const result = await agent.invoke(
+  { messages: [new HumanMessage("Hello")] },
+  {
+    config: { // [!code highlight]
+      configurable: { userId: "123", sessionId: "abc" }, // [!code highlight]
+    }, // [!code highlight]
+  }
+);
+```
+</CodeGroup>
+
+<Note>
+    旧的 `config.configurable` 模式仍然适用于向后兼容，但建议新应用或迁移至 v1 的应用使用新的 `context` 参数。
+</Note>
+
+---
+
+## 标准内容
+
+在 v1 中，消息获得提供者无关的标准内容块。通过 `message.contentBlocks` 访问它们，以跨提供者获得一致的、类型化的视图。现有的 `message.content` 字段保持不变，用于字符串或提供者原生的结构。
+
+### 变更内容
+
+- 新增 `contentBlocks` 属性用于消息的标准化内容。
+- 新增 `ContentBlock` 下的 TypeScript 类型以实现强类型。
+- 可选地将标准块序列化到 `content`，通过 `LC_OUTPUT_VERSION=v1` 或 `outputVersion: "v1"`。
+
+### 读取标准化内容
+
+<CodeGroup>
+```typescript v1 (new)
+import { initChatModel } from "langchain";
+
+const model = await initChatModel("gpt-5-nano");
+const response = await model.invoke("Explain AI");
+
+for (const block of response.contentBlocks) {
+  if (block.type === "reasoning") {
+    console.log(block.reasoning);
+  } else if (block.type === "text") {
+    console.log(block.text);
+  }
+}
+```
+```typescript v0 (old)
+// Provider-native formats vary; you needed per-provider handling.
+const response = await model.invoke("Explain AI");
+for (const item of response.content as any[]) {
+  if (item.type === "reasoning") {
+    // OpenAI-style reasoning
+  } else if (item.type === "thinking") {
+    // Anthropic-style thinking
+  } else if (item.type === "text") {
+    // Text
+  }
+}
+```
+</CodeGroup>
+
+### 创建多模态消息
+
+<CodeGroup>
+```typescript v1 (new)
+import { HumanMessage } from "langchain";
+
+const message = new HumanMessage({
+  contentBlocks: [
+    { type: "text", text: "Describe this image." },
+    { type: "image", url: "https://example.com/image.jpg" },
+  ],
+});
+const res = await model.invoke([message]);
+```
+```typescript v0 (old)
+import { HumanMessage } from "langchain";
+
+const message = new HumanMessage({
+  // Provider-native structure
+  content: [
+    { type: "text", text: "Describe this image." },
+    { type: "image_url", image_url: { url: "https://example.com/image.jpg" } },
+  ],
+});
+const res = await model.invoke([message]);
+```
+</CodeGroup>
+
+### 示例块类型
+
+```typescript
+import { ContentBlock } from "langchain";
+
+const textBlock: ContentBlock.Text = {
+  type: "text",
+  text: "Hello world",
+};
+
+const imageBlock: ContentBlock.Multimodal.Image = {
+  type: "image",
+  url: "https://example.com/image.png",
+  mimeType: "image/png",
+};
+```
+
+查看内容块 [参考](/langchain/oss/langchain/messages#内容块参考) 获取更多详细信息。
+
+### 序列化标准内容
+
+标准内容块默认情况下**不会**序列化到 `content` 属性中。如果您需要在 `content` 属性中访问标准内容块（例如，在向客户端发送消息时），可以选择将它们序列化到 `content`。
+
+<CodeGroup>
+```bash
+export LC_OUTPUT_VERSION=v1
+```
+```typescript
+import { initChatModel } from "langchain";
+
+const model = await initChatModel("gpt-5-nano", {
+  outputVersion: "v1",
+});
+```
+</CodeGroup>
+
+<Note>
+    了解更多：[消息](/langchain/oss/langchain/messages#消息内容) 和 [标准内容块](/langchain/oss/langchain/messages#标准内容块)。查看 [多模态](/langchain/oss/langchain/messages#多模态) 获取输入示例。
+</Note>
+
+---
+
+## 简化包
+
+`langchain` 包命名空间已简化，专注于智能体构建块。遗留功能已迁移到 `@langchain/classic`。新包仅暴露最实用和相关的功能。
+
+### 导出
+
+v1 包包括：
+
+| 模块 | 可用内容 | 备注 |
+|------|----------|------|
+| 智能体 | `createAgent`, `AgentState` | 核心智能体创建功能 |
+| 消息 | 消息类型、内容块、`trimMessages` | 从 `@langchain/core` 重新导出 |
+| 工具 | `tool`, 工具类 | 从 `@langchain/core` 重新导出 |
+| 对话模型 | `initChatModel`, `BaseChatModel` | 统一模型初始化 |
+
+### `@langchain/classic`
+
+如果您使用遗留链、索引 API 或之前从 `@langchain/community` 重新导出的功能，请安装 `@langchain/classic` 并更新导入：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/classic
+```
+```bash pnpm
+pnpm install @langchain/classic
+```
+```bash yarn
+yarn add @langchain/classic
+```
+```bash bun
+bun add @langchain/classic
+```
+</CodeGroup>
+
+```typescript
+// v1 (new)
+import { ... } from "@langchain/classic";
+import { ... } from "@langchain/classic/chains";
+
+// v0 (old)
+import { ... } from "langchain";
+import { ... } from "langchain/chains";
+```
+
+---
+
+## 不兼容变更
+
+### 停用 Node 18 支持
+
+所有 LangChain 包现在要求 **Node.js 22 或更高版本**。Node.js 18 于 2025 年 3 月达到 [生命周期结束](https://nodejs.org/en/about/releases/)。
+
+### 新构建输出
+
+所有 langchain 包的构建现在使用基于打包器的方法，而不是使用原始 TypeScript 输出。如果您之前从 `dist/` 目录导入文件（不建议这样做），则需要更新您的导入以使用新的模块系统。
+
+### 遗留代码迁移到 `@langchain/classic`
+
+标准接口和智能体焦点之外的遗留功能已迁移到 [`@langchain/classic`](https://www.npmjs.com/package/@langchain/classic) 包。有关核心 `langchain` 包中可用内容以及迁移到 `@langchain/classic` 的内容的详细信息，请参阅 [简化包](#简化包) 部分。
+
+### 移除已弃用的 API
+
+已删除已弃用且计划在 1.0 版本中移除的方法、函数和其他对象。
+
+<Accordion title="View removed deprecated APIs">
+
+v1 版本中已移除以下弃用 API：
+
+#### 核心功能
+- `TraceGroup` - 使用 LangSmith 追踪
+- `BaseDocumentLoader.loadAndSplit` - 使用 `.load()` 后跟文本分割器
+- `RemoteRunnable` - 已不再支持
+
+#### 提示词
+- `BasePromptTemplate.serialize` 和 `.deserialize` - 直接使用 JSON 序列化
+- `ChatPromptTemplate.fromPromptMessages` - 使用 `ChatPromptTemplate.fromMessages`
+
+#### 检索器
+- `BaseRetrieverInterface.getRelevantDocuments` - 使用 `.invoke()` 代替
+
+#### 可运行对象
+- `Runnable.bind` - 使用 `.bindTools()` 或其他特定绑定方法
+- `Runnable.map` - 使用 `.batch()` 代替
+- `RunnableBatchOptions.maxConcurrency` - 在配置对象中使用 `maxConcurrency`
+
+#### 对话模型
+- `BaseChatModel.predictMessages` - 使用 `.invoke()` 代替
+- `BaseChatModel.predict` - 使用 `.invoke()` 代替
+- `BaseChatModel.serialize` - 直接使用 JSON 序列化
+- `BaseChatModel.callPrompt` - 使用 `.invoke()` 代替
+- `BaseChatModel.call` - 使用 `.invoke()` 代替
+
+#### 大语言模型
+- `BaseLLMParams.concurrency` - 在配置对象中使用 `maxConcurrency`
+- `BaseLLM.call` - 使用 `.invoke()` 代替
+- `BaseLLM.predict` - 使用 `.invoke()` 代替
+- `BaseLLM.predictMessages` - 使用 `.invoke()` 代替
+- `BaseLLM.serialize` - 直接使用 JSON 序列化
+
+#### 流式输出
+- `createChatMessageChunkEncoderStream` - 直接使用 `.stream()` 方法
+
+#### 追踪
+- `BaseTracer.runMap` - 使用 LangSmith 追踪 API
+- `getTracingCallbackHandler` - 使用 LangSmith 追踪
+- `getTracingV2CallbackHandler` - 使用 LangSmith 追踪
+- `LangChainTracerV1` - 使用 LangSmith 追踪
+
+#### 记忆和存储
+- `BaseListChatMessageHistory.addAIChatMessage` - 使用 `.addMessage()` 与 `AIMessage`
+- `BaseStoreInterface` - 使用特定的存储实现
+
+#### 工具
+- `getRuntimeEnvironmentSync` - 使用异步 `getRuntimeEnvironment()`
+
+</Accordion>
+
+---
+
+> 官方原文：[src/oss/javascript/migrate/langchain-v1.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/migrate/langchain-v1.mdx) · 译文由 AI 生成，以英文原文为准。

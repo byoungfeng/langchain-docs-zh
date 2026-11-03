@@ -1,0 +1,173 @@
+---
+title: "模型"
+description: "配置 Deep Agents 的模型提供者和参数"
+---
+
+import EvalCategoryMatrix from '/langchain/snippets/deepagents-eval-category-matrix.mdx';
+import ModelsConfigureParamsInitChatModelPy from '/langchain/snippets/code-samples/models-configure-params-init-chat-model-py.mdx';
+import ModelsConfigureParamsProviderPackagePy from '/langchain/snippets/code-samples/models-configure-params-provider-package-py.mdx';
+import ModelsConfigureParamsInitChatModelJs from '/langchain/snippets/code-samples/models-configure-params-init-chat-model-js.mdx';
+import ModelsConfigureParamsProviderPackageJs from '/langchain/snippets/code-samples/models-configure-params-provider-package-js.mdx';
+import ModelsProviderProfilesPy from '/langchain/snippets/code-samples/models-provider-profiles-py.mdx';
+import ModelsRuntimeConfigurablePy from '/langchain/snippets/code-samples/models-runtime-configurable-py.mdx';
+import ModelsRuntimeConfigurableJs from '/langchain/snippets/code-samples/models-runtime-configurable-js.mdx';
+
+Deep Agents 与支持 [工具调用](/langchain/oss/langchain/models#工具调用) 的任何 [LangChain 对话模型](/langchain/oss/langchain/models) 都兼容。
+
+## 支持的模型
+
+:::python
+以 `provider:model` 格式指定模型（例如 `google_genai:gemini-3.6-flash`、`openai:gpt-5.4` 或 `anthropic:claude-sonnet-4-6`）。提供者前缀选择 LangChain 集成，冒号后的所有内容都会传递给该提供者作为模型标识符。有关有效的提供者字符串，请参阅 @[`init_chat_model`] 的 `model_provider` 参数。有关提供者特定的配置，请参阅 [对话模型集成](/langchain/oss/python/integrations/chat)。
+:::
+
+:::js
+以 `provider:model` 格式指定模型（例如 `google:gemini-3.6-flash`、`openai:gpt-5.4` 或 `anthropic:claude-sonnet-4-6`）。提供者前缀选择 LangChain 集成，冒号后的所有内容都会传递给该提供者作为模型标识符。有关有效的提供者字符串，请参阅 @[`initChatModel`]。有关提供者特定的配置，请参阅 [对话模型集成](/langchain/oss/python/integrations/chat)。
+:::
+
+模型标识符必须与提供者期望的格式匹配。一些提供者使用简单的名称，如 `gpt-5.5`；其他提供者使用命名空间 ID 或部署路径，如 `zai-org/GLM-5.2`，因此完整的 Deep Agents 字符串将是 `baseten:zai-org/GLM-5.2`。检查提供者的模型目录或集成文档以获取当前标识符。
+
+### 推荐的模型
+
+这些模型在 [Deep Agents 评估套件](https://github.com/langchain-ai/deepagents/tree/main/libs/evals#readme) 上表现良好，该套件测试基本智能体操作。通过这些评估是必要的，但不是在更长时间、更复杂的任务上获得良好性能的充分条件。
+
+| 提供者 | 模型 |
+|----------|--------|
+| [Google](/langchain/oss/python/integrations/providers/google) | `gemini-3.1-pro-preview`, `gemini-3.6-flash` |
+| [OpenAI](/langchain/oss/python/integrations/providers/openai) | `gpt-5.5`, `gpt-5.4` |
+| [Anthropic](/langchain/oss/python/integrations/providers/anthropic) | `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6` |
+| Open-weight | `GLM-5.2`, `Kimi-K2.7 Code`, `MiniMax-M3` |
+
+:::python
+Open-weight 模型可以通过 [Baseten](/langchain/oss/python/integrations/providers/baseten)、[Fireworks](/langchain/oss/python/integrations/chat/fireworks)、[OpenRouter](/langchain/oss/python/integrations/providers/openrouter) 和 [Ollama](/langchain/oss/python/integrations/providers/ollama) 等提供者获得。
+:::
+
+:::js
+Open-weight 模型可以通过 [OpenRouter](/langchain/oss/python/integrations/chat/openrouter) 和 [Ollama](/langchain/oss/python/integrations/chat/ollama) 等提供者获得。
+:::
+
+### 模型评估
+
+[Deep Agents 评估套件](https://github.com/langchain-ai/deepagents/tree/main/libs/evals#readme) 测试流行的模型：
+
+<div className="deepagents-eval-category-matrix">
+
+<EvalCategoryMatrix />
+
+</div>
+
+有关更多信息，请参阅 [评估运行](https://github.com/langchain-ai/deepagents/actions/workflows/evals.yml)。
+
+## 配置模型参数
+
+:::python
+将模型字符串传递给 @[`create_deep_agent`]，格式为 `provider:model`，或传递配置好的模型实例以进行完全控制。在底层，模型字符串通过 @[`init_chat_model`] 进行解析。
+:::
+
+:::js
+将模型字符串传递给 @[`createDeepAgent`]，格式为 `provider:model`，或传递配置好的模型实例以进行完全控制。在底层，模型字符串通过 @[`init_chat_model`] 进行解析。
+:::
+
+要配置模型特定参数，请使用 @[`init_chat_model`] 或直接实例化提供者模型类：
+
+:::python
+<CodeGroup>
+    <ModelsConfigureParamsInitChatModelPy />
+    <ModelsConfigureParamsProviderPackagePy />
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+    <ModelsConfigureParamsInitChatModelJs />
+    <ModelsConfigureParamsProviderPackageJs />
+</CodeGroup>
+:::
+
+<Note>
+    可用参数因提供者而异。有关提供者特定的配置选项，请参阅 [对话模型集成](/langchain/oss/python/integrations/chat) 页面。
+</Note>
+
+### 提供者配置文件
+
+[`ProviderProfile`](/langchain/oss/deepagents/profiles#提供者配置文件) 打包在创建 Deep Agents 时提供 `provider:model` 字符串时应用的初始化参数。当您通过 @[`init_chat_model`] 传递预配置模型时，它不适用。
+
+您可以注册在两个级别，并且两者可以共存：
+
+- **提供者级别**：像 `"openai"` 这样的简单提供者键适用于来自 `openai` 提供者的所有模型。
+- **模型级别**：像 `provider:model` 这样的键，如 `"openai:gpt-5.4"`，仅适用于特定模型，并覆盖任何匹配的提供者级配置文件。
+
+:::python
+<ModelsProviderProfilesPy />
+:::
+
+有关完整字段列表、合并语义和插件打包，请参阅 [配置文件](/langchain/oss/deepagents/profiles)。
+
+<Tip>
+    要塑造模型构建后 *智能体* 的行为，请使用 [harness 配置文件](/langchain/oss/deepagents/profiles#链配置)。
+</Tip>
+
+### OpenAI 和响应 API
+
+当您将 `openai:...` 字符串作为模型传递时，Deep Agents 使用内置的 OpenAI [提供者配置文件](/langchain/oss/deepagents/profiles#提供者配置文件) 默认启用 [响应 API](/langchain/oss/python/integrations/chat/openai#响应-api)。该路径支持 OpenAI 会话状态和相关功能；有关当前 API 选项，请参阅 [OpenAI 提供者](/langchain/oss/python/integrations/providers/openai) 和 [对话模型](/langchain/oss/python/integrations/chat/openai) 文档。
+
+<Note>
+    内置的 OpenAI 提供者配置文件仅适用于模型字符串。要设置 kwargs，如 `use_responses_api`、`store` 或 `include`，请传递配置好的模型实例，或在 Python 中，通过 [提供者配置文件](/langchain/oss/deepagents/profiles#提供者配置文件) `init_kwargs` 层叠它们。使用 @[`init_chat_model`]（Python）或 `initChatModel` / `ChatOpenAI`（TypeScript）构建实例。
+</Note>
+
+:::python
+要使用 [聊天补全](https://platform.openai.com/docs/guides/responses-vs-chat-completions) 而不是响应 API，请传递预初始化的模型，使用 `use_responses_api=False`：
+
+```python
+from langchain.chat_models import init_chat_model
+from deepagents import create_deep_agent
+
+model = init_chat_model("openai:gpt-5.5", use_responses_api=False)
+agent = create_deep_agent(model=model)
+```
+
+要保持响应 API 但禁用数据保留（`store=False`），同时仍然接收加密的推理输出，请设置 `include`，以便推理作为加密内容返回：
+
+```python
+from langchain.chat_models import init_chat_model
+from deepagents import create_deep_agent
+
+model = init_chat_model(
+    "openai:gpt-5.5",
+    use_responses_api=True,
+    store=False,
+    include=["reasoning.encrypted_content"],
+)
+agent = create_deep_agent(model=model)
+```
+:::
+
+:::js
+使用 [OpenAI 聊天集成](/langchain/oss/python/integrations/chat/openai#响应-api) 来选择响应 API 与聊天补全（`useResponsesApi`、模型 kwargs 以及您的版本公开的任何存储或输出选项）。将生成的模型实例传递给 `createDeepAgent({ model })`，以保留这些设置。
+:::
+
+## 在运行时选择模型
+
+如果您的应用程序允许用户选择模型（例如在 UI 中使用下拉菜单），请使用 [中间件](/langchain/oss/langchain/middleware/overview) 在运行时交换模型，而无需重新构建智能体。
+
+:::python
+
+通过 [运行时上下文](/langchain/oss/langchain/models#动态模型选择) 传递用户的模型选择，然后使用 `wrap_model_call` 中间件，通过 @[`@wrap_model_call`] 装饰器在每个调用中覆盖模型：
+
+<ModelsRuntimeConfigurablePy />
+:::
+
+:::js
+<ModelsRuntimeConfigurableJs />
+:::
+
+<Tip>
+    对于更动态的模型模式（例如基于对话复杂性或成本优化的路由），请参阅 LangChain 智能体指南中的 [动态模型](/langchain/oss/langchain/models#动态模型选择)。
+</Tip>
+
+## 了解更多
+
+- [LangChain 中的模型](/langchain/oss/langchain/models)：包含工具调用、结构化输出和多模态的对话模型特性
+
+---
+
+> 官方原文：[src/oss/deepagents/models.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/models.mdx) · 译文由 AI 生成，以英文原文为准。

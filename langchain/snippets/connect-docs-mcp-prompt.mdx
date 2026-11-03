@@ -1,0 +1,21 @@
+<Prompt
+    description="连接LangChain文档MCP服务器"
+    icon="plug"
+    actions={["copy"]}
+>
+将LangChain文档MCP服务器与我的编程智能体连接，使其能够查询最新的LangChain、LangGraph和LangSmith文档及API参考。
+
+需添加的服务器：
+
+- `docs-langchain`: https://docs.langchain.com/mcp
+- `reference-langchain`: https://reference.langchain.com/mcp
+
+检测我正在使用的智能体或编辑器（Claude代码、Cursor、Codex CLI、Claude桌面、Deep Agents代码、VS Code、Antigravity或其他MCP兼容客户端），并从https://docs.langchain.com/use-these-docs.md获取对应配置：
+
+- Claude代码：使用`claude mcp add --transport http`为每个服务器（默认项目级访问；仅在要求全局访问时使用`--scope user`）
+- Codex CLI：使用`codex mcp add`与每个服务器URL
+- Cursor、Deep Agents代码、VS Code或Antigravity：将两个条目合并到MCP设置JSON中，使用页面中显示的对应客户端字段名称
+- Claude桌面：在Settings > Connectors下添加两个URL
+
+不要编造MCP URL。配置完成后确认两个服务器均被列出且可访问。
+</Prompt>

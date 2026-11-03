@@ -1,0 +1,273 @@
+---
+title: "变更日志"
+sidebarTitle: "变更日志"
+description: "我们 Python 包的更新和改进日志。"
+rss: true
+---
+
+<Callout icon="rss" color="#4F46E5" iconType="regular">
+**订阅**: 我们的变更日志包含一个 [RSS 提供程序](https://docs.langchain.com/oss/python/releases/changelog/rss.xml)，可以与 [Slack](https://slack.com/help/articles/218688467-Add-RSS-feeds-to-Slack)、[电子邮件](https://zapier.com/apps/email/integrations/rss/1441/send-new-rss-feed-entries-via-email)、Discord 机器人如 [Readybot](https://readybot.io/) 或 [RSS Feeds to Discord Bot](https://rss.app/en/bots/rssfeeds-discord-bot) 以及其他订阅工具集成。
+</Callout>
+
+<Update label="Oct 22, 2026" tags={["langchain"]} rss={{ title: "Oct 22, 2026 - langchain-core" }}>
+    ## `langchain-core` v1.7.0
+
+    在 [事件流](/langchain/oss/langchain/event-streaming) 中，工具调用参数现在作为 `tool-call-delta` 事件流式传输。每个事件只包含参数的新部分，就像 `text-delta` 对文本做的那样。早期版本发送 `block-delta` 事件，重复到目前为止所有的参数。
+
+    ### 在服务器之前升级客户端
+
+    低于以下版本的客户端不处理 `tool-call-delta`。例如，早期版本的 `@langchain/react` 可能会停止更新一个 `useMessages` 视图。[Agent Server](https://docs.langchain.com/langsmith/agent-server) 会原样传递事件，所以是服务器上的 `langchain-core` 版本决定客户端接收哪些事件。
+
+    1. 升级所有读取流的客户端：
+        - 在 JavaScript 中，将 `@langchain/react`、`@langchain/vue`、`@langchain/svelte` 或 `@langchain/angular` 升级到 1.2.6 或更高版本。
+        - 在 Python 中，将 `langchain-core` 升级到 1.6.13 或更高版本。`langgraph-sdk` 使用它来读取流。
+    2. 将服务器上的 `langchain-core` 升级到 1.7.0 或更高版本，并与 `langchain` 1.4.7 或更高版本一起升级。
+
+    `langchain` 和 `deepagents` 接受任何 `langchain-core` 1.x，因此升级其中任何一个都可以引入 1.7.0。为了在升级所有客户端之前阻止服务器，请将 `langchain-core<1.7.0` 固定。
+
+    ### 不兼容的变更
+
+    从 `langchain-core` 1.6.13 开始，迭代 `message.tool_calls` 只返回每个工具调用参数的新部分，以及调用的 `id` 和 `name`。早期版本返回到目前为止所有的参数。一个调用的片段会连接成其完整参数，而 `message.tool_calls.get()` 仍然返回解析的工具调用。
+</Update>
+
+<Update label="Oct 14, 2026" tags={["langchain"]} rss={{ title: "Oct 14, 2026 - langchain" }}>
+    ## `langchain` v1.4.6
+
+    `HumanInTheLoopMiddleware` 现在可以在每次工具调用时暂停。设置 `interrupt_mode="per_call"` 和每个受限制的调用会引发自己的中断，您通过中断 ID 来回答。批量模式仍然是默认模式。
+
+    ```python
+    HumanInTheLoopMiddleware(interrupt_on={...}, interrupt_mode="per_call")
+    ```
+
+    ### 功能
+
+    - **带类型的答案**: 每个中断都包含一个 `response_schema`，列出了该调用允许的决策，因此客户端可以根据模式构建其表单。参见 [读取响应模式](/langchain/oss/langchain/human-in-the-loop#读取响应模式)。
+    - **保存前检查**: LangGraph 在保存之前会拒绝无效的答案，因此您可以更正它并再次回答同一个中断。参见 [更正无效答案](/langchain/oss/langchain/human-in-the-loop#修正无效答案)。
+    - **编辑保留在被调用的工具上**: 一个 `edit` 不能切换工具，并且其参数会根据工具自己的模式进行检查。
+
+    为新智能体使用每次调用模式。LangChain 计划在下一个主要版本中将其设为默认值。参见 [每次工具调用暂停](/langchain/oss/langchain/human-in-the-loop#每次工具调用暂停一次) 和 [human-in-the-loop 概述](/langchain/oss/concepts/human-in-the-loop)。
+</Update>
+
+<Update label="Sep 1, 2026" tags={["langchain"]} rss={{ title: "Sep 1, 2026 - langchain" }}>
+    ## `langchain` v1.4.0
+
+    MCP 支持现在作为 `langchain.mcp` 命名空间内的 LangChain 的一部分提供，基于 [FastMCP](https://gofastmcp.com)。它取代了独立的 `langchain-mcp-adapters` 包。使用 `mcp` 额外安装它：
+
+    <CodeGroup>
+    ```bash pip
+    pip install "langchain[mcp]"
+    ```
+    ```bash uv
+    uv add "langchain[mcp]"
+    ```
+    </CodeGroup>
+
+    <Note>
+    `langchain.mcp` 命名空间处于 Beta 版。从它导入会引发 `LangChainBetaWarning`。
+    </Note>
+
+    ### 功能
+
+    - **一个适配器，任何传输**: `MCPAdapter` 从其目标推断传输——一个 URL、一个通过 stdio 的本地脚本、一个进程内服务器、一个 `MCPConfig` 字典用于 [多个服务器](/langchain/oss/langchain/mcp/connections#多个服务器)，或一个预构建的 `fastmcp.Client`。`await adapter.list_tools()` 返回准备好用于 `create_agent` 的 LangChain 工具。参见 [MCP 概述](/langchain/oss/langchain/mcp)。
+    - **中断驱动的提示**: 当服务器在调用中途请求输入时，`MCPAdapter` 会将问题作为 LangGraph `interrupt()` 提示，以便人类回答并继续运行。参见 [提示](/langchain/oss/langchain/mcp/tools#elicitation)。
+    - **通过 FastMCP 进行身份验证**: 带宽令牌、完整的 OAuth 2.1 带动态客户端注册，或任何 `httpx.Auth`，包括部署中的 [每个用户身份验证](/langchain/oss/langchain/mcp/auth#按用户认证)。参见 [身份验证](/langchain/oss/langchain/mcp/auth)。
+    - **更丰富的工具元数据**: 每个工具在其元数据下的 `mcp` 命名空间中携带其 MCP 起源，包括注释，例如 `destructive_hint` 用于 [通过批准来限制破坏性工具](/langchain/oss/langchain/mcp/tools#人机交互)。参见 [工具元数据](/langchain/oss/langchain/mcp/tools#工具元数据)。
+
+    ### 迁移
+
+    从 `langchain-mcp-adapters` 迁移？`MultiServerMCPClient` 被 `MCPAdapter` 替代，并且一些功能已更改或删除。参见 [迁移指南](/langchain/oss/python/migrate/langchain-mcp-adapters)。
+</Update>
+
+<Update label="Jul 24, 2026" tags={["deepagents"]} rss={{ title: "Jul 24, 2026 - deepagents" }}>
+    ## `deepagents` v0.7.0
+
+    默认情况下更精简、更可配置的框架。在默认智能体轮次中，输入 Token 减少 **65%**（5,395 → 1,895），并通过我们的 [重新设计的评估套件](https://www.langchain.com/blog/how-we-benchmark-deep-agents) 验证，没有质量下降。
+
+    ### 优化
+
+    - **默认情况下更精简的提示**: 编写的基提示开始为空，重复工具模式的工具使用文本已被修剪。隔离到默认智能体的工具模式中，总描述 Token 减少 **43%**（4,005 → 2,302）；结合空基提示和可选的 todos，默认智能体轮次的输入 Token 减少 **65%**（5,395 → 1,895）。工具行为保持不变。([#4859](https://github.com/langchain-ai/deepagents/pull/4859), [#4979](https://github.com/langchain-ai/deepagents/pull/4979), [#5009](https://github.com/langchain-ai/deepagents/pull/5009))
+
+    ### 功能
+
+- **[覆盖默认中间件实例](/langchain/oss/deepagents/customization#中间件)**: 一个 `middleware=`（或子智能体 `middleware`）实例，如果其 `.name` 与内置的匹配，则会直接替换掉默认实例，而不是报重复错误。例如，传递你自己的 `SummarizationMiddleware(...)` 来更改 token 触发器或摘要模型，而不会禁用内置默认设置。([#4251](https://github.com/langchain-ai/deepagents/pull/4251))
+    - **文件系统工具**: 新的 [`delete`](/langchain/oss/deepagents/tools#内置harness工具) 工具可以删除文件或递归删除目录 ([#3659](https://github.com/langchain-ai/deepagents/pull/3659), [#3851](https://github.com/langchain-ai/deepagents/pull/3851)); `write_file` 现在会覆盖现有文件而不是报错 ([#4109](https://github.com/langchain-ai/deepagents/pull/4109)); `FilesystemMiddleware` 接受一个 [工具白名单](/langchain/oss/deepagents/overview#虚拟文件系统访问) 来仅暴露选定的内置工具 ([#4325](https://github.com/langchain-ai/deepagents/pull/4325), [#4698](https://github.com/langchain-ai/deepagents/pull/4698)); 并且针对开放模型进行了优化——分页的 `read_file` 会报告总行数和剩余行数以及下一个 `offset` ([#4540](https://github.com/langchain-ai/deepagents/pull/4540)), `grep`/`glob` 带有 `truncated` 标志返回部分结果而不是在大树中挂起 ([#4063](https://github.com/langchain-ai/deepagents/pull/4063)), 并且 `grep` 在流式输出和可选上下文行的情况下增加了 1,000 次匹配的限制 ([#4570](https://github.com/langchain-ai/deepagents/pull/4570), [#4706](https://github.com/langchain-ai/deepagents/pull/4706)).
+    - **更多提示词缓存支持**: 通过 `deepagents[aws]` 扩展进行 Bedrock 提示词缓存 ([#4108](https://github.com/langchain-ai/deepagents/issues/4108)), 以及 Fireworks 提示词缓存会话亲和性自动生效 ([#4598](https://github.com/langchain-ai/deepagents/pull/4598)).
+    - **NVIDIA 支持**: 内置的 Nemotron 3 Ultra 执行器配置文件加上 NIM 应用来源归属。([#4192](https://github.com/langchain-ai/deepagents/pull/4192), [#4455](https://github.com/langchain-ai/deepagents/pull/4455))
+
+    ### 不兼容变更
+
+    - **规划待办事项是可选的**: `create_deep_agent` 不再默认包含 `TodoListMiddleware`，因此 `write_todos` 工具、`todos` 状态通道和待办规划提示词除非使用 `middleware=[TodoListMiddleware()]` 恢复，否则会缺失。([#4929](https://github.com/langchain-ai/deepagents/pull/4929))
+    - **后端兼容性遮罩已移除**: 传递具体的 `BackendProtocol` 实例而不是工厂，使用显式的 `namespace` 配置 `StoreBackend`，并使用当前的 `ls` / `glob` / `grep` / `ReadResult` API。移除的符号包括 `BackendFactory`、`BACKEND_TYPES`、`FileFormat` 和 `Unset`。新的文件存储字符串 `FileData.content`；旧的 `list[str]` 内容保持可读并在下次写入时转换。([#4541](https://github.com/langchain-ai/deepagents/pull/4541))
+    - **输出格式变更**: 空的 `ls` / `glob` 输出现在是 `No files found` 而不是 `[]`，并且 `read_file` 不再渲染固定宽度的 `cat -n` 风格的行号边框——更新任何解析原始工具输出的代码。([#4561](https://github.com/langchain-ai/deepagents/pull/4561))
+
+    将以下提示词复制到你的 AI 编码助手中，以迁移代码库以适应这些不兼容变更：
+
+    <Prompt
+        description="将 deepagents 代码库从 v0.6.x 迁移到 v0.7."
+        icon="arrow-right"
+        actions={["copy"]}
+    >
+    将此代码库从 `deepagents` v0.6.x 迁移到 v0.7 以适应以下不兼容变更：
+
+    1. `create_deep_agent` 不再默认包含 `TodoListMiddleware`。如果此代码库依赖于 `write_todos` 工具、`todos` 状态通道或待办规划提示词，通过从 `langchain.agents.middleware`（不是 `deepagents`）导入 `TodoListMiddleware` 并传递给 `create_deep_agent` 来恢复它：
+
+       ```python
+       from langchain.agents.middleware import TodoListMiddleware
+       from deepagents import create_deep_agent
+
+       agent = create_deep_agent(middleware=[TodoListMiddleware()])
+       ```
+
+    2. 后端兼容性遮罩已移除：`BackendFactory`、`BACKEND_TYPES`、`FileFormat` 和 `Unset` 不再存在。将任何后端工厂替换为具体的 `BackendProtocol` 实例，并在每个 `StoreBackend` 配置中添加显式的 `namespace`：
+
+       ```python
+       from deepagents import create_deep_agent
+       from deepagents.backends import StoreBackend
+
+       # Before (v0.6.x): factory callable, and StoreBackend with no explicit namespace
+       agent = create_deep_agent(backend=lambda rt: StoreBackend())  # [!code --]
+
+       # After (v0.7): concrete backend instance with an explicit namespace
+       agent = create_deep_agent(backend=StoreBackend(namespace=lambda rt: (rt.server_info.user.identity,)))  # [!code ++]
+       ```
+
+       同时更新调用以使用当前的 `ls`、`glob`、`grep` 和 `ReadResult` API。
+    3. 工具输出格式变更：空的 `ls` / `glob` 输出现在是字符串 `No files found` 而不是 `[]`，并且 `read_file` 不再渲染固定宽度的 `cat -n` 风格的行号边框。更新任何解析这些工具输出的代码。
+
+    在代码库中搜索已移除符号的使用情况以及依赖于旧输出格式的解析逻辑，应用必要的变更，并标记任何需要手动审查的内容。
+    </Prompt>
+
+</Update>
+<Update label="May 12, 2026" tags={["deepagents"]} rss={{ title: "May 12, 2026 - langchain" }}>
+    ## `deepagents` v0.6.0
+
+    - **[`CodeInterpreterMiddleware`](/langchain/oss/deepagents/interpreters)**: (实验性) `deepagents` 现在支持代码执行和程序化工具调用，通过一个作用域 QuickJS 运行时。
+    - 支持 `version="v3"` 在 `stream_events` / `astream_events` 中。详细参考 [事件流](/langchain/oss/deepagents/event-streaming) 指南。
+    - **[`DeltaChannel`](/langchain/oss/langgraph/pregel#deltachannel) (Beta)** ([博客](https://www.langchain.com/blog/delta-channels-evolving-agent-runtime)): Deep Agents 现在使用 `DeltaChannel` 来存储消息历史和智能体文件。而不是将完整的累积值重新序列化到每个检查点中，仅在每一步写入的增量 delta 被存储——随着线程变长，保持检查点大小小。
+
+    <Warning>
+    **从 v0.6.0 回滚一旦线程已持久化是不支持的。** Deep Agents v0.6.0 变更持久化了消息历史和智能体文件到 `DeltaChannel`，这以新的格式写入检查点，旧版本无法读取。降级到更早的 Deep Agents 版本会将这些通道切换回非 delta 通道，导致现有的 delta 检查点无法读取，并造成状态重建不完整或不正确。如果你需要回滚，使用 [delta-channel-dump 恢复脚本](https://github.com/langchain-ai/langgraph/tree/main/examples/delta-channel-dump) 来迁移受影响的线程，或丢弃它们，然后再降级。更一般地，避免在持久化通道之间切换 delta 和非 delta 表示。参见 [版本兼容性和通道变更](/langchain/oss/langgraph/pregel#版本兼容性和回滚)。
+    </Warning>
+
+- **[使用配置文件](/langchain/oss/deepagents/profiles)**: 注册每个提供者或每个模型的配置包（`HarnessProfile`），当选择模型时，`create_deep_agent`会自动应用这些配置——系统提示词调整、工具覆盖、中间件更改和子智能体默认值——而无需修改调用位置。
+    - **[`ContextHubBackend`](/langchain/oss/deepagents/backends#contexthubbackend)** ([博客](https://www.langchain.com/blog/introducing-context-hub)): 一个基于 LangSmith Hub 的新文件系统后端。智能体文件——技能、记忆和其他持久化上下文——作为 Hub 提交存储，为您提供每次写入的版本历史记录，并具有 LangSmith 原生的持久性，而无需配置单独的 LangGraph 存储。
+</Update>
+<Update label="May 12, 2026" tags={["langchain"]} rss={{ title: "May 12, 2026 - langchain" }}>
+    ## `langchain` v1.3.0
+
+    此版本为 `version="v3"` 在 `stream_events` / `astream_events` 中添加了对 `langchain` 智能体的支持。有关详细信息，请参阅 [事件流](/langchain/oss/langchain/event-streaming) 指南。
+</Update>
+<Update label="May 12, 2026" tags={["langgraph"]} rss={{ title: "May 12, 2026 - langgraph" }}>
+    ## `langgraph` v1.2.0
+
+    此版本增加了对节点执行的更细粒度控制（超时、错误恢复和优雅关闭）、一个新的通道类型，该类型减少了长时间运行线程的检查点开销，以及一个新的以内容块为中心的流式 API（v3），具有类型化的、按通道投影。
+
+    - **[`DeltaChannel`](/langchain/oss/langgraph/pregel#deltachannel) (beta)**: 一个新的通道类型，它仅在每一步存储增量差异，而不是重新序列化完整的累积值。对于随时间增长的通道最有用，例如长时间运行线程中的消息列表。使用 `snapshot_frequency=K` 每隔 K 步写入一个完整快照，并限制读取延迟。
+
+    - **[按节点超时](/langchain/oss/langgraph/fault-tolerance#超时)**: 将 `timeout=` 传递给 @[`add_node`]，以限制单个尝试运行的时间。设置一个硬时钟限制（`run_timeout`）、一个空闲限制（`idle_timeout`），在进度时重置，或通过 @[`TimeoutPolicy`] 同时设置两者。当限制触发时，LangGraph 触发 @[`NodeTimeoutError`]，清除该尝试的写入，并转交给重试策略。仅适用于异步节点。
+
+    - **[按节点错误处理](/langchain/oss/langgraph/fault-tolerance#错误处理)**: 将 `error_handler=` 传递给 @[`add_node`]，在所有重试都耗尽后运行恢复函数。处理程序接收一个类型化的 @[`NodeError`]，并可以返回一个 @[`Command`] 来更新状态并路由到不同的节点，这对于 Saga/补偿模式很有用。
+
+    - **[优雅关闭](/langchain/oss/langgraph/fault-tolerance#平稳关闭)**: 在当前超级步骤完成后，协作地停止正在进行的运行，并保存可恢复的检查点。创建一个 @[`RunControl`] 并从任何线程调用 `request_drain()`；运行会触发 `GraphDrained`，稍后可以使用相同的配置恢复。
+
+    - **新的事件流 API (beta)**: 将 `version="v3"` 传递给 `stream_events()` / `astream_events()`，以获取一个以内容块为中心的协议，具有类型化的、按通道投影（`run.values`, `run.messages`, `run.lifecycle`, `run.subgraphs`）以及可选的更新转换器、自定义事件、检查点、任务和调试。`run.messages` 为每次 LLM 调用生成一个 `ChatModelStream`，具有用于文本、推理、工具调用和使用的类型化子投影。`version="v1"` 和 `version="v2"` 保持不变。
+
+    超时和错误处理仅限 Python；重试策略继续在 Python 和 TypeScript 中工作。
+</Update>
+<Update label="Apr 7, 2026" tags={["deepagents"]} rss={{ title: "Apr 7, 2026 - deepagents" }}>
+    ## `deepagents` v0.5.0
+
+    - **[异步子智能体](/langchain/oss/deepagents/async-subagents)**: 深度智能体可以启动非阻塞的背景任务，因此用户可以在子智能体并发工作时继续与智能体交互。需要 [LangSmith 部署](https://docs.langchain.com/langsmith/deployment) 来支持子智能体。
+
+    - **多模态支持**: `read_file` 工具现在支持 PDF、音频和视频文件，除了图像。
+
+    - **后端更改**: 我们对深度智能体 [后端协议](https://github.com/langchain-ai/deepagents/blob/main/libs/deepagents/deepagents/backends/protocol.py) 进行了向后兼容的更改：
+      - 更新了存储在 [状态和存储后端](/langchain/oss/deepagents/backends) 中的文件格式，以支持二进制文件。
+      - 改进了从后端到工具的错误传播。
+      - 您现在可以直接实例化 `StateBackend()` 和 `StoreBackend()`。使用工厂（例如，`backend=(lambda rt: StateBackend(rt))`）指定已弃用。
+
+    - **Anthropic 提示词缓存改进**: 我们对 Anthropic 模型的提示词缓存性能进行了一些改进。
+</Update>
+<Update label="Mar 10, 2026" tags={["langgraph"]} rss={{ title: "Mar 10, 2026 - langgraph" }}>
+    ## `langgraph` v1.1.0
+
+    - **类型安全的流式输出 (`version="v2"`)**: 将 `version="v2"` 传递给 `stream()` / `astream()`，以获取具有 `type`、`ns` 和 `data` 键的统一 `StreamPart` 输出。每种模式都有自己的 `TypedDict`，所有可从 `langgraph.types` 导入。请参阅 [流式文档](/langchain/oss/langgraph/streaming#流式输出格式-v2)。
+
+    - **类型安全的调用 (`version="v2"`)**: 将 `version="v2"` 传递给 `invoke()` / `ainvoke()`，以获取一个具有 `.value` 和 `.interrupts` 属性的 `GraphOutput` 对象。请参阅 [调用文档](/langchain/oss/langgraph/streaming#v2-调用格式)。
+
+    - **Pydantic 和 dataclass 强制转换**: 使用 `version="v2"`、`invoke()` 和 `values` 模式流输出会自动强制转换为您的声明 Pydantic 模型或 dataclass 类型。
+
+    - **固定时间旅行中断和子图**: 重播不再重用过时的 `RESUME` 值，子图正确地恢复了父历史状态的检查点。
+
+    - **完全向后兼容**: `version="v2"` 是可选的。`GraphOutput` 支持弃用的字典样式访问，以逐步迁移。
+</Update>
+<Update label="Feb 10, 2026" tags={["deepagents"]} rss={{ title: "Feb 10, 2026 - deepagents" }}>
+    ## `deepagents` v0.4.0
+
+    * 新的插件式沙盒集成包：[`langchain-modal`](https://pypi.org/project/langchain-modal/)、[`langchain-daytona`](https://pypi.org/project/langchain-daytona/) 和 [`langchain-runloop`](https://pypi.org/project/langchain-runloop/)。请参阅 [沙盒指南](/langchain/oss/deepagents/sandboxes) 和示例 [数据分析教程](/langchain/oss/deepagents/data-analysis)。
+    * 对 [对话历史摘要](/langchain/oss/deepagents/context-engineering#摘要) 的更改：
+      * 摘要现在通过 `wrap_model_call` 事件在模型节点中发生。由于这一点，我们在图状态中保留完整的消息历史记录。
+      * 更精确的 Token 计数。
+      * 如果聊天模型触发一个 @[`ContextOverflowError`]（在 `langchain-core` 中定义），摘要现在会自动触发。目前 `langchain-anthropic` 和 `langchain-openai` 支持此功能。
+    * 我们现在默认使用模型字符串前缀为 `"openai:"` 的响应 API。
+        <Accordion
+            title="使用响应 API 禁用数据保留"
+        >
+            ```python
+            from langchain.chat_models import init_chat_model
+
+            agent = create_deep_agent(
+                model=init_chat_model(
+                    "openai:...",
+                    use_responses_api=True,
+                    store=False,
+                    include=["reasoning.encrypted_content"],
+                )
+            )
+            ```
+        </Accordion>
+</Update>
+<Update label="Dec 15, 2025" tags={["langchain", "integrations"]} rss={{ title: "Dec 15, 2025 - langchain" }}>
+    ## `langchain` v1.2.0
+
+* [`create_agent`](/langchain/oss/langchain/agents): 通过在 [tools](/langchain/oss/langchain/tools) 上添加新的 [`extras`](https://reference.langchain.com/python/langchain/tools) 属性简化对特定提供者工具参数和定义的支持。示例：
+      * 特定提供者的配置，例如 Anthropic 的 [程序化工具调用](/langchain/oss/python/integrations/chat/anthropic#程序化工具调用) 和 [工具搜索](/langchain/oss/python/integrations/chat/anthropic#工具搜索)。
+      * 在客户端执行的内置工具，如 [Anthropic](/langchain/oss/python/integrations/chat/anthropic#内置工具)、[OpenAI](/langchain/oss/python/integrations/chat/openai#响应-api) 和其他提供者所支持。
+    * 支持 agent `response_format` 严格遵循模式（参见 [`ProviderStrategy`](/langchain/oss/langchain/structured-output#提供商策略) 文档）。
+</Update>
+<Update label="Dec 8, 2025" tags={["langchain", "integrations"]} rss={{ title: "Dec 8, 2025 - langchain" }}>
+    ## `langchain-google-genai` v4.0.0
+
+    我们已重写 Google GenAI 集成，使用 Google 的综合生成式 AI SDK，该 SDK 在同一接口下提供对 Gemini API 和 Gemini 企业智能体平台（Gemini Enterprise Agent Platform）的访问。这包括最小的破坏性变更以及 `langchain-google-vertexai` 中弃用的包。
+
+    详细信息请参阅完整的 [发布说明和迁移指南](https://github.com/langchain-ai/langchain-google/discussions/1422)。
+</Update>
+<Update label="Nov 25, 2025" tags={["langchain"]} rss={{ title: "Nov 25, 2025 - langchain" }}>
+    ## `langchain` v1.1.0
+
+    * [模型配置文件](/langchain/oss/langchain/models#模型配置文件)：对话模型现在通过一个 `.profile` 属性公开支持的特性和功能。这些数据源自 [models.dev](https://models.dev)，一个提供模型能力数据的开源项目。
+    * [摘要中间件](/langchain/oss/langchain/middleware/built-in#摘要)：更新以支持使用模型配置文件进行灵活的触发点，实现上下文感知摘要。
+    * [结构化输出](/langchain/oss/langchain/structured-output)：`ProviderStrategy` 支持（原生结构化输出）现在可以从模型配置文件中推断。
+    * [`SystemMessage` for `create_agent`](/langchain/oss/langchain/middleware/custom#动态提示词)：支持将 `SystemMessage` 实例直接传递给 `create_agent` 的 `system_prompt` 参数，启用缓存控制和结构化内容块等高级功能。
+    * [模型重试中间件](/langchain/oss/langchain/middleware/built-in#模型重试)：新的中间件，用于自动重试失败的模型调用，并支持可配置的指数退避。
+    * [内容审核中间件](/langchain/oss/python/integrations/middleware/openai#内容审核)：OpenAI 内容审核中间件，用于检测和处理智能体交互中的不安全内容。支持检查用户输入、模型输出和工具结果。
+</Update>
+<Update label="Oct 20, 2025" tags={["langchain", "langgraph"]} rss={{ title: "Oct 20, 2025 - langchain" }}>
+    ## v1.0.0
+
+    ### `langchain`
+    * [发布说明](/langchain/oss/python/releases/langchain-v1)
+    * [迁移指南](/langchain/oss/python/migrate/langchain-v1)
+
+    ### `langgraph`
+    * [发布说明](/langchain/oss/python/releases/langgraph-v1)
+    * [迁移指南](/langchain/oss/python/migrate/langgraph-v1)
+
+    <Callout icon="speakerphone" color="#4F46E5" iconType="regular">
+    如果您遇到任何问题或有反馈，请 [打开问题](https://github.com/langchain-ai/docs/issues/new?template=01-langchain.yml) 以便我们改进。要查看 v0.x 文档，请 [转到存档内容](https://github.com/langchain-ai/langchain/tree/v0.3/docs/docs) 和 [API 参考](https://reference.langchain.com/v0.3/python/)。
+    </Callout>
+</Update>
+
+---
+
+> 官方原文：[src/oss/python/releases/changelog.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/releases/changelog.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,32 @@
+---
+title: "Graph RAG 集成"
+description: "与 Graph RAG 集成，使用 LangChain Python."
+---
+
+## 概述
+
+[Graph RAG](https://datastax.github.io/graph-rag/) 提供了一个检索接口，该接口结合了 **非结构化** 向量相似度搜索与 **结构化** 元数据属性遍历。这支持基于图结构的检索，可应用于 **现有** 向量存储。
+
+## 安装和设置
+
+<CodeGroup>
+```bash pip
+pip install langchain-graph-retriever
+```
+
+```bash uv
+uv add langchain-graph-retriever
+```
+</CodeGroup>
+
+## 检索器
+
+```python
+from langchain_graph_retriever import GraphRetriever
+```
+
+更多详细信息请参阅 [Graph RAG 集成指南](/langchain/oss/python/integrations/retrievers/graph_rag)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/graph_rag.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/graph_rag.mdx) · 译文由 AI 生成，以英文原文为准。

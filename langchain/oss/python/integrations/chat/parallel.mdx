@@ -1,0 +1,271 @@
+---
+title: "ChatParallel 集成"
+description: "使用 LangChain Python 集成 ChatParallel 对话模型。"
+integration:
+  name: ChatParallel
+  pypi: langchain-parallel
+  stream: true
+  tool_calling: false
+  structured_output: true
+  multimodal: false
+---
+
+>[并行](https://platform.parallel.ai/)是一个为大型语言模型（LLM）和AI应用构建的实时网络搜索和内容提取平台。
+
+`ChatParallel`是Parallel模型的OpenAI兼容聊天界面。`speed`模型是一个低延迟的对话模型，不提供引用；研究模型（`lite`、`base`、`core`）浏览网络，并通过JSON模式返回按字段组织的引用和结构化输出。
+
+<Note>
+    `ChatParallel`是规范类名。较早的`ChatParallelWeb`继续作为同一类的别名工作。
+</Note>
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | JS/TS支持 | 下载 | 最新版本 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| @[`ChatParallel`] | @[`langchain-parallel`] | ✅ | ❌ | <a href="https://pypi.org/project/langchain-parallel/" target="_blank"><img src="https://static.pepy.tech/badge/langchain-parallel/month" alt="Downloads per month" noZoom height="100" class="rounded" /></a> | <a href="https://pypi.org/project/langchain-parallel/" target="_blank"><img src="https://img.shields.io/pypi/v/langchain-parallel?style=flat-square&label=%20&color=orange" alt="PyPI - Latest version" noZoom height="100" class="rounded" /></a> |
+
+### 模型特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | 图像输入 | 音频输入 | 视频输入 | [Token级流式输出](/langchain/oss/langchain/streaming/) | 原生异步 | [Token使用](/langchain/oss/langchain/models#token-使用) | [Logprobs](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ❌ | ✅ (研究模型) | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+
+### 选择模型
+
+| 模型 | 延迟 | 网络浏览 | 引用 | 结构化输出 | 使用场景 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| `speed` | 低 | ❌ | ❌ | ❌ | 从模型的参数化知识中获得对话回答。 |
+| `lite` | 中等 | ✅ | ✅ | ✅ | 带引用的事实查找。 |
+| `base` | 中高 | ✅ | ✅ | ✅ | 带引用的中深度研究。 |
+| `core` | 较高 | ✅ | ✅ | ✅ | 带引用的多源研究。 |
+
+`speed`不遵循`response_format`，因此`with_structured_output()`在那里会引发清晰的错误。当您需要解析的pydantic输出或按字段引用时，请使用研究模型。
+
+## 设置
+
+要访问Parallel模型，请安装`langchain-parallel`集成包并获取[并行](https://platform.parallel.ai) API密钥。
+
+### 安装
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-parallel
+    ```
+    ```bash uv
+    uv add langchain-parallel
+    ```
+</CodeGroup>
+
+### 凭证
+
+前往[并行](https://platform.parallel.ai)注册并生成API密钥。在您的环境中设置`PARALLEL_API_KEY`：
+
+```python
+import getpass
+import os
+
+if not os.environ.get("PARALLEL_API_KEY"):
+    os.environ["PARALLEL_API_KEY"] = getpass.getpass("Parallel API key:\n")
+```
+
+## 实例化
+
+```python
+from langchain_parallel import ChatParallel
+
+llm = ChatParallel(
+    model="speed",
+    # timeout=None,
+    # max_retries=2,
+    # api_key="...",  # optional if PARALLEL_API_KEY is set
+    # base_url="https://api.parallel.ai",  # default
+)
+```
+
+参见 @[`ChatParallel`] API参考以获取所有可用参数的完整集。
+
+## 调用
+
+```python
+messages = [
+    ("system", "You are a helpful assistant with access to real-time web information."),
+    ("human", "What are the latest developments in AI?"),
+]
+ai_msg = llm.invoke(messages)
+print(ai_msg.content)
+```
+
+## 链接
+
+将模型与提示词模板链接：
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+
+prompt = ChatPromptTemplate(
+    [
+        (
+            "system",
+            "You are a research assistant with access to real-time web information. "
+            "Answer questions about {topic} using current sources.",
+        ),
+        ("human", "{question}"),
+    ]
+)
+
+chain = prompt | llm
+chain.invoke(
+    {
+        "topic": "artificial intelligence",
+        "question": "What are the most significant AI breakthroughs in 2026?",
+    }
+)
+```
+
+## 结构化输出
+
+在研究模型（`lite`、`base`、`core`）上，`ChatParallel.with_structured_output(...)`绑定一个JSON-schema `response_format`，并返回一个解析的pydantic对象（或字典）。在`speed`上调用它将引发`ValueError`，因为`speed`会静默忽略`response_format`。
+
+```python
+from pydantic import BaseModel, Field
+
+class Founder(BaseModel):
+    name: str = Field(description="Full name of the founder")
+    company: str = Field(description="Company they founded")
+
+structured = ChatParallel(model="lite").with_structured_output(Founder)
+parsed = structured.invoke([("human", "Who founded SpaceX?")])
+print(parsed)
+```
+
+```text
+name='Elon Musk' company='SpaceX'
+```
+
+`method="json_schema"`（默认）、`method="json_mode"`和`method="function_calling"`都受支持。传递`include_raw=True`以接收完整的`{"raw", "parsed", "parsing_error"}`信封并捕获解析器失败：
+
+```python
+structured = ChatParallel(model="lite").with_structured_output(Founder, include_raw=True)
+res = structured.invoke([("human", "Who founded SpaceX?")])
+res["parsed"]          # Founder(...) or None
+res["parsing_error"]   # Exception or None
+res["raw"]             # original AIMessage
+```
+
+## 引用
+
+研究模型用`AIMessage.response_metadata["basis"]`填充按字段引用、模型的推理和置信度标签。`response_metadata["interaction_id"]`用于多轮上下文链接；`system_fingerprint`在存在时会被转发。
+
+```python
+cited = ChatParallel(model="lite").invoke([
+    ("human", "Who is the current CEO of OpenAI? One sentence."),
+])
+print(cited.content)
+print("\nbasis:", cited.response_metadata.get("basis"))
+print("interaction_id:", cited.response_metadata.get("interaction_id"))
+```
+
+## 流式输出
+
+`ChatParallel`支持按Token流式输出：
+
+```python
+stream = llm.stream_events(messages, version="v3")
+for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+## 异步
+
+```python
+ai_msg = await llm.ainvoke(messages)
+
+stream = await llm.astream_events(messages, version="v3")
+async for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+## Token使用
+
+Parallel目前不提供Token使用元数据。`usage_metadata`是`None`。
+
+```python
+ai_msg = llm.invoke(messages)
+print(ai_msg.usage_metadata)
+# None
+```
+
+## 响应元数据
+
+```python
+ai_msg = llm.invoke(messages)
+print(ai_msg.response_metadata)
+# {'model_name': 'speed', 'finish_reason': 'stop', 'created': 1764043410}
+```
+
+对于研究模型，`response_metadata`还携带`basis`（按字段引用）、`interaction_id`（用于多轮链接）和`system_fingerprint`（当可用时）。
+
+## 错误处理
+
+集成在常见失败模式下引发`ValueError`，并附带描述性消息：
+
+```python
+from langchain_parallel import ChatParallel
+
+try:
+    llm = ChatParallel(api_key="invalid-key")
+    response = llm.invoke([("human", "Hello")])
+except ValueError as e:
+    if "Authentication failed" in str(e):
+        print("Invalid API key provided")
+    elif "Rate limit exceeded" in str(e):
+        print("API rate limit exceeded, please try again later")
+```
+
+## OpenAI兼容性
+
+`ChatParallel`接受许多[OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)参数，用于无缝迁移OpenAI客户端。高级参数如`tools`、`tool_choice`、`top_p`和`frequency_penalty`被接受，但会被Parallel API忽略。
+
+```python
+llm = ChatParallel(
+    model="speed",
+    # accepted but ignored by Parallel:
+    tools=[{"type": "function", "function": {"name": "example"}}],
+    tool_choice="auto",
+    top_p=1.0,
+    frequency_penalty=0.0,
+    presence_penalty=0.0,
+    logit_bias={},
+    seed=42,
+    user="user-123",
+)
+```
+
+对于结构化输出，优先选择`ChatParallel.with_structured_output(...)`（参见[结构化输出](#结构化输出)），而不是直接传递`response_format`。它在研究模型上工作，并返回解析的对象。
+
+## 消息处理
+
+集成将连续的同类型消息合并以满足API要求：
+
+```python
+from langchain.messages import HumanMessage, SystemMessage
+
+# Consecutive system messages are automatically merged before the API call.
+messages = [
+    SystemMessage("You are a helpful assistant."),
+    SystemMessage("Always be polite and concise."),
+    HumanMessage("What is the weather like today?"),
+]
+
+response = llm.invoke(messages)
+```
+
+## API参考
+
+有关详细文档，请前往 @[`ChatParallel`] API参考或[Parallel聊天API快速入门](https://docs.parallel.ai/chat-api/chat-quickstart)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/parallel.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/parallel.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,99 @@
+---
+title: "vLLM 集成"
+description: "与vLLM对话模型通过LangChain Python集成"
+integration:
+  name: vLLM
+  pypi: langchain-openai
+---
+
+vLLM 可以部署为一个模拟 OpenAI API 协议的服务器。这允许 vLLM 作为使用 OpenAI API 应用的即插即用替代方案。该服务器可以使用与 OpenAI API 相同的格式进行查询。
+
+## 概述
+
+这将帮助您开始使用 vLLM [对话模型](/langchain/oss/langchain/models)，它利用了 `langchain-openai` 包。有关 @[`ChatOpenAI`] 所有功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI)。
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | JS 支持 | 下载 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| [`ChatOpenAI`](https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI) | [`langchain_openai`](https://reference.langchain.com/python/langchain-openai) | beta | ❌ | ![PyPI - 下载](https://img.shields.io/pypi/dm/langchain_openai?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain_openai?style=flat-square&label=%20) |
+
+### 模型特性
+
+特定的模型特性，例如工具调用、支持多模态输入、支持 Token 级别的流式输出等，将取决于托管的模型。
+
+## 设置
+
+请参阅 [vLLM 文档](https://docs.vllm.ai/en/latest/)。
+
+要通过 LangChain 访问 vLLM 模型，您需要安装 `langchain-openai` 集成包。
+
+### 凭证
+
+身份验证将取决于推理服务器的具体细节。
+
+要启用您的模型调用的自动跟踪，请设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+```
+
+### 安装
+
+可以通过 `langchain-openai` 包访问 LangChain vLLM 集成：
+
+```python
+pip install -qU langchain-openai
+```
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成对话补全：
+
+```python
+from langchain.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
+```
+
+```python
+inference_server_url = "http://localhost:8000/v1"
+
+llm = ChatOpenAI(
+    model="mosaicml/mpt-7b",
+    api_key="your api key goes here",
+    base_url=inference_server_url,
+    max_tokens=5,
+    temperature=0,
+)
+```
+
+## 调用
+
+```python
+messages = [
+    SystemMessage(
+        content="You are a helpful assistant that translates English to Italian."
+    ),
+    HumanMessage(
+        content="Translate the following sentence from English to Italian: I love programming."
+    ),
+]
+llm.invoke(messages)
+```
+
+```text
+AIMessage(content=' Io amo programmare', additional_kwargs={}, example=False)
+```
+
+---
+
+## API 参考
+
+有关通过 `langchain-openai` 暴露的所有功能和配置的详细文档，请访问 API 参考：[reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI](https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI)
+
+同时请参考 vLLM [文档](https://docs.vllm.ai/en/latest/)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/vllm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/vllm.mdx) · 译文由 AI 生成，以英文原文为准。

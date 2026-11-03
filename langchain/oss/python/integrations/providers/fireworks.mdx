@@ -1,0 +1,36 @@
+---
+title: "Fireworks 集成"
+description: "与 Fireworks AI 集成，使用 LangChain Python."
+sidebarTitle: "Fireworks"
+---
+
+[Fireworks AI](https://fireworks.ai/) 提供快速推理能力的开放和私有语言模型。`langchain-fireworks` 包实现了 Fireworks API 的 LangChain 聊天和嵌入接口。
+
+## 安装与配置
+
+<CodeGroup>
+```bash pip
+pip install langchain-fireworks
+```
+
+```bash uv
+uv add langchain-fireworks
+```
+</CodeGroup>
+
+从 [fireworks.ai](https://app.fireworks.ai/login) 获取 API 密钥并设置 `FIREWORKS_API_KEY` 环境变量。
+
+## 模型接口
+
+<Columns cols={2}>
+    <Card title="ChatFireworks" href="/langchain/oss/python/integrations/chat/fireworks" cta="Get started" icon="message" arrow>
+        Fireworks AI 上托管聊天模型的接口
+    </Card>
+    <Card title="FireworksEmbeddings" href="/langchain/oss/python/integrations/embeddings/fireworks" cta="Get started" icon="layers-difference" arrow>
+        Fireworks AI 提供的嵌入模型
+    </Card>
+</Columns>
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/fireworks.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/fireworks.mdx) · 译文由 AI 生成，以英文原文为准。

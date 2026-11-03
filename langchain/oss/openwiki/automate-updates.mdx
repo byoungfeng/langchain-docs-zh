@@ -1,0 +1,63 @@
+---
+title: "自动化更新"
+sidebarTitle: "自动化更新"
+description: "使用 GitHub Actions、GitLab CI 或 Bitbucket Pipelines 调度 OpenWiki 文档更新"
+---
+
+OpenWiki 可以按计划刷新仓库文档，并在 wiki 发生变化时打开拉取请求或合并请求。示例工作流包含在 [OpenWiki 仓库](https://github.com/langchain-ai/openwiki/tree/main/examples) 中。
+
+## 添加工作流
+
+复制适合您 Git 提供商的示例：
+
+| 提供商 | 示例 | 目的地 |
+| --- | --- | --- |
+| GitHub Actions | [`openwiki-update.yml`](https://github.com/langchain-ai/openwiki/blob/main/examples/openwiki-update.yml) | `.github/workflows/openwiki-update.yml` |
+| GitLab CI | [`openwiki-update.gitlab-ci.yml`](https://github.com/langchain-ai/openwiki/blob/main/examples/openwiki-update.gitlab-ci.yml) | `.gitlab-ci.yml`，或从现有工作流中包含 |
+| Bitbucket Pipelines | [`openwiki-update.bitbucket-pipelines.yml`](https://github.com/langchain-ai/openwiki/blob/main/examples/openwiki-update.bitbucket-pipelines.yml) | `bitbucket-pipelines.yml`，然后安排 `openwiki-update` 自定义工作流 |
+
+## 在 CI 中运行更新
+
+对于 CI 中的仓库文档，使用：
+
+```bash
+openwiki code --update --print
+```
+
+您无需在 CI 中运行 `--init`。`--update` 会创建初始 `openwiki/` 文档（只要工作流提供了所需的提供商和模型环境变量）。
+
+将凭证作为仓库密钥或 CI 变量提供。典型值包括：
+
+- 提供商 API 密钥（或 Copilot OAuth 令牌 / 云凭证，适用于无密钥提供商）
+- `OPENWIKI_PROVIDER`
+- `OPENWIKI_MODEL_ID`
+- 可选的 `LANGSMITH_API_KEY` 用于跟踪
+- 可选的 `OPENWIKI_LANGSMITH_API_KEY` 当仓库使用 [LangSmith 连接器](/langchain/oss/openwiki/code-mode#langsmith连接器) 时
+
+计划工作流在文件更改时，会将生成的 wiki 文件、`openwiki/.claims/` 下的声明、`AGENTS.md`、`CLAUDE.md` 以及工作流本身包含在文档拉取请求中。
+
+仓库生成可以通过 `openwiki/.run.json` 和 `openwiki/.page-manifest.json` 在持久工作区上恢复。临时 CI 运行者在失败后会重新开始，除非其工作区被保留，并且当运行在完成部分页面后失败时，OpenWiki 仍然可以发布部分进度。
+
+## 空更新
+
+干净的 `--update` 运行会跳过模型工作并保留 wiki 内容不变，同时刷新 `openwiki/.last-update.json` 以确保新鲜度检查反映检查已运行。如果 wiki Markdown 和声明没有变化，CI 不会打开拉取请求。
+
+## CI 中的遥测
+
+计划和 CI 运行会在共享 CI 标识符下发送匿名可靠性遥测。要在 CI 中禁用遥测，请设置：
+
+```bash
+OPENWIKI_TELEMETRY_DISABLED=1
+```
+
+您可以在示例工作流中取消注释相应的行。要了解收集的内容以及如何在本地选择退出，请参阅 [自定义 OpenWiki](/langchain/oss/openwiki/customize#遥测)。
+
+## 参见
+
+- [代码模式](/langchain/oss/openwiki/code-mode)
+- [模型提供商](/langchain/oss/openwiki/providers)
+- [CLI 参考](/langchain/oss/openwiki/cli-reference)
+
+---
+
+> 官方原文：[src/oss/openwiki/automate-updates.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/automate-updates.mdx) · 译文由 AI 生成，以英文原文为准。

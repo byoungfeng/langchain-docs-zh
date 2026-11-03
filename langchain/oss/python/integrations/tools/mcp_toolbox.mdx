@@ -1,0 +1,266 @@
+---
+title: "Mcp toolbox for databases 集成"
+description: "使用 LangChain Python 集成 Mcp 工具箱数据库工具。"
+integration:
+  name: Mcp toolbox for databases
+  pypi: toolbox-langchain
+---
+
+
+将数据库与LangChain智能体通过MCP Toolbox集成。
+
+## 概述
+
+[MCP Toolbox for Databases](https://github.com/googleapis/genai-toolbox) 是一个开源的MCP数据库服务器。它专为 enterprise-grade 和生产级设计，通过处理连接池、身份验证等复杂问题，使您能更安全、更高效地开发工具。
+
+MCP Toolbox工具可与LangChain应用无缝集成。更多关于 [快速入门](https://mcp-toolbox.dev/documentation/getting-started/local_quickstart/) 或 [配置指南](https://mcp-toolbox.dev/documentation/configuration/) 的信息，请参考 [官方文档](https://mcp-toolbox.dev/documentation/introduction/)。
+
+![architecture](https://raw.githubusercontent.com/googleapis/genai-toolbox/refs/heads/main/docs/en/getting-started/introduction/architecture.png)
+
+## 安装
+
+本指南假设您已完成以下操作：
+
+1. 安装 [Python 3.9+](https://wiki.python.org/moin/BeginnersGuide/Download) 和 [pip](https://pip.pypa.io/en/stable/installation/)。
+2. 安装 [PostgreSQL 16+ 和 `psql` 命令行客户端](https://www.postgresql.org/download/)。
+
+### 1. 设置数据库
+
+首先让我们配置PostgreSQL数据库。我们将创建一个新数据库、专用的MCP Toolbox用户，并创建一个包含示例数据的 `hotels` 表。
+
+使用 `psql` 命令连接PostgreSQL。根据您的PostgreSQL配置可能需要调整命令（例如指定主机或使用不同超级用户）。
+
+```bash
+psql -U postgres
+```
+
+现在运行以下SQL命令来创建用户、数据库并授予权限：
+
+```sql
+CREATE USER toolbox_user WITH PASSWORD 'my-password';
+CREATE DATABASE toolbox_db;
+GRANT ALL PRIVILEGES ON DATABASE toolbox_db TO toolbox_user;
+ALTER DATABASE toolbox_db OWNER TO toolbox_user;
+```
+
+使用新用户连接到刚创建的数据库：
+
+```sql
+\c toolbox_db toolbox_user
+```
+
+最后创建 `hotels` 表并插入数据：
+
+```sql
+CREATE TABLE hotels(
+  id            INTEGER NOT NULL PRIMARY KEY,
+  name          VARCHAR NOT NULL,
+  location      VARCHAR NOT NULL,
+  price_tier    VARCHAR NOT NULL,
+  booked        BIT     NOT NULL
+);
+
+INSERT INTO hotels(id, name, location, price_tier, booked)
+VALUES
+  (1, 'Hilton Basel', 'Basel', 'Luxury', B'0'),
+  (2, 'Marriott Zurich', 'Zurich', 'Upscale', B'0'),
+  (3, 'Hyatt Regency Basel', 'Basel', 'Upper Upscale', B'0');
+```
+
+退出 `psql` 时输入 `\q`。
+
+### 2. 安装MCP toolbox
+
+接下来安装MCP Toolbox，在 `tools.yaml` 配置文件中定义工具，并启动MCP Toolbox服务器。
+
+对于 **macOS** 用户，最便捷的安装方式是通过 [Homebrew](https://formulae.brew.sh/formula/mcp-toolbox)：
+
+```bash
+brew install mcp-toolbox
+```
+
+其他平台请 [下载适用于您操作系统和架构的最新MCP Toolbox二进制文件](https://github.com/googleapis/genai-toolbox/releases)。
+
+创建 `tools.yaml` 文件。该文件定义了MCP Toolbox可连接的数据源以及向智能体暴露的工具。生产环境中请始终使用环境变量存储敏感信息。
+
+```yaml
+sources:
+  my-pg-source:
+    kind: postgres
+    host: 127.0.0.1
+    port: 5432
+    database: toolbox_db
+    user: toolbox_user
+    password: my-password
+
+tools:
+  search-hotels-by-location:
+    kind: postgres-sql
+    source: my-pg-source
+    description: Search for hotels based on location.
+    parameters:
+      - name: location
+        type: string
+        description: The location of the hotel.
+    statement: SELECT id, name, location, price_tier FROM hotels WHERE location ILIKE '%' || $1 || '%';
+  book-hotel:
+    kind: postgres-sql
+    source: my-pg-source
+    description: >-
+        Book a hotel by its ID. If the hotel is successfully booked, returns a confirmation message.
+    parameters:
+      - name: hotel_id
+        type: integer
+        description: The ID of the hotel to book.
+    statement: UPDATE hotels SET booked = B'1' WHERE id = $1;
+
+toolsets:
+  hotel_toolset:
+    - search-hotels-by-location
+    - book-hotel
+```
+
+在另一个终端窗口启动MCP Toolbox服务器。若通过Homebrew安装，直接运行 `toolbox` 即可。若手动下载二进制文件，需在保存文件的目录下运行 `./toolbox`：
+
+```bash
+toolbox --tools-file "tools.yaml"
+```
+
+MCP Toolbox默认在 `http://127.0.0.1:5000` 启动，并支持 `tools.yaml` 文件的实时热重载。
+
+## 初始化
+
+```python
+!pip install toolbox-langchain
+```
+
+```python
+from toolbox_langchain import ToolboxClient
+
+with ToolboxClient("http://127.0.0.1:5000") as client:
+    search_tool = await client.aload_tool("search-hotels-by-location")
+```
+
+
+## 调用
+
+```python
+from toolbox_langchain import ToolboxClient
+
+with ToolboxClient("http://127.0.0.1:5000") as client:
+    search_tool = await client.aload_tool("search-hotels-by-location")
+    results = search_tool.invoke({"location": "Basel"})
+    print(results)
+```
+
+```json
+[{"id":1,"location":"Basel","name":"Hilton Basel","price_tier":"Luxury"},{"id":3,"location":"Basel","name":"Hyatt Regency Basel","price_tier":"Upper Upscale"}]
+```
+
+
+## 在智能体中使用
+
+现在进入关键环节！我们将安装所需LangChain包，并创建一个能使用MCP Toolbox定义的工具的智能体。
+
+```python
+pip install -qU toolbox-langchain langgraph langchain-google-vertexai
+```
+
+安装完成后，使用 `ChatVertexAI` 作为模型，通过 `ToolboxClient` 加载工具。来自 `langchain.agents` 的 @[`create_agent`] 创建了一个能智能决策调用工具的健壮智能体。
+
+**注意**：在执行下方代码前请确保MCP Toolbox服务器已在单独终端运行。
+
+```python
+from langchain.agents import create_agent
+from langchain_google_vertexai import ChatVertexAI
+from langgraph.checkpoint.memory import MemorySaver
+from toolbox_langchain import ToolboxClient
+
+
+prompt = """
+You're a helpful hotel assistant. You handle hotel searching and booking.
+When the user searches for a hotel, list the full details for each hotel found: id, name, location, and price tier.
+Always use the hotel ID for booking operations.
+For any bookings, provide a clear confirmation message.
+Don't ask for clarification or confirmation from the user; perform the requested action directly.
+"""
+
+
+async def run_queries(agent_executor):
+    config = {"configurable": {"thread_id": "hotel-thread-1"}}
+
+    # --- Query 1: Search for hotels ---
+    query1 = "I need to find a hotel in Basel."
+    print(f'\n--- USER: "{query1}" ---')
+    inputs1 = {"messages": [("user", prompt + query1)]}
+    async for event in agent_executor.astream_events(
+        inputs1, config=config, version="v2"
+    ):
+        if event["event"] == "on_chat_model_end" and event["data"]["output"].content:
+            print(f"--- AGENT: ---\n{event['data']['output'].content}")
+
+    # --- Query 2: Book a hotel ---
+    query2 = "Great, please book the Hyatt Regency Basel for me."
+    print(f'\n--- USER: "{query2}" ---')
+    inputs2 = {"messages": [("user", query2)]}
+    async for event in agent_executor.astream_events(
+        inputs2, config=config, version="v2"
+    ):
+        if event["event"] == "on_chat_model_end" and event["data"]["output"].content:
+            print(f"--- AGENT: ---\n{event['data']['output'].content}")
+```
+
+
+## 运行智能体
+
+```python
+async def main():
+    await run_hotel_agent()
+
+
+async def run_hotel_agent():
+    model = ChatVertexAI(model_name="gemini-2.5-flash")
+
+    # Load the tools from the running MCP Toolbox server
+    async with ToolboxClient("http://127.0.0.1:5000") as client:
+        tools = await client.aload_toolset("hotel_toolset")
+
+        agent = create_agent(model, tools, checkpointer=MemorySaver())
+
+        await run_queries(agent)
+
+
+await main()
+```
+
+您已成功通过MCP Toolbox将LangChain智能体连接到本地数据库！🎉
+
+---
+
+## API参考
+
+核心集成类为 `ToolboxClient`。
+
+更多详情请查阅以下资源：
+
+- [MCP官方文档](https://mcp-toolbox.dev/)
+- [MCP GitHub仓库](https://github.com/googleapis/genai-toolbox)
+- [MCP LangChain SDK](https://github.com/googleapis/mcp-toolbox-python-sdk/tree/main/packages/toolbox-langchain)
+
+MCP Toolbox提供多项特性确保数据库生成式AI工具开发流畅：
+
+- [认证参数](https://mcp-toolbox.dev/documentation/configuration/tools/)：自动将工具输入绑定到OIDC令牌，安全执行敏感查询且避免数据泄露
+- [授权调用](https://mcp-toolbox.dev/documentation/configuration/tools/)：基于用户认证令牌限制工具访问权限
+- [OpenTelemetry](https://mcp-toolbox.dev/documentation/monitoring/telemetry/)：通过 [OpenTelemetry](https://opentelemetry.io/docs/) 获取MCP Toolbox的指标和追踪信息
+
+# 社区与支持
+
+欢迎加入社区：
+
+- ⭐️ 访问 [GitHub仓库](https://github.com/googleapis/genai-toolbox) 获取最新动态并跟踪更新
+- 📚 深入阅读 [官方文档](https://mcp-toolbox.dev/documentation/introduction/) 学习高级功能与配置
+- 💬 加入 [Discord服务器](https://discord.com/invite/a4XjGqtmnG) 与社区互动并解决问题
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/mcp_toolbox.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/mcp_toolbox.mdx) · 译文由 AI 生成，以英文原文为准。

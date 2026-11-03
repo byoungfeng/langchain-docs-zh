@@ -1,0 +1,224 @@
+---
+title: "OpenAPI 工具包集成"
+description: "使用 LangChain JavaScript 集成 OpenAPI 工具包。"
+integration:
+  name: OpenAPI toolkit
+  npm: '@langchain/langgraph'
+---
+
+
+<Warning>
+这个智能体可以向外部 API 发送请求。请谨慎使用，尤其是在向用户授予访问权限时。
+
+请注意，理论上这个智能体可能会使用提供的凭证或其他敏感数据向未经验证或潜在的恶意 URL 发送请求——尽管理论上它不应该这样做。
+
+考虑添加限制，以控制智能体可以执行的操作、可以访问的 API、可以传递的标头等。
+
+此外，考虑实施措施，在发送请求之前验证 URL，并安全地处理和保护凭证等敏感数据。
+
+</Warning>
+
+这将帮助您开始使用 `OpenApiToolkit` [OpenAPI 工具包](/langchain/oss/javascript/integrations/tools/openapi)。 `OpenApiToolkit` 现在位于 `@langchain/classic`。有关迁移详情，请参阅 [LangChain v1 迁移指南](/langchain/oss/python/migrate/langchain-v1)。
+
+`OpenAPIToolkit` 可以访问以下工具：
+
+| 名称            | 描述 |
+|-----------------|-------------|
+| `requests_get`  | 互联网门户。当您需要从网站获取特定内容时使用此工具。输入应为 URL 字符串（例如 "[www.google.com](https://www.google.com)"）。输出将是 GET 请求的文本响应。 |
+| `requests_post` | 当您想要向网站发送 POST 请求时使用此工具。输入应为包含两个键的 json 字符串："url" 和 "data"。 "url" 的值应为字符串，"data" 的值应为要作为 JSON 正文发送到 URL 的键值对字典。请小心在 json 字符串中始终使用双引号表示字符串。输出将是 POST 请求的文本响应。 |
+| `json_explorer` | 可用于回答有关 API 的 OpenAPI 规范的问题。在尝试发送请求之前始终使用此工具。此工具的示例输入："GET 请求到 /bar 端点的必需查询参数是什么？" "POST 请求到 /foo 端点的请求正文中的必需参数是什么？" 始终向此工具提供一个具体的问题。 |
+
+## 设置
+
+这个工具包需要一个 OpenAPI 规范文件。LangChain.js 仓库在 `examples` 目录中有一个 [示例 OpenAPI 规范文件](https://github.com/langchain-ai/langchainjs/blob/cc21aa29102571204f4443a40b53d28581a12e30/examples/openai_openapi.yaml)。您可以使用此文件来测试工具包。
+
+如果您希望从单个工具的运行中获得自动跟踪，您也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```typescript
+process.env.LANGSMITH_TRACING="true"
+process.env.LANGSMITH_API_KEY="your-api-key"
+```
+
+### 安装
+
+这个工具包位于 `langchain` 包中：
+
+<CodeGroup>
+```bash npm
+npm install langchain @langchain/core
+```
+```bash yarn
+yarn add langchain @langchain/core
+```
+```bash pnpm
+pnpm add langchain @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的工具包。首先，我们需要定义希望在工具包中使用的大型语言模型。
+
+```typescript
+// @lc-docs-hide-cell
+
+import { ChatOpenAI } from "@langchain/openai";
+const llm = new ChatOpenAI({
+  model: "gpt-5.4-mini",
+  temperature: 0,
+})
+```
+
+```typescript
+import { OpenApiToolkit } from "@langchain/classic/agents/toolkits"
+import * as fs from "fs";
+import * as yaml from "js-yaml";
+import { JsonSpec, JsonObject } from "@langchain/classic/tools";
+
+// Load & convert the OpenAPI spec from YAML to JSON.
+const yamlFile = fs.readFileSync("../../../../../examples/openai_openapi.yaml", "utf8");
+const data = yaml.load(yamlFile) as JsonObject;
+if (!data) {
+  throw new Error("Failed to load OpenAPI spec");
+}
+
+// Define headers for the API requests.
+const headers = {
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+};
+
+const toolkit = new OpenApiToolkit(new JsonSpec(data), llm, headers);
+```
+
+## 工具
+
+查看可用工具：
+
+```typescript
+const tools = toolkit.getTools();
+
+console.log(tools.map((tool) => ({
+  name: tool.name,
+  description: tool.description,
+})))
+```
+
+```text
+[
+  {
+    name: 'requests_get',
+    description: 'A portal to the internet. Use this when you need to get specific content from a website.\n' +
+      '  Input should be a url string (i.e. "https://www.google.com"). The output will be the text response of the GET request.'
+  },
+  {
+    name: 'requests_post',
+    description: 'Use this when you want to POST to a website.\n' +
+      '  Input should be a json string with two keys: "url" and "data".\n' +
+      '  The value of "url" should be a string, and the value of "data" should be a dictionary of\n' +
+      '  key-value pairs you want to POST to the url as a JSON body.\n' +
+      '  Be careful to always use double quotes for strings in the json string\n' +
+      '  The output will be the text response of the POST request.'
+  },
+  {
+    name: 'json_explorer',
+    description: '\n' +
+      'Can be used to answer questions about the openapi spec for the API. Always use this tool before trying to make a request. \n' +
+      'Example inputs to this tool: \n' +
+      "    'What are the required query parameters for a GET request to the /bar endpoint?'\n" +
+      "    'What are the required parameters in the request body for a POST request to the /foo endpoint?'\n" +
+      'Always give this tool a specific question.'
+  }
+]
+```
+
+## 在智能体中使用
+
+首先，确保已安装 LangGraph：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/langgraph
+```
+```bash yarn
+yarn add @langchain/langgraph
+```
+```bash pnpm
+pnpm add @langchain/langgraph
+```
+</CodeGroup>
+
+```typescript
+import { createAgent } from "@langchain/classic"
+
+const agentExecutor = createAgent({ llm, tools });
+```
+
+```typescript
+const exampleQuery = "Make a POST request to openai /chat/completions. The prompt should be 'tell me a joke.'. Ensure you use the model 'gpt-5.4-mini'."
+
+const stream = await agentExecutor.streamEvents(
+  { messages: [["user", exampleQuery]] },
+  { version: "v3" },
+);
+
+for await (const snapshot of stream.values) {
+  const lastMsg = snapshot.messages[snapshot.messages.length - 1];
+  if (lastMsg.tool_calls?.length) {
+    console.dir(lastMsg.tool_calls, { depth: null });
+  } else if (lastMsg.content) {
+    console.log(lastMsg.content);
+  }
+}
+```
+
+```json
+[
+  {
+    name: 'requests_post',
+    args: {
+      input: '{"url":"https://api.openai.com/v1/chat/completions","data":{"model":"gpt-5.4-mini","messages":[{"role":"user","content":"tell me a joke."}]}}'
+    },
+    type: 'tool_call',
+    id: 'call_1HqyZrbYgKFwQRfAtsZA2uL5'
+  }
+]
+{
+  "id": "chatcmpl-9t36IIuRCs0WGMEy69HUqPcKvOc1w",
+  "object": "chat.completion",
+  "created": 1722906986,
+  "model": "gpt-5.4-mini",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Why don't skeletons fight each other? \n\nThey don't have the guts!"
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 15,
+    "total_tokens": 27
+  },
+  "system_fingerprint": "fp_48196bc67a"
+}
+
+Here's a joke for you:
+
+**Why don't skeletons fight each other?**
+They don't have the guts!
+```
+
+---
+
+## API 参考
+
+目前 `OpenApiToolkit` 在 `@langchain/classic` 中没有专门的 API 参考页面。有关实现详情，请参阅 [`OpenApiToolkit` 源代码在 `langchainjs`](https://github.com/langchain-ai/langchainjs/blob/main/libs/langchain-classic/src/agents/toolkits/openapi/openapi.ts)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/tools/openapi.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/tools/openapi.mdx) · 译文由 AI 生成，以英文原文为准。

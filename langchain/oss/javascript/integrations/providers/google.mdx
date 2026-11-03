@@ -1,0 +1,146 @@
+---
+title: "Google 集成"
+description: "使用 LangChain JavaScript 集成 Google"
+sidebarTitle: "概述"
+---
+
+LangChain 通过 `@langchain/google` 包提供了与 [Google AI Studio](https://aistudio.google.com/) 和 [Gemini Enterprise Agent Platform](https://cloud.google.com/products/gemini-enterprise-agent-platform) 的集成。
+
+<Info>
+  查找旧的 `@langchain/google-genai` 或 `@langchain/google-vertexai` 包？它们在 [长期支持](#旧版包) 下进行维护，但不再推荐用于新项目。
+</Info>
+
+## 对话模型
+
+[`ChatGoogle`](/langchain/oss/javascript/integrations/chat/google) 类是访问 Gemini 模型（如 `gemini-2.5-pro`、`gemini-2.5-flash` 和 `gemini-3.1-pro-preview`）以及类似 Gemma 的开源模型推荐方式。它通过单一接口支持 Google AI Studio 和 Gemini Enterprise Agent Platform。
+
+<Tip>
+See [this section for general instructions on installing LangChain packages](/langchain/oss/langchain/install).
+</Tip>
+
+<CodeGroup>
+```bash npm
+npm install @langchain/google @langchain/core
+```
+```bash yarn
+yarn add @langchain/google @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/google @langchain/core
+```
+</CodeGroup>
+
+配置您的 API 密钥：
+
+```bash
+export GOOGLE_API_KEY=your-api-key
+```
+
+```typescript
+import { ChatGoogle } from "@langchain/google";
+
+const model = new ChatGoogle("gemini-2.5-flash");
+
+const res = await model.invoke([
+  ["human", "What would be a good company name for a company that makes colorful socks?"],
+]);
+```
+
+`ChatGoogle` 支持工具调用、结构化输出、多模态输入（图像、音频、视频）、推理/思考、图像生成、文本转语音，以及 Gemini 特定的原生工具，如 Google 搜索基础和代码执行。
+
+<CardGroup cols={2}>
+  <Card
+    title="ChatGoogle"
+    icon="message-chatbot"
+    href="/langchain/oss/javascript/integrations/chat/google"
+  >
+    完整的对话模型文档，包括设置、调用、流式输出、结构化输出等。
+  </Card>
+  <Card
+    title="Gemini 原生工具"
+    icon="tool"
+    href="/langchain/oss/javascript/integrations/tools/google"
+  >
+    Google 搜索、代码执行、URL 上下文、Google 地图、文件搜索、计算机使用和 MCP 服务器。
+  </Card>
+</CardGroup>
+
+### Gemini Enterprise Agent Platform 上的第三方模型
+
+[Anthropic](/langchain/oss/python/integrations/chat/anthropic) Claude 模型也通过 [Gemini Enterprise Agent Platform](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude) 平台提供。有关启用模型访问和使用的模型名称的更多信息，请参阅 [在 Gemini Enterprise Agent Platform 上使用 Claude](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude)。
+
+### Postgres 向量存储（Cloud SQL）
+
+[PostgresVectorStore](/langchain/oss/javascript/integrations/vectorstores/google_cloudsql_pg) 模块来自 [`@langchain/google-cloud-sql-pg`](https://www.npmjs.com/package/@langchain/google-cloud-sql-pg) 包，提供了使用 CloudSQL for PostgreSQL 存储向量嵌入的方式。
+
+```bash
+npm install @langchain/google-cloud-sql-pg @langchain/core
+```
+
+## 旧版包
+
+以下包为现有用户提供长期支持。新项目应使用 `@langchain/google`。
+
+### `@langchain/google-genai`
+
+`@langchain/google-genai` 包提供了 [`ChatGoogleGenerativeAI`](/langchain/oss/python/integrations/chat/google_generative_ai) 和 [`GoogleGenerativeAIEmbeddings`](/langchain/oss/python/integrations/embeddings/google_generative_ai)，用于通过 Google AI Studio 访问 Gemini 模型。该包基于已弃用的 Google SDK 构建，将不会获得新功能。
+
+```bash
+npm install @langchain/google-genai @langchain/core
+```
+
+### `@langchain/google-vertexai`
+
+`@langchain/google-vertexai` 包提供了 [`ChatVertexAI`](/langchain/oss/python/integrations/chat/google_vertex_ai)、[`VertexAIEmbeddings`](/langchain/oss/python/integrations/embeddings/google_vertex_ai) 和 [`VertexAI`](/langchain/oss/python/integrations/llms/google_vertex_ai)，用于 Node.js 上的 Gemini Enterprise Agent Platform。它依赖于 [`@langchain/google-gauth`](#%40langchain%2Fgoogle-gauth) 进行身份验证。该包已被 `@langchain/google` 中为对话构建的 Gemini Enterprise Agent Platform 支持所取代。
+
+```bash
+npm install @langchain/google-vertexai @langchain/core
+```
+
+### `@langchain/google-vertexai-web`
+
+`@langchain/google-vertexai-web` 包为浏览器和 Edge 运行时提供了相同的 Gemini Enterprise Agent Platform 对话、嵌入和 LLM 类。在 Web 环境中运行时，请安装此包（而不是 `@langchain/google-vertexai`）。它依赖于 [`@langchain/google-webauth`](#%40langchain%2Fgoogle-webauth)。
+
+```bash
+npm install @langchain/google-vertexai-web @langchain/core
+```
+
+请参阅 [Gemini Enterprise Agent Platform 对话](/langchain/oss/python/integrations/chat/google_vertex_ai) 页面获取 `GOOGLE_WEB_CREDENTIALS` 和 Web 导入路径。
+
+### `@langchain/google-webauth`
+
+[`@langchain/google-webauth`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-google-webauth) 包为旧版 Gemini Enterprise Agent Platform 集成提供了浏览器和 Edge 身份验证。它与 `@langchain/google-vertexai-web` 自动安装——不要与 `@langchain/google-gauth` 一起安装。
+
+在 `GOOGLE_WEB_CREDENTIALS`（或已弃用的 `GOOGLE_VERTEX_AI_WEB_CREDENTIALS`）中设置服务账户 JSON。您也可以将 `apiKey` 或 `authOptions` 传递给模型构造函数，或设置 `API_KEY` 环境变量。
+
+### `@langchain/google-gauth`
+
+[`@langchain/google-gauth`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-google-gauth) 包为基于 [`@langchain/google-common`](#%40langchain%2Fgoogle-common) 构建的旧版 Google 集成提供了 Node.js 身份验证。当您添加 `@langchain/google-vertexai` 时，它会自动安装——通常您**不**直接安装或导入 `@langchain/google-gauth`。
+
+在 Node.js 上，凭据按以下顺序解析：
+
+1. 传递给模型构造函数的 `apiKey`
+2. 传递给模型构造函数的 `authOptions`
+3. `API_KEY` 环境变量
+4. `GOOGLE_APPLICATION_CREDENTIALS` 路径中的服务账户 JSON
+5. 应用默认凭据（例如在 `gcloud auth application-default login` 之后，或在 Google Cloud 上）
+
+不要在同一个项目中使用 `@langchain/google-gauth` 和 `@langchain/google-webauth`。
+
+统一的 [`@langchain/google`](/langchain/oss/javascript/integrations/chat/google) 包直接使用 `google-auth-library`，并且不需要 `@langchain/google-gauth` 或 `@langchain/google-webauth`。
+
+### `@langchain/google-cloud-sql-pg`
+
+[`@langchain/google-cloud-sql-pg`](https://www.npmjs.com/package/@langchain/google-cloud-sql-pg) 包提供了 [`PostgresVectorStore`](/langchain/oss/javascript/integrations/vectorstores/google_cloudsql_pg) 和 [`PostgresLoader`](/langchain/oss/javascript/integrations/document_loaders/web_loaders/google_cloudsql_pg)，用于 Cloud SQL for PostgreSQL。它与上面提到的 Gemini 对话包是分开的。
+
+### `@langchain/google-common`
+
+[`@langchain/google-common`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-google-common) 包为旧版集成（如 [`@langchain/google-vertexai`](/langchain/oss/python/integrations/chat/google_vertex_ai)）提供了共享的 Gemini 客户端抽象。它不包括授权代码，并且**不是**一个独立的包——不要直接安装或导入它。
+
+<Tip>
+  要从 `@langchain/google-genai` 或 `@langchain/google-vertexai` 迁移到 `@langchain/google`，请参阅 [ChatGoogle](/langchain/oss/javascript/integrations/chat/google) 页面的设置说明。`ChatGoogle` 类提供了与 Google AI Studio 和 Gemini Enterprise Agent Platform 统一访问的等效功能。
+</Tip>
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/google.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/google.mdx) · 译文由 AI 生成，以英文原文为准。

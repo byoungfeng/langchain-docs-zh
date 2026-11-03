@@ -1,0 +1,88 @@
+---
+title: "安装 LangGraph"
+sidebarTitle: "安装"
+description: "要安装基础 LangGraph 包："
+---
+
+要安装基础 LangGraph 包：
+
+:::python
+<CodeGroup>
+```bash pip
+pip install -U langgraph
+```
+
+```bash uv
+uv add langgraph
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npm install @langchain/langgraph @langchain/core
+```
+
+```bash pnpm
+pnpm add @langchain/langgraph @langchain/core
+```
+
+```bash yarn
+yarn add @langchain/langgraph @langchain/core
+```
+
+```bash bun
+bun add @langchain/langgraph @langchain/core
+```
+</CodeGroup>
+:::
+
+要使用 LangGraph，通常需要访问大语言模型（LLMs）并定义工具。
+您可以通过任何您认为合适的方式实现。
+
+一种方法（我们将在文档中使用）是通过 [LangChain](/langchain/oss/langchain/overview) 实现。
+
+安装 LangChain 的命令如下：
+
+:::python
+<CodeGroup>
+```bash pip
+pip install -U langchain
+# Requires Python 3.10+
+```
+
+```bash uv
+uv add langchain
+# Requires Python 3.10+
+```
+</CodeGroup>
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npm install langchain
+```
+
+```bash pnpm
+pnpm add langchain
+```
+
+```bash yarn
+yarn add langchain
+```
+
+```bash bun
+bun add langchain
+```
+</CodeGroup>
+:::
+
+要使用特定的大语言模型（LLM）供应商包，您需要单独安装它们。
+
+请参考 [integrations](/langchain/oss/python/integrations/providers/overview) 页面获取供应商特定的安装说明。
+
+---
+
+> 官方原文：[src/oss/langgraph/install.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/install.mdx) · 译文由 AI 生成，以英文原文为准。

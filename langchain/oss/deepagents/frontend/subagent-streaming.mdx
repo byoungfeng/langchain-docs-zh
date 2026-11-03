@@ -1,0 +1,362 @@
+---
+title: "子代理流式传输"
+description: "以流式内容、进度跟踪和可折叠卡片展示各专业子代理"
+---
+
+当协调器智能体生成专业子智能体（研究人员、分析师、作家）时，你需要将协调器的消息与每个子智能体的流式输出分开渲染。v1 SDK 将协调器的消息保留在根流上，并将子智能体作为发现快照公开。将快照传递给选择器钩子或 `useMessages(stream, subagent)` 等组合组件，以渲染专家的限定流。
+
+这是 LangChain 前端 SDK 超越平面聊天记录的地方：子智能体是一流实体，拥有自己的状态、消息、工具调用元数据和结果。你的 UI 可以显示委派、进度、错误和最终综合，而无需要求用户从每个工作线程中交错读取 Token。
+
+import { PatternEmbed } from "/langchain/snippets/pattern-embed.jsx"
+import UseStreamTypeInference from '/langchain/snippets/oss/use-stream-type-inference.mdx';
+
+<PatternEmbed pattern="deep-agent-subagent-cards" />
+
+## 基于选择器的子智能体流的原因
+
+根流专注于协调器对话：
+
+- `stream.messages` 仅包含协调器的消息
+- `stream.subagents` 包含具有身份、命名空间和状态的发现快照
+- 每个子智能体的消息、工具调用和值通过选择器辅助程序读取
+- UI 保持简洁：协调器的推理与专家的工作分开
+
+这种分离允许你在一个地方渲染协调器的消息，并且仅在用户需要查看专家工作时才挂载子智能体卡片。
+
+对于大型任务，这也使 UI 可扩展。用户可以浏览协调器的高级计划，仅展开他们关心的专家工作，同时仍然保留完整的子智能体跟踪以用于调试、审计或重播。
+
+## 设置 `useStream`
+
+不需要额外的流选项。将流指向你的深度智能体，从 `stream.messages` 渲染协调器消息，并使用 `stream.subagents` 挂载活动专家的卡片。在聊天布局中，按生成它们的工具调用 ID 索引子智能体，以便每个卡片出现在协调器委托工作的轮次下。将流指向你的深度智能体，从 `stream.messages` 渲染协调器消息，并使用 `stream.subagents` 挂载活动专家的卡片。在聊天布局中，按生成它们的工具调用 ID 索引子智能体，以便每个卡片出现在协调器委托工作的轮次下。
+
+<UseStreamTypeInference />
+
+<CodeGroup>
+```tsx React
+import { useStream } from "@langchain/react";
+import { AIMessage, HumanMessage } from "langchain";
+
+const AGENT_URL = "http://localhost:2024";
+
+export function DeepAgentChat() {
+  const stream = useStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "deep_agent_subagent_cards",
+  });
+  const subagents = [...stream.subagents.values()];
+  const subagentsByCallId = new Map(subagents.map((s) => [s.id, s]));
+
+  return (
+    <div>
+      {stream.messages.map((msg) => {
+        const turnSubagents = AIMessage.isInstance(msg)
+          ? (msg.tool_calls ?? [])
+              .map((tc) => subagentsByCallId.get(tc.id ?? ""))
+              .filter((s): s is NonNullable<typeof s> => !!s)
+          : [];
+
+        return (
+          <div key={msg.id}>
+            {HumanMessage.isInstance(msg) && <HumanBubble>{msg.text}</HumanBubble>}
+            {AIMessage.isInstance(msg) && msg.text.trim() && (
+              <AIBubble>{msg.text}</AIBubble>
+            )}
+            {turnSubagents.map((subagent) => (
+              <SubagentCard key={subagent.id} stream={stream} subagent={subagent} />
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+```vue Vue
+<script setup lang="ts">
+import { computed } from "vue";
+import { useStream } from "@langchain/vue";
+import { AIMessage, HumanMessage } from "langchain";
+
+const AGENT_URL = "http://localhost:2024";
+
+const stream = useStream<typeof myAgent>({
+  apiUrl: AGENT_URL,
+  assistantId: "deep_agent_subagent_cards",
+});
+
+const subagentsByCallId = computed(
+  () => new Map([...stream.subagents.value.values()].map((s) => [s.id, s]))
+);
+
+function subagentsForMessage(msg: unknown) {
+  if (!AIMessage.isInstance(msg)) return [];
+  return (msg.tool_calls ?? [])
+    .map((tc) => subagentsByCallId.value.get(tc.id ?? ""))
+    .filter(Boolean);
+}
+</script>
+
+<template>
+  <div>
+    <div
+      v-for="msg in stream.messages.value"
+      :key="msg.id"
+    >
+      <HumanBubble v-if="HumanMessage.isInstance(msg)">
+        {{ msg.text }}
+      </HumanBubble>
+      <AIBubble v-else-if="AIMessage.isInstance(msg) && msg.text.trim()">
+        {{ msg.text }}
+      </AIBubble>
+      <SubagentCard
+        v-for="subagent in subagentsForMessage(msg)"
+        :key="subagent.id"
+        :stream="stream"
+        :subagent="subagent"
+      />
+    </div>
+  </div>
+</template>
+```
+
+```svelte Svelte
+<script lang="ts">
+  import { useStream } from "@langchain/svelte";
+
+  const AGENT_URL = "http://localhost:2024";
+
+  const stream = useStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "deep_agent_subagent_cards",
+  });
+</script>
+
+<div>
+  {#each stream.messages as msg (msg.id)}
+    <Message {msg} />
+  {/each}
+  {#each [...stream.subagents.values()] as subagent (subagent.id)}
+    <SubagentCard {stream} {subagent} />
+  {/each}
+</div>
+```
+
+```ts Angular
+import { Component, computed } from "@angular/core";
+import { injectStream } from "@langchain/angular";
+
+const AGENT_URL = "http://localhost:2024";
+
+@Component({
+  selector: "app-deep-agent-chat",
+  template: `
+    @for (msg of stream.messages(); track msg.id) {
+      <app-message [message]="msg" />
+    }
+    @for (subagent of subagents(); track subagent.id) {
+      <app-subagent-card [stream]="stream" [subagent]="subagent" />
+    }
+  `,
+})
+export class DeepAgentChatComponent {
+  stream = injectStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "deep_agent_subagent_cards",
+  });
+
+  subagents = computed(() => [...this.stream.subagents().values()]);
+}
+```
+</CodeGroup>
+
+## 提交消息
+
+通过根流提交消息。深度智能体工作流通常涉及多层嵌套的子图，如果你的智能体可以深度委派，请设置适当的递归限制：
+
+```ts
+stream.submit(
+  { messages: [{ type: "human", content: text }] },
+  { config: { recursion_limit: 100 } }
+);
+```
+
+<Note>
+深度智能体将默认递归限制设置为 10,000，这对于大多数多专家设置来说是足够的。如果需要，可以通过 `config.recursion_limit` 覆盖此设置。
+</Note>
+
+## SubagentDiscoverySnapshot
+
+每个 @[SubagentDiscoverySnapshot] 是线程中运行的子智能体的一个轻量级发现记录。它告诉你的 UI 一个子智能体是否存在、它在子智能体树中的位置以及它处于什么生命周期状态。
+
+快照**不**包含子智能体的流式消息或工具调用。相反，将快照传递给选择器钩子，如 `useMessages(stream, subagent)` 或 `useToolCalls(stream, subagent)`。这些钩子使用快照命名空间，仅在相应的卡片或面板挂载时订阅子智能体的流式基本元素。
+
+## 构建SubagentCard
+
+每个子智能体卡片显示专家的名称、状态、流式内容和工具调用。使用选择器钩子订阅子智能体命名空间：
+
+```tsx
+import { useState } from "react";
+import { AIMessage } from "langchain";
+import {
+  useMessages,
+  useToolCalls,
+  type AnyStream,
+  type SubagentDiscoverySnapshot,
+} from "@langchain/react";
+
+function SubagentCard({
+  stream,
+  subagent,
+}: {
+  stream: AnyStream;
+  subagent: SubagentDiscoverySnapshot;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const messages = useMessages(stream, subagent);
+  const toolCalls = useToolCalls(stream, subagent);
+
+  const lastAIMessage = messages
+    .filter(AIMessage.isInstance)
+    .at(-1);
+
+  const displayContent =
+    lastAIMessage?.text ?? subagent.output ?? "";
+
+  return (
+    <div className="rounded-lg border bg-white shadow-sm">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between p-4"
+      >
+        <div className="flex items-center gap-3">
+          <StatusIcon status={subagent.status} />
+          <div>
+            <h4 className="font-semibold capitalize">{subagent.name}</h4>
+            <p className="text-xs text-gray-500">
+              {toolCalls.length} tool call{toolCalls.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <StatusBadge status={subagent.status} />
+        </div>
+      </button>
+
+      {expanded && displayContent && (
+        <div className="border-t px-4 py-3">
+          <div className="prose prose-sm max-w-none line-clamp-6">
+            {displayContent}
+            {subagent.status === "running" && (
+              <span className="inline-block h-4 w-1 animate-pulse bg-blue-500" />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## 进度跟踪
+
+显示进度条和计数器，以便用户知道有多少子智能体已完成：
+
+```tsx
+function SubagentProgress({
+  subagents,
+}: {
+  subagents: SubagentDiscoverySnapshot[];
+}) {
+  const completed = subagents.filter((s) => s.status === "complete").length;
+  const total = subagents.length;
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>Subagent progress</span>
+        <span>
+          {completed}/{total} complete
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+        <div
+          className="h-full rounded-full bg-blue-500 transition-all duration-300"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+## 使用子智能体卡片渲染消息
+
+关键布局模式是从根流渲染协调器消息，并将子智能体卡片附加到生成它们的 AI 消息上：
+
+```tsx
+function DeepAgentLayout({ stream }: { stream: AnyStream }) {
+  const subagents = [...stream.subagents.values()];
+  const subagentsByCallId = new Map(subagents.map((s) => [s.id, s]));
+
+  return (
+    <div className="space-y-3">
+      {stream.messages.map((message) => {
+        const turnSubagents = AIMessage.isInstance(message)
+          ? (message.tool_calls ?? [])
+              .map((tc) => subagentsByCallId.get(tc.id ?? ""))
+              .filter((s): s is SubagentDiscoverySnapshot => !!s)
+          : [];
+
+        return (
+          <div key={message.id}>
+            <Message message={message} />
+            {turnSubagents.length > 0 && (
+              <div className="ml-4 space-y-3 border-l-2 border-blue-200 pl-4">
+                <SubagentProgress subagents={subagents} />
+                {turnSubagents.map((subagent) => (
+                  <SubagentCard key={subagent.id} stream={stream} subagent={subagent} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+你可以将内联卡片与全局子智能体视图结合使用：为聊天记录卡片按协调器工具调用索引子智能体，并使用 `stream.subagents` 为总结所有活动工作的工作区侧边栏提供持久性。这为用户提供了本地上下文和整个运行的鸟瞰视图。
+
+## 最佳实践
+
+- **仅在需要时挂载选择器**。限定消息和工具调用在卡片调用 `useMessages(stream, subagent)` 或 `useToolCalls(stream, subagent)` 时流式传输。
+- **显示专家名称**。`subagent.name` 告诉用户哪个工作线程是活动的。
+- **使用可折叠卡片**。在具有 5+ 子智能体的工作流中，自动折叠已完成的卡片，以便用户可以专注于活动工作。
+- **仅在需要时覆盖递归**。深度智能体设置了较高的默认递归限制；仅当自定义工作流异常深度时才传递 `config.recursion_limit`。
+- **按子智能体处理错误**。一个子智能体失败不应崩溃整个 UI。在子智能体卡片中显示错误，同时其他卡片继续运行。
+
+## 相关 LangChain 指南
+
+这些 LangChain 前端模式与子智能体卡片的工作方式与它们与单智能体流的工作方式相同。深度智能体基于相同的 `useStream` API 构建，因此这些指南直接适用：
+
+<CardGroup cols={2}>
+  <Card title="Tool calling" icon="hammer" href="/langchain/oss/langchain/frontend/tool-calling">
+    将每个子智能体的工具调用渲染为具有待处理、完成和失败状态的丰富、类型安全的 UI 卡片。
+  </Card>
+  <Card title="Markdown messages" icon="markdown" href="/langchain/oss/langchain/frontend/markdown-messages">
+    将协调器和子智能体消息作为格式化的 Markdown 显示，并具有适当的流式支持。
+  </Card>
+  <Card title="Human-in-the-Loop" icon="hand" href="/langchain/oss/langchain/frontend/human-in-the-loop">
+    使用相同的中断 API 暂停委派的子智能体以供用户批准或输入。
+  </Card>
+  <Card title="Reasoning tokens" icon="brain" href="/langchain/oss/langchain/frontend/reasoning-tokens">
+    使用可折叠的推理块在子智能体卡片中显示模型思考。
+  </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/deepagents/frontend/subagent-streaming.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/frontend/subagent-streaming.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,561 @@
+---
+title: "MCP工具"
+sidebarTitle: "MCP 工具"
+description: "从 MCP（模型上下文协议）服务器加载附加工具"
+---
+
+import ConnectDocsMcpPrompt from '/langchain/snippets/connect-docs-mcp-prompt.mdx';
+
+[MCP（模型上下文协议）](https://modelcontextprotocol.io/) 允许您在不修改智能体本身的情况下，通过外部服务器的工具扩展 Deep Agents Code——文件系统、API、数据库等。Deep Agents Code 在启动时连接到 MCP 服务器，发现其工具，并将它们与内置工具一起提供给智能体。
+
+通过向您的项目添加一个 `.mcp.json` 配置文件来添加 MCP 服务器，用于项目级别的范围，或在用户级别应用以适用于所有项目。
+
+将此提示词粘贴到您的编码智能体中以连接服务器，或按照以下步骤进行 Deep Agents Code 的特定操作。对于其他编辑器，请参阅 [按程序使用文档](/use-these-docs)。
+
+<ConnectDocsMcpPrompt />
+
+## 快速入门
+
+此快速入门将 LangChain MCP 服务器添加到您机器上的每个 Deep Agents Code 会话中。我们建议添加 `docs-langchain` 用于概念指南和操作指南，以及 `reference-langchain` 用于 API 参考。
+
+| 服务器 | URL | 覆盖范围 |
+|--------|-----|----------------|
+| `docs-langchain` | `https://docs.langchain.com/mcp` | 概念指南、操作指南和教程 |
+| `reference-langchain` | `https://reference.langchain.com/mcp` | 标准API参考：类、方法和参数 |
+
+<Steps>
+    <Step title="Create the config file" icon="file">
+
+        如果尚未存在，请在用户级别创建 `.mcp.json` 文件，以便在机器上的每个项目中使用该服务器，或在项目级别创建。
+
+        <Tabs>
+            <Tab title="User">
+
+                ```bash
+                mkdir -p ~/.deepagents
+                touch ~/.deepagents/.mcp.json
+                ```
+
+                此文件（`~/.deepagents/.mcp.json`）中的服务器在机器上的每个项目中都可用。
+            </Tab>
+            <Tab title="Project">
+
+                ```bash
+                touch .mcp.json
+                ```
+
+                此文件（`<project>/.mcp.json`）中的服务器对此项目可用。
+            </Tab>
+            <Tab title="Project (hidden)">
+
+                ```bash
+                mkdir -p .deepagents
+                touch .deepagents/.mcp.json
+                ```
+
+                此文件（`<project>/.deepagents/.mcp.json`）中的服务器对此项目可用，但不会存放在代码库根目录中。
+            </Tab>
+        </Tabs>
+
+        请参阅 [发现位置](#发现位置) 以获取完整的优先级规则。
+
+    </Step>
+
+    <Step title="Add the MCP servers" icon="plug">
+
+        ```json title="~/.deepagents/.mcp.json"
+        {
+            "mcpServers": {
+                "docs-langchain": {
+                    "type": "http",
+                    "url": "https://docs.langchain.com/mcp"
+                },
+                "reference-langchain": {
+                    "type": "http",
+                    "url": "https://reference.langchain.com/mcp"
+                }
+            }
+        }
+        ```
+
+        要添加更多服务器，请向 `mcpServers` 添加更多条目。请参阅 [配置格式](#配置格式) 以获取 OAuth、stdio、SSE 和 HTTP 服务器字段、环境变量和标头。
+    </Step>
+
+    <Step title="Launch Deep Agents Code" icon="terminal">
+        ```bash
+        dcode
+        ```
+
+        在启动时，Deep Agents Code 自动发现配置，连接到每个服务器，发现其工具，并打印确认信息：
+
+        ```
+        ✓ Loaded 3 MCP tools
+        ```
+
+        在交互式会话中运行 `/mcp` 以查看每个服务器的状态、传输方式以及加载的工具列表。智能体现在可以在整个会话期间使用这些工具——stdio 服务器在工具调用之间保持活动状态。
+    </Step>
+</Steps>
+
+## 自动发现
+
+Deep Agents Code 会自动在标准位置搜索 `.mcp.json` 文件。无需标志——只需放置一个配置文件即可被检测到。
+
+### 发现位置
+
+按此顺序检查配置（最低到最高优先级）：
+
+| 优先级 | 位置 | 范围 |
+|----------|----------|-------|
+| 1（最低） | `~/.deepagents/.mcp.json` | 用户级别——适用于所有项目 |
+| 2 | `<project>/.deepagents/.mcp.json` | 项目级别——`.deepagents` 子目录 |
+| 3（最高） | `<project>/.mcp.json` | 项目级别——根（Claude Code 兼容） |
+
+项目根目录是包含 `.git` 文件的最邻近父目录，如果不存在则回退到当前工作目录。
+
+当存在多个配置文件时，它们按服务器名称合并 `mcpServers` 条目。不同名称的服务器将被保留。如果同一服务器名称出现在多个文件中，则较高优先级的定义将替换整个较早的服务器对象；嵌套字段不会进行深度合并。这允许项目级别的配置覆盖用户级别的条目（例如，固定同一服务器的不同版本），而不会影响您的其他项目。
+
+### 标志
+
+| 标志 | 行为 |
+|------|----------|
+| `--mcp-config PATH` | 将显式配置作为最高优先级源添加（在自动发现的配置之上合并） |
+| `--no-mcp` | 完全禁用 MCP——不加载任何服务器 |
+
+<Note>
+    `--mcp-config` 和 `--no-mcp` 是互斥的。
+</Note>
+
+### Claude Code 兼容性
+
+如果您已经在项目根目录中为 Claude Code 创建了 `.mcp.json`，Deep Agents Code 将自动检测它——无需额外设置。
+
+## 配置格式
+
+`mcpServers` 下的每个键都是服务器名称。服务器的字段决定了 Deep Agents Code 如何连接到它。
+
+### stdio 服务器（默认）
+
+stdio 服务器作为子进程启动。Deep Agents Code 通过 stdin/stdout 与它们通信。
+
+批准的项目服务器和通过 `--mcp-config` 提供的服务器在会话工作目录中启动。用户级别和插件服务器继承后端进程目录。设置服务器的 `cwd` 字段可以覆盖任何默认设置。
+
+```json title="mcp-config.json"
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "env": {}
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "your-token" }
+    }
+  }
+}
+```
+
+### SSE 和 HTTP 服务器
+
+对于远程 MCP 服务器，将 `type` 设置为 `"sse"` 或 `"http"`，并提供一个 `url`：
+
+```json title="mcp-config.json"
+{
+  "mcpServers": {
+    "remote-api": {
+      "type": "sse",
+      "url": "https://api.example.com/mcp",
+      "headers": { "Authorization": "Bearer your-token" }
+    }
+  }
+}
+```
+
+### 字段参考
+
+<AccordionGroup>
+    <Accordion title="stdio (default)">
+        **必需：** `command`。**可选：** `args`、`env`、`cwd`，以及共享的 [工具过滤字段](#工具过滤)。
+
+        <ResponseField name="command" type="string" required>
+            要运行的执行文件。
+        </ResponseField>
+
+        <ResponseField name="args" type="string[]">
+            传递给命令的参数。
+        </ResponseField>
+
+        <ResponseField name="env" type="object">
+            为子进程设置的环境变量。使用此方法可以传递 API 密钥和其他凭证，而不会在 shell 历史记录中暴露它们。
+        </ResponseField>
+
+        <ResponseField name="cwd" type="string">
+            子进程的工作目录。覆盖此服务器配置源的默认目录。
+        </ResponseField>
+    </Accordion>
+
+<Accordion title="sse">
+        **必需:** `type: "sse"`, `url`。**可选:** `headers`, `auth`，以及共享的 [工具过滤字段](#工具过滤)。
+
+        <ResponseField name="type" type='"sse"' required>
+            传输类型。使用 `"sse"` 用于 Server-Sent Events。
+        </ResponseField>
+
+        <ResponseField name="url" type="string" required>
+            服务器端点 URL。
+        </ResponseField>
+
+        <ResponseField name="headers" type="object">
+            每次请求发送的 HTTP 头部。通常用于身份验证。值支持 `${VAR}` 引用父 shell 环境变量（在服务器激活时解析）。
+        </ResponseField>
+
+        <ResponseField name="auth" type='"oauth"'>
+            设置为 `"oauth"` 以驱动 OAuth 登录流程，使用 `dcode mcp login` 而不是提供 `Authorization` 头部。不能与 `Authorization` 头部组合。参见 [OAuth 登录](#oauth-登录)。
+        </ResponseField>
+    </Accordion>
+
+    <Accordion title="http">
+        **必需:** `type: "http"`, `url`。**可选:** `headers`, `auth`，以及共享的 [工具过滤字段](#工具过滤)。
+
+        <ResponseField name="type" type='"http"' required>
+            传输类型。使用 `"http"` 用于流式 HTTP。`streamable_http` 和 `streamable-http` 被接受为别名。
+        </ResponseField>
+
+        <ResponseField name="url" type="string" required>
+            服务器端点 URL。
+        </ResponseField>
+
+        <ResponseField name="headers" type="object">
+            每次请求发送的 HTTP 头部。通常用于身份验证。值支持 `${VAR}` 引用父 shell 环境变量（在服务器激活时解析）。
+        </ResponseField>
+
+        <ResponseField name="auth" type='"oauth"'>
+            设置为 `"oauth"` 以驱动 OAuth 登录流程，使用 `dcode mcp login` 而不是提供 `Authorization` 头部。不能与 `Authorization` 头部组合。参见 [OAuth 登录](#oauth-登录)。
+        </ResponseField>
+    </Accordion>
+</AccordionGroup>
+
+<Note>
+    `type` 字段也可以写成 `transport` 以与其他 MCP 客户端兼容。
+</Note>
+
+<Note>
+    服务器名称必须匹配 `[A-Za-z0-9_-]+`。名称用作 OAuth 令牌文件的磁盘基本名称，因此在配置加载时拒绝路径分隔符和其他 shell 保留字符。
+</Note>
+
+### 环境变量插值
+
+`command`、`args`、`env`、`url` 和 `headers` 中的字符串值支持 `${VAR}` 引用父 shell 环境变量。使用 `${VAR:-default}` 在变量未设置或为空时提供值。
+
+```json title="~/.deepagents/.mcp.json"
+{
+    "mcpServers": {
+        "work-docs": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "${WORK_DOCS_DIR:-/tmp/work-docs}"],
+            "env": { "LOG_LEVEL": "${MCP_LOG_LEVEL:-info}" }
+        }
+    }
+}
+```
+
+## 多个服务器
+
+您可以配置任意数量的服务器。所有服务器的工具将被合并并可供智能体使用：
+
+```json title="mcp-config.json"
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_TOKEN": "ghp_..." }
+    },
+    "database": {
+      "type": "sse",
+      "url": "https://db-mcp.internal:8080/mcp",
+      "headers": { "Authorization": "Bearer ..." }
+    }
+  }
+}
+```
+
+## 设置工具调用超时
+
+MCP 工具调用默认在 120 秒后返回错误，因此停顿的服务器不会无限期阻塞智能体。
+
+在 `~/.deepagents/config.toml` 中设置 `[mcp].tool_timeout` 为 `1` 到 `900` 之间的秒数。设置 `DEEPAGENTS_CODE_MCP_TOOL_TIMEOUT` 以覆盖用户配置值。无效值会传递到下一个配置源，而不是禁用超时。
+
+超时并不能保证服务器取消了操作。在重试更改数据的工具之前，检查其状态：另一个调用可能会重复工作。
+
+## 工具过滤
+
+每个服务器可以使用以下两个可选字段之一来缩小其向智能体暴露的工具：
+
+- `allowedTools`：仅保留列出的工具；丢弃其他所有工具。
+- `disabledTools`：丢弃列出的工具；保留其他所有工具。
+
+过滤适用于 stdio、HTTP 和 SSE 服务器。以下两者在配置加载时会被拒绝：
+
+- 在同一服务器上设置 `allowedTools` 和 `disabledTools`。
+- 将任一字段设置为空列表（会静默移除所有工具，或无操作）。省略字段即可。
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "allowedTools": ["read_file", "list_directory"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "disabledTools": ["delete_repository", "delete_*_branch"]
+    }
+  }
+}
+```
+
+### 匹配规则
+
+每个条目是一个字面的工具名称或一个 [`fnmatch`](https://docs.python.org/3/library/fnmatch.html) 风格的通配符（任何包含 `*`、`?` 或 `[` 的条目都被视为模式）。条目会与裸的 MCP 工具名称和服务器前缀形式（`{server}_{tool}`）进行匹配，因此任何形式都有效：
+
+```json
+{
+  "allowedTools": ["read_file", "fs_list_*"]
+}
+```
+
+<Note>
+    未匹配到已加载工具的条目会被记录为警告，而不是错误——底层 MCP 服务器可以在版本之间演进其工具列表，而不会破坏您的配置。
+</Note>
+
+<ResponseField name="allowedTools" type="string[]">
+    要保留的工具名称或 `fnmatch` 通配符模式。此服务器上的其他所有工具都会被丢弃。与 `disabledTools` 互斥。
+</ResponseField>
+
+<ResponseField name="disabledTools" type="string[]">
+    要丢弃的工具名称或 `fnmatch` 通配符模式。此服务器上的其他所有工具都会被保留。与 `allowedTools` 互斥。
+</ResponseField>
+
+### 自动模式下只读工具注解
+
+MCP 服务器在宣传工具时可以附加标准 `ToolAnnotations`。Deep Agents Code 允许工具在 [自动审批模式](/langchain/oss/deepagents/code/approval-modes) 中绕过分类器审查，仅当以下所有条件都满足时：
+
+- `readOnlyHint` 是字面布尔值 `true`。
+- `destructiveHint` 不存在、`null` 或 `false`。
+- 所有提供的标准提示（`readOnlyHint`、`destructiveHint`、`idempotentHint`、`openWorldHint`）都是布尔值或 `null`，而不是字符串或其他类型。
+
+未通过此检查的工具会进入自动分类器批次，在手动模式下使用正常审批 UI，并在无头运行时被拒绝，因为没有审批 UI。注解是服务器提供的断言，Deep Agents Code 不会独立验证。
+
+## OAuth 登录
+
+对于需要 OAuth 的远程 MCP 服务器（Slack、GitHub、Notion、Linear 和其他托管 MCP 端点），在服务器条目上设置 `"auth": "oauth"` 并运行一次登录子命令。令牌会持久化到磁盘并自动刷新。
+
+### 配置服务器
+
+```json title=".mcp.json"
+{
+    "mcpServers": {
+        "linear": {
+            "type": "http",
+            "url": "https://mcp.linear.app/mcp",
+            "auth": "oauth"
+        }
+    }
+}
+```
+
+`auth: "oauth"` 与同一条目上的 `Authorization` 头部互斥，并且不能在 stdio 服务器上设置。
+
+要连接 Deep Agents Code 到 LangSmith，请使用 [LangSmith 远程 MCP](https://docs.langchain.com/langsmith/langsmith-remote-mcp)：
+
+```json title=".mcp.json"
+{
+    "mcpServers": {
+        "langsmith": {
+            "url": "https://api.smith.langchain.com/mcp",
+            "transport": "http",
+            "auth": "oauth"
+        }
+    }
+}
+```
+
+### 运行登录流程
+
+列出已配置的 OAuth 服务器但不存储凭证：
+
+```bash
+dcode mcp login
+```
+
+然后运行服务器的登录流程：
+
+```bash
+dcode mcp login linear
+```
+
+列表使用与登录流程相同的受信任配置。它报告具有 `auth: "oauth"` 但没有存储令牌的服务器。它不会检查令牌过期。
+
+发生什么取决于服务器的宿主：
+
+- **符合规范的服务器**（默认）：Deep Agents Code 执行动态客户端注册，在您的浏览器中打开授权代码 + PKCE 流程，并要求您将重定向的 URL 粘贴回终端。
+- **Slack**（`slack.com`, `*.slack.com`）：相同的粘贴回流程，但预填充了 Slack 的公共客户端。系统会提示您输入可选的团队 ID（例如，`T01234567`），以便应用程序安装到正确的工位。
+- **GitHub**（`api.githubcopilot.com`）：RFC 8628 设备授权授予。Deep Agents Code 打印一个验证 URL 和一个用户代码；您在浏览器中输入代码，Deep Agents Code 会轮询完成状态。
+
+默认情况下，`dcode mcp login`读取Deep Agents Code在运行时自动发现的配置（受项目级信任门控约束）。传递`--mcp-config <path>`以使用特定文件：
+
+```bash
+dcode mcp login linear --mcp-config ./mcp-config.json
+```
+
+<Warning>
+    未被信任的项目级配置（参见[项目级信任](#项目级信任)）在`mcp login`过程中会被跳过，以防止攻击者控制的`headers`条目通过`${VAR}`插值泄露本地密钥。在项目中运行`dcode`并选择`Allow for this project — until changed`以保存批准，或显式传递`--mcp-config <path>`。
+</Warning>
+
+### Token存储
+
+Token写入：
+
+```text
+~/.deepagents/.state/mcp-tokens/<server>-<sha256-16(url)>.json
+```
+
+`<sha256-16(url)>`段是服务器URL的SHA-256哈希值的前16个十六进制字符。该目录被锁定为模式`0700`，每个token文件的模式为`0600`。文件包含OAuth访问令牌、刷新令牌和动态注册的客户端信息，所有内容都封装在按版本控制的负载中，原子写入（写入临时文件 + `rename`）。
+
+<Note>
+    将URL哈希到文件名意味着指向不同URL的相同服务器名称（例如，开发环境与生产环境）将获得独立的token文件，且不会互相覆盖。
+</Note>
+
+### 重新认证
+
+当运行时刷新失败（刷新令牌过期或被撤销）时，Deep Agents Code将服务器标记为`unauthenticated`，而不是崩溃智能体。欢迎横幅显示未认证服务器的数量，`/mcp`按服务器报告原因。重新运行`dcode mcp login <server>`以刷新凭证——您的对话在无需重启的情况下继续。
+
+要在不离开会话的情况下重新认证OAuth服务器，打开`/mcp`，选择服务器，并按下`Enter`。
+
+## 服务器状态
+
+每个配置的服务器在启动后都会处于三种状态之一：
+
+| 状态 | 含义 |
+|------|------|
+| `ok` | 已连接；工具已加载并可供智能体使用 |
+| `unauthenticated` | 需要OAuth登录或刷新失败——运行`dcode mcp login <server>` |
+| `error` | 预飞行、发现或传输设置失败；附加了错误消息 |
+
+单个失败的服务器不再中止启动。智能体会使用正常启动的服务器运行，欢迎横幅在工具计数旁边显示未认证和错误服务器的数量。在交互式会话中打开`/mcp`以查看每台服务器的状态、传输、工具列表和非`ok`条目的失败原因。查看器会随着服务器连接而实时更新，并支持`tab`/`shift+tab`导航。
+
+## 项目级信任
+
+项目级配置可以包含执行本地命令的stdio服务器和远程服务器，其`headers`可能从您的环境中插值`${VAR}`。为防止不受信任的存储库在CLI启动时运行任意代码或泄露本地密钥，Deep Agents Code对项目级条目执行**默认拒绝**策略。
+
+<Note>
+    保存的项目MCP批准和每台服务器的允许和拒绝策略需要`deepagents-code>=0.1.40`。
+</Note>
+
+### 工作原理
+
+- **交互模式**：Deep Agents Code在激活项目服务器前提示批准，显示每个stdio命令和远程URL。选择`Allow once`以激活当前会话中所有提示的服务器。选择`Allow for this project — until changed`以激活当前会话中的所有提示服务器，并选择要保存以供未来会话的批准。
+- **保存的批准**：Deep Agents Code将选择的服务器批准写入用户级`~/.deepagents/config.toml`。每个批准的范围限定于解析的项目根目录、服务器名称和该服务器定义的SHA-256指纹。如果服务器命令、URL、标头或其他配置字段发生变化，Deep Agents Code会再次提示。
+- **非交互模式（`-n`）**：没有匹配的保存或环境批准的项目服务器在未传递`--trust-project-mcp`的情况下会被静默跳过。显式拒绝仍然适用。
+- **信任范围涵盖stdio和远程条目**：远程服务器在预飞行探测期间可能SSRF到localhost或云元数据端点，并通过标头泄露`${VAR}`值，因此Deep Agents Code以与stdio服务器相同的方式对它们进行门控。
+- **用户级配置**（`~/.deepagents/.mcp.json`）始终受信任，遵循与`config.toml`和`hooks.json`相同的信任模型。
+- **`dcode mcp login`**也尊重项目信任：不受信任的项目级配置在登录发现过程中会被跳过，以防止攻击者控制的远程条目将密钥拉入OAuth握手。
+
+### 标志
+
+| 标志 | 行为 |
+|------|------|
+| `--trust-project-mcp` | 在当前运行中不提示批准项目级服务器。用户策略拒绝的服务器仍然禁用。 |
+
+```bash
+# Skip the approval prompt
+dcode --trust-project-mcp
+
+# Non-interactive: explicitly trust project servers
+dcode -n "run tests" --trust-project-mcp
+```
+
+### 保存的批准
+
+保存的批准存储在`~/.deepagents/config.toml`：
+
+```toml title="~/.deepagents/config.toml"
+[mcp]
+enabled_project_server_approvals = [
+  { project_root = "/Users/you/myproject", name = "docs-langchain", fingerprint = "sha256:abc123..." }
+]
+```
+
+要撤销批准，从`enabled_project_server_approvals`中删除其条目。要强制重新批准而不编辑`config.toml`，在项目的`.mcp.json`中更改服务器定义；保存的指纹不再匹配。
+
+遗留的扁平`[mcp].enabled_project_servers`列表在`config.toml`中被忽略。使用`enabled_project_server_approvals`保存批准。
+
+### 高级允许和拒绝策略
+
+在`~/.deepagents/config.toml`中使用`[mcp].disabled_project_servers`，或在您的shell或全局`~/.deepagents/.env`中使用`DEEPAGENTS_CODE_DISABLED_PROJECT_MCP_SERVERS`，以按名称始终拒绝项目MCP服务器。拒绝优先于保存的批准和`--trust-project-mcp`标志。
+
+交互式启动提示还提供对选定服务器名称的会话仅拒绝或永久拒绝。永久拒绝跨所有项目适用，而不同于项目级批准。要撤销保存的拒绝，从`~/.deepagents/config.toml`中的`[mcp].disabled_project_servers`删除名称。
+
+对于必须按名称预先批准项目MCP服务器的自动化，将`DEEPAGENTS_CODE_DANGEROUSLY_ENABLE_PROJECT_MCP_SERVERS`设置在您的shell或全局`~/.deepagents/.env`中为逗号分隔的服务器名称列表。这是一个进程级的逃生通道：在相同服务器名称下，不同的项目、命令更改或URL更改仍然匹配。当此变量被设置时，Deep Agents Code会忽略该进程的保存批准。除非您需要在跨项目和服务器定义更改时按名称批准，否则请优先使用保存的批准或`--trust-project-mcp`。
+
+`deepagents-code>=0.1.40`忽略以前的`DEEPAGENTS_CODE_ENABLED_PROJECT_MCP_SERVERS`变量。如果您需要相同的行为，请用`DEEPAGENTS_CODE_DANGEROUSLY_ENABLE_PROJECT_MCP_SERVERS`替换它。
+
+<Warning>
+    一个受信任的标准输入输出 MCP 服务器以您的用户账户权限运行。批准远程服务器允许 Deep Agents Code 在预检期间联系其 URL 并发送其配置的头部信息。仅批准来自您信任的存储库的服务器，并检查批准提示中显示的命令和 URL。
+</Warning>
+
+## 系统提示词感知
+
+连接的 MCP 服务器及其工具会自动列在智能体的系统提示词中，按服务器名称和传输类型分组。这有助于模型推理工具来源和故障域，而无需手动提供上下文。
+
+## 故障排除
+
+<AccordionGroup>
+    <Accordion title="Server fails to start (stdio)">
+        验证命令在 Deep Agents Code 外部是否正常工作：
+
+        ```bash
+        npx -y @modelcontextprotocol/server-filesystem /tmp
+        ```
+
+        常见原因：包未安装，`npx` 不在 `PATH` 上，或缺少必要的环境变量。
+    </Accordion>
+
+    <Accordion title="Connection refused (SSE/HTTP)">
+        确认远程服务器正在运行且 URL 正确。如果服务器需要认证，请确保 `headers` 包含正确的凭证。
+    </Accordion>
+
+    <Accordion title="Tools not appearing">
+        Deep Agents Code 在启动时打印加载的工具数量（例如，`✓ Loaded 3 MCP tools`）。如果您看到 `0`，则服务器启动成功但未宣传任何工具——检查服务器自身的日志或文档。
+    </Accordion>
+
+    <Accordion title="Server shows `unauthenticated` in /mcp">
+        您尚未运行 `dcode mcp login <server>`，或者持久化的刷新令牌在服务器端过期或被撤销。再次运行登录命令——您的会话保持运行状态，一旦令牌刷新，服务器将重新连接。
+    </Accordion>
+
+    <Accordion title="`Invalid MCP config at ...`">
+        预检验证拒绝了 `--mcp-config`（或自动发现的 `.mcp.json`）。常见原因：不支持的服务器名称（必须匹配 `[A-Za-z0-9_-]+`），stdio 服务器上的 `auth: oauth`，同一条目上同时设置了 `command` 和 `url`，或头部值不是字符串。修复高亮原因后重新启动——Deep Agents Code 不再为配置错误输出多页子进程跟踪。
+    </Accordion>
+
+    <Accordion title="`${VAR}` references fail">
+        在父 shell 中导出变量，将其添加到 `~/.deepagents/.env`，或为引用提供 `${VAR:-default}` 备用值。为调试，设置 `DEEPAGENTS_CODE_DEBUG=1` 并检查关闭时打印到 stderr 的每个会话日志路径。
+    </Accordion>
+</AccordionGroup>
+
+## 进一步阅读
+
+- [LangSmith Remote MCP](https://docs.langchain.com/langsmith/langsmith-remote-mcp)：通过 OAuth 连接 Deep Agents Code 到 LangSmith 工具
+- [LangChain MCP 指南](/langchain/oss/langchain/mcp)：使用 `MCPAdapter` 连接智能体到 MCP 服务器
+- [MCP 规范](https://modelcontextprotocol.io/)：官方协议规范和服务器注册表
+
+---
+
+> 官方原文：[src/oss/deepagents/code/mcp-tools.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/code/mcp-tools.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,21 @@
+<Prompt
+    description="安装 LangChain 技能"
+    icon="puzzle"
+    actions={["copy"]}
+>
+为我的编码智能体安装 LangChain 技能，以便它在 LangChain、LangGraph 和 Deep Agents 任务上表现更好。
+
+使用 https://github.com/langchain-ai/langchain-skills 上的智能体技能安装程序：
+
+```bash
+npx skills add langchain-ai/langchain-skills --skill '*' --yes
+```
+
+如果改为请求全局安装，请使用：
+
+```bash
+npx skills add langchain-ai/langchain-skills --skill '*' --yes --global
+```
+
+检测您正在使用哪个智能体或编辑器。如果您使用 Claude Code 并偏好插件路径，请从该仓库的 README 文件中遵循市场安装方法（`/plugin marketplace add` 然后 `/plugin install`）。不要编造替代的技能包名称或安装 URL。安装完成后，确认这些技能对智能体可用。
+</Prompt>

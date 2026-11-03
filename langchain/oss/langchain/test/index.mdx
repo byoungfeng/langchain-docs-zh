@@ -1,0 +1,35 @@
+---
+title: "测试"
+sidebarTitle: "概述"
+description: "测试 LangChain 智能体的策略，包括单元测试、集成测试和轨迹评估。"
+---
+
+智能体驱动的应用允许大型语言模型（LLM）自主决定解决问题的下一步行动。这种灵活性非常强大，但模型的黑箱特性使得难以预测对智能体某一部分的调整如何影响整体行为。要构建可投入生产的智能体，彻底测试至关重要。
+
+以下是测试智能体的几种方法：
+
+- **单元测试**通过内存模拟测试智能体的独立组件，可快速且确定性验证具体行为。
+- **集成测试**使用真实网络调用测试智能体，验证组件协作、凭据与方案一致性以及延迟可接受性。
+- **评估测试**通过评估器评估智能体执行轨迹，采用确定性匹配或LLM裁判方式。
+
+智能体应用更倾向于集成测试，因为它们需要串联多个组件，并应对LLM非确定性导致的异常。
+
+<Tip>
+大规模运行评估测试，持续跟踪结果，并通过[LangSmith](https://smith.langchain.com)对比实验。详见[Evaluate an LLM application](https://docs.langchain.com/langsmith/evaluate-llm-application)入门指南。
+</Tip>
+
+<CardGroup cols={1}>
+    <Card title="Unit testing" icon="flask" href="/langchain/oss/langchain/test/unit-testing" arrow>
+        使用内存持久化模拟对话模型以测试智能体逻辑，无需API调用。
+    </Card>
+    <Card title="Integration testing" icon="plug" href="/langchain/oss/langchain/test/integration-testing" arrow>
+        通过真实LLM API测试智能体。组织测试用例、管理密钥、处理异常、控制成本。
+    </Card>
+    <Card title="Evals" icon="scale" href="/langchain/oss/langchain/test/evals" arrow>
+        使用确定性匹配或LLM裁判评估器评估智能体执行轨迹。
+    </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/langchain/test/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/test/index.mdx) · 译文由 AI 生成，以英文原文为准。

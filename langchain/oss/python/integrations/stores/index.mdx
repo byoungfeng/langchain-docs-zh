@@ -1,0 +1,43 @@
+---
+title: "存储集成"
+sidebarTitle: "键值存储"
+description: "使用 LangChain Python 集成存储。"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/python-stores-downloads.mdx';
+
+## 概述
+
+LangChain 提供了键值存储接口用于存储和检索数据。该键值存储接口主要用于缓存 [嵌入](/langchain/oss/python/integrations/embeddings)。
+
+## 接口
+
+所有 [`BaseStores`](https://reference.langchain.com/python/langchain-core/stores/BaseStore) 支持以下接口：
+
+- `mget(key: Sequence[str]) -> List[Optional[bytes]]`: 获取多个键的内容，不存在键时返回 `None`
+- `mset(key_value_pairs: Sequence[Tuple[str, bytes]]) -> None`: 设置多个键的内容
+- `mdelete(key: Sequence[str]) -> None`: 删除多个键
+- `yield_keys(prefix: Optional[str] = None) -> Iterator[str]`: 生成存储中的所有键，可按前缀过滤
+
+<Note>
+基座存储设计用于同时处理 **多个** 键值对以提升效率。这减少了网络往返次数，可能允许底层存储进行更高效的批量操作。
+</Note>
+
+## 本地开发内置存储
+
+<Columns cols={2}>
+    <Card title="InMemoryByteStore" icon="link" href="/langchain/oss/python/integrations/stores/in_memory" arrow="true" cta="View guide" />
+    <Card title="LocalFileStore" icon="link" href="/langchain/oss/python/integrations/stores/file_system" arrow="true" cta="View guide" />
+</Columns>
+
+## 定制存储
+
+您还可以通过扩展 @[`BaseStore`] 类来实现自己的定制存储。更多细节请参考 [存储接口文档](https://reference.langchain.com/python/langchain-core/stores/BaseStore)。
+
+## 所有键值存储
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/python/integrations/stores/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/stores/index.mdx) · 译文由 AI 生成，以英文原文为准。

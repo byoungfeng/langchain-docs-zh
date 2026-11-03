@@ -1,0 +1,55 @@
+---
+title: "检索器集成"
+sidebarTitle: "检索器"
+description: "使用 LangChain Python 集成检索器。"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/python-retrievers-downloads.mdx';
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+一个 [检索器](/langchain/oss/deepagents/retrieval#构建模块) 是一个接口，它根据非结构化查询返回文档。
+它比向量存储更通用。
+检索器不需要能够存储文档，只需要能够返回（或检索）它们。
+检索器可以由向量存储创建，但也足够广泛，可以包含其他来源。
+
+检索器接受一个字符串查询作为输入，并返回一个 @[`Document`] 对象的列表作为输出。
+
+请注意，所有 [向量存储](/langchain/oss/python/integrations/vectorstores) 都可以转换为检索器。参考向量存储 [集成文档](/langchain/oss/python/integrations/vectorstores/) 获取可用的向量存储。
+本页面列出了自定义检索器，通过继承 BaseRetriever 实现。
+
+<PythonIntegrationComponentMap active="retrievers" />
+
+## 自带文档
+
+以下检索器允许您索引和搜索自定义文档语料库。
+
+| 检索器 | 自托管 | 云服务 | 包 |
+|-----------|-----------|----------------|---------|
+| [`AmazonKnowledgeBasesRetriever`](/langchain/oss/python/integrations/retrievers/bedrock) | ❌ | ✅ | [`langchain-aws`](https://reference.langchain.com/python/langchain-aws/retrievers/bedrock/AmazonKnowledgeBasesRetriever) |
+| [`ElasticsearchRetriever`](/langchain/oss/python/integrations/retrievers/elasticsearch_retriever) | ✅ | ✅ | [`langchain-elasticsearch`](https://reference.langchain.com/python/langchain-elasticsearch/retrievers/ElasticsearchRetriever) |
+| [`MongoDBAtlasHybridSearchRetriever`](/langchain/oss/python/integrations/retrievers/mongodb_atlas) | ❌ | ✅ | [`langchain-mongodb`](https://reference.langchain.com/python/langchain-mongodb/retrievers/MongoDBAtlasHybridSearchRetriever) |
+| [`MemstateRetriever`](https://memstate.ai/docs/integrations/langchain) | ❌ | ✅ | [`langchain-memstate`](https://pypi.org/project/langchain-memstate/) |
+| [`MengramRetriever`](https://mengram.io/docs) | ✅ | ✅ | [`langchain-mengram`](https://pypi.org/project/langchain-mengram/) |
+| [`NVIDIARAGRetriever`](/langchain/oss/python/integrations/retrievers/nvidia) | ✅ | ❌ | [`langchain-nvidia-ai-endpoints`](https://reference.langchain.com/python/langchain-nvidia-ai-endpoints/retrievers/NVIDIARAGRetriever) |
+| [`VertexAISearchRetriever`](/langchain/oss/python/integrations/retrievers/google_vertex_ai_search) | ❌ | ✅ | [`langchain-google-community`](https://reference.langchain.com/python/langchain-google-community/vertex_ai_search/VertexAISearchRetriever) |
+
+## 外部索引
+
+以下检索器将搜索外部索引（例如，由互联网数据或类似数据构建的）。
+
+| 检索器 | 来源 | 包 |
+|-----------|---------|---------|
+| [`ApifySearchRetriever`](https://docs.apify.com/integrations/langchain) | 通过 [Apify RAG Web 浏览器](https://apify.com/apify/rag-web-browser) 进行互联网搜索 | [`langchain-apify`](https://pypi.org/project/langchain-apify/) |
+| [`DiffbotKnowledgeGraphRetriever`](https://github.com/diffbot/langchain-diffbot) | 在 Diffbot 知识图谱上进行实体搜索 | [`langchain-diffbot`](https://pypi.org/project/langchain-diffbot/) |
+| [`DiffbotWebSearchRetriever`](https://github.com/diffbot/langchain-diffbot) | 通过 Diffbot 网络搜索 API 进行互联网搜索 | [`langchain-diffbot`](https://pypi.org/project/langchain-diffbot/) |
+| [`ParallelSearchRetriever`](/langchain/oss/python/integrations/retrievers/parallel) | 通过 [并行搜索 API](https://docs.parallel.ai/search/search-quickstart) 进行互联网搜索 | [`langchain-parallel`](https://reference.langchain.com/python/langchain-parallel/retrievers/ParallelSearchRetriever) |
+| [`PerplexitySearchRetriever`](/langchain/oss/python/integrations/retrievers/perplexity_search) | 通过 [困惑度搜索 API](https://docs.perplexity.ai/docs/search/quickstart) 进行互联网搜索 | [`langchain-perplexity`](https://reference.langchain.com/python/langchain-perplexity/retrievers/PerplexitySearchRetriever) |
+| [`YouRetriever`](https://you.com/docs/integrations/langchain) | 互联网搜索 | [`langchain-youdotcom`](https://pypi.org/project/langchain-youdotcom/) |
+
+## 所有检索器
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/python/integrations/retrievers/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/retrievers/index.mdx) · 译文由 AI 生成，以英文原文为准。

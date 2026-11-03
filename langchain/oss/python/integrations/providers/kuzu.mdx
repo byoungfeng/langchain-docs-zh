@@ -1,0 +1,52 @@
+---
+title: "Kùzu 集成"
+description: "使用 LangChain Python 集成 Kùzu。"
+---
+  
+> [Kùzu](https://kuzudb.com/) 是一个可嵌入、可扩展且运行速度极快的图数据库。  
+> 它采用 MIT 许可证进行宽松许可，您可以在 [GitHub](https://github.com/kuzudb/kuzu) 查看其源代码。  
+
+> Kùzu 的核心特性：  
+>- 性能与可扩展性：实现了先进的图连接算法  
+>- 易用性：无需服务器（嵌入式架构），快速上手  
+>- 兼容性：可方便地从外部列式格式、CSV、JSON 和关系型数据库扫描和复制数据  
+>- 结构化属性图模型：基于属性图模型并添加了结构约束  
+>- Cypher 支持：支持声明式查询语言 Cypher 的图查询  
+
+> 通过访问 [文档](https://docs.kuzudb.com/) 获取 Kùzu 的入门指南。  
+
+## 安装与配置  
+
+按以下方式安装 Python SDK：  
+
+<CodeGroup>  
+```bash pip
+pip install -U langchain-kuzu
+```
+  
+```bash uv
+uv add langchain-kuzu
+```
+</CodeGroup>  
+
+## 使用  
+
+## 图  
+
+查看 [使用示例](/langchain/oss/python/integrations/graphs/kuzu_db)。  
+
+```python
+from langchain_kuzu.graphs.kuzu_graph import KuzuGraph
+```
+  
+## 链  
+
+查看 [使用示例](/langchain/oss/python/integrations/graphs/kuzu_db/#创建-kuzuqachain)。  
+
+```python
+from langchain_kuzu.chains.graph_qa.kuzu import KuzuQAChain
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/kuzu.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/kuzu.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,183 @@
+---
+title: "发布集成"
+sidebarTitle: "发布"
+description: "将您的集成向社区开放。"
+---
+
+**将您的集成向社区开放。**
+
+:::python
+<Warning>
+**不要将集成 PR 提交到 LangChain 或 Deep Agents 仓库。**
+
+新的集成应作为 **独立的 PyPI 包** 发布到您自己的 GitHub 组织或账户下（例如，`langchain-yourservice`），而不是作为 PR 提交给 [`langchain-ai/langchain`](https://github.com/langchain-ai/langchain) 仓库。
+
+主仓库仅包含一小部分由 LangChain 团队维护的一方集成（如 OpenAI、Anthropic 和 Ollama）。
+</Warning>
+
+现在您的包已实现并经过测试，您可以发布它并使其可供社区发现。
+
+## 发布您的包
+
+<Info>
+    本指南假设您已经实现了您的包并为其编写了测试。如果您还没有，请参考 [实现指南](/langchain/oss/contributing/implement-langchain) 和 [测试指南](/langchain/oss/contributing/standard-tests-langchain)。
+</Info>
+
+在本指南中，我们将使用 PyPI 作为包注册中心。如果您选择发布到其他注册中心，说明会有所不同。
+
+### 设置凭证
+
+首先，确保您有一个 PyPI 账户：
+
+<AccordionGroup>
+    <Accordion title="How to create a PyPI Token" icon="key">
+        <Steps>
+            <Step title="Create account">
+                前往 [PyPI 网站](https://pypi.org/) 并创建一个账户
+            </Step>
+
+            <Step title="Verify email">
+                通过点击 PyPI 邮件给您验证邮件地址的链接
+            </Step>
+
+            <Step title="Enable 2FA">
+                前往您的账户设置并点击“生成恢复代码”以启用双因素认证。要生成 API 令牌，您 **必须** 启用双因素认证
+            </Step>
+
+            <Step title="Generate token">
+                前往您的账户设置并 [生成一个新的 API 令牌](https://pypi.org/manage/account/token/)
+            </Step>
+        </Steps>
+    </Accordion>
+</AccordionGroup>
+
+### 构建和发布
+
+<Card
+    title="如何发布包"
+    icon="upload"
+    href="https://docs.astral.sh/uv/guides/package/"
+    arrow
+>
+    来自 `uv` 的有用指南，介绍了如何构建和发布包到 PyPI。
+</Card>
+:::
+
+:::js
+<Warning>
+**不要将集成 PR 提交到 LangChain 或 Deep Agents 仓库。**
+
+新的集成应作为 **独立的 npm 包** 发布到您自己的 GitHub 组织或账户下（例如，`@your-org/langchain-yourservice`），而不是作为 PR 提交给 [`langchain-ai/langchainjs`](https://github.com/langchain-ai/langchainjs) 仓库。
+
+主仓库仅包含一小部分由 LangChain 团队维护的一方集成。
+</Warning>
+
+将您的包发布到 npm，然后按照 [使您的集成可发现](#使您的集成可发现) 下面的说明操作。
+:::
+
+## 使您的集成可发现
+
+发布后，在 [LangChain 文档仓库](https://github.com/langchain-ai/docs/issues/new?template=06-integration-submission.yml) 中提交一个 **集成列表** 的问题，以便您的包出现在 [集成标签页](/langchain/oss/python/integrations/providers/overview) 下。
+
+维护者会审查该问题并应用 `integration-run` 标签。这将启动自动化流程，该流程读取表单字段、应用以下资格规则，并打开一个标记了维护者和您的 PR 以供审查。请尽量在表单中使用合作伙伴文档 URL。
+
+**不要** 除非维护者要求您，否则为新的列表打开手动文档 PR。自动化会关闭来自外部贡献者的手动列表 PR，并将它们指向问题表单。
+
+### 主机指南的资格
+
+LangChain 仅在以下 **任一** 条件满足时，在本文档仓库中托管完整的集成指南：
+
+- 包在 PyPI（或 TypeScript 的 npm）上至少有 **50,000 每月下载量**，**或**
+- 维护者将集成标记为 **精选**
+
+如果您不满足任一条件，自动化将添加一个 **外部列表**（YAML + 下载量表格 + 提供商卡片），该列表链接到您自己的文档。它 **不会** 添加一个托管型 MDX 页面。
+
+### 列在下载量表格中（默认）
+
+<Card
+    title="提交集成列表问题"
+    icon="ticket"
+    href="https://github.com/langchain-ai/docs/issues/new?template=06-integration-submission.yml"
+    arrow
+>
+    使用固定的表单字段来填写显示名称、语言、组件、包名称、文档 URL 和简短的提供商描述（最多 160 个字符）。
+</Card>
+
+自动化会从您的问题中填充 [`scripts/data/integration_external_docs.yaml`](https://github.com/langchain-ai/docs/blob/main/scripts/data/integration_external_docs.yaml) 和相关的列表表面。
+
+每个列表至少需要：
+
+- **`name`**：LangChain 类或显示名称（例如，`ChatAI21`）。
+- **`pypi`** 或 **`npm`**：用于下载量徽章的注册中心包名称。
+- **`docs_url`**：名称列的链接。优先考虑合作伙伴文档，其次是 GitHub 仓库，然后是 PyPI 或 npm 页面。
+
+可选地，在问题表单中包含组件特定的能力标志（例如，chat `stream` 和 `tool_calling`），以便表格列保持准确。
+
+合并后，刷新作业将重新生成组件表格片段，以便您的行与托管集成一起显示。
+
+<Info>
+    此流程仅用于 **列表元数据**。在您的网站或 GitHub README 上托管您的使用文档。您的集成包本身应位于您 GitHub 组织或账户下的独立仓库中，作为独立包发布。
+</Info>
+
+### 托管指南（50K+ 或精选）
+
+如果您的包满足 [资格标准](#主机指南的资格)，集成列表自动化可以打开一个包含文档页面的 PR，该页面来自以下模板之一。维护者也可能要求您手动编写或修订托管页面。
+
+根据您构建的集成类型，您需要创建不同类型的文档页面。LangChain 提供了不同类型集成的模板，以帮助您入门。
+
+:::python
+<CardGroup>
+    <Card title="Chat models" icon="message" href="https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/TEMPLATE.mdx" arrow/>
+    <Card title="Tools/toolkits" icon="tool" href="https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/TEMPLATE.mdx" arrow/>
+    <Card title="Middleware" icon="plug" href="https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/middleware/TEMPLATE.mdx" arrow/>
+    <Card title="Vector stores" icon="database" href="https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/TEMPLATE.mdx" arrow/>
+</CardGroup>
+:::
+
+:::js
+<CardGroup>
+    <Card title="Chat models" icon="message" href="https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/chat/TEMPLATE.mdx" arrow/>
+</CardGroup>
+:::
+
+<Tip>
+    要引用现有文档，您可以查看 [集成列表](/langchain/oss/python/integrations/providers/overview) 并找到与您的类似的集成。
+
+    要查看给定文档页面的原始 Markdown，请使用页面右上角“复制页面”旁边的下拉按钮并选择“以 Markdown 查看方式”。
+</Tip>
+
+如果您被要求手动编辑托管页面，请 fork [LangChain 文档仓库](https://github.com/langchain-ai/docs)（而不是主 `langchain` 仓库），遵循匹配的模板，并遵循 [文档指南](/langchain/oss/contributing/documentation)。
+
+如果您的包之前在 [`integration_external_docs.yaml`](https://github.com/langchain-ai/docs/blob/main/scripts/data/integration_external_docs.yaml) 中列出，请在相同的 PR 中删除该 YAML 条目，以便表格不会显示重复的行。
+
+除非维护者要求您，否则不要在 frontmatter 前设置 `featured: true`。精选状态是维护者的决定。
+
+<Info>
+    托管指南 PR 仅用于**文档**。您的集成包本身应存放在您 GitHub 组织或账户下的独立仓库中，作为独立包发布。
+</Info>
+
+<Warning>
+    如果以下情况发生，我们可能会拒绝列出问题或 PR，或要求修改：
+    - 当请求托管页面时，包不符合 [托管指南资格标准](#主机指南的资格)
+    - CI 检查失败
+    - 存在严重的语法错误或拼写错误
+    - [Mintlify 组件](/langchain/oss/contributing/documentation#mintlify-组件)使用不当
+    - 页面缺少 [frontmatter](/langchain/oss/contributing/documentation#页面结构)
+    - [本地化](/langchain/oss/contributing/documentation#本地化)缺失（如适用）
+    - [代码示例](/langchain/oss/contributing/documentation#代码内文档)无法运行或存在错误
+    - 未达到 [质量标准](/langchain/oss/contributing/documentation#质量标准)
+</Warning>
+
+请耐心等待我们处理大量提交。当自动 PR 打开时，请查看。**不要反复标记维护者关于您的问题或 PR。**
+
+<Note>
+    如果 PR 包含 AI 生成内容，您必须遵守我们的 [LLM 合理使用政策](/langchain/oss/contributing/overview#llm-的可接受使用方式)。
+</Note>
+
+## 下一步
+
+**恭喜！**您的集成已发布并列为 LangChain 社区。
+
+<Card title="Co-marketing" icon="speakerphone" href="/langchain/oss/contributing/comarketing" arrow>
+    联系 LangChain 市场团队，探索联合营销机会。
+</Card>

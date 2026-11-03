@@ -1,0 +1,178 @@
+---
+title: "Stagehand + Browserbase 集成"
+description: "Stagehand 是一个开源的浏览器智能体 SDK，来自 Browserbase。StagehandMiddleware 将其 run、snapshot 和 screenshot 工具添加到 LangChain 或 Deep Agents 智能体中。"
+integration:
+  name: Stagehand
+---
+
+[Stagehand](https://docs.stagehand.dev/v4/first-steps/introduction) 是一个开源的浏览器智能体 SDK，来自 [Browserbase](/langchain/oss/python/integrations/providers/browserbase)。`StagehandMiddleware` 将其 `run`、`snapshot` 和 `screenshot` 工具添加到 LangChain 或 Deep Agents 智能体中。将配置好的 Stagehand 客户端传递给中间件：不需要 MCP 服务器、自定义工具定义或浏览器系统提示词。
+
+关于用例、浏览器范围和沙盒测试设置，请参阅 [Browser use](/langchain/oss/deepagents/browser-use)。
+
+<Note>
+该中间件在 [langchain-browserbase#1](https://github.com/langchain-ai/langchain-browserbase/pull/1) 中提出，尚未发布到 PyPI。本页面使用该源代码版本。它需要 Python 3.11 或更高版本、LangChain 1.4.7 或更高版本以及 Stagehand 4.3.0 或更高版本。
+</Note>
+
+## 工具
+
+| 工具 | 描述 |
+|------|-------------|
+| `run` | 对当前页面执行操作。传递 `code`（使用 Playwright 风格的 `page`、`context` 和 `browser` 对象的 JavaScript）或 `actions`（在快照 ID 上执行一批 `click`、`hover`、`fill`、`type`、`press` 和 `select` 操作）。 |
+| `snapshot` | 捕获当前页面的可访问性树，并分配 `run` 操作使用的括号 ID。每次调用都会替换先前的 ID。 |
+| `screenshot` | 返回模型可见的 PNG 或 JPEG 图像。接受可选的 `fullPage`、`type` 和 `quality` 参数。仅在与 JPEG 一起使用时使用 `quality`。 |
+
+这是 `run` 的两个输入形状：
+
+<CodeGroup>
+```json JavaScript
+{ "code": "await page.goto('https://example.com'); return await page.title();" }
+```
+
+```json Snapshot actions
+{ "actions": [{ "op": "click", "id": "1-42" }] }
+```
+</CodeGroup>
+
+使用最新 `snapshot` 响应中的 ID，而不是说明性的 `1-42` 值。在导航后或 ID 过期时拍摄新的快照。
+
+## 设置
+
+从源代码安装中间件，以及 Deep Agents 和模型集成：
+
+```bash
+pip install "langchain-stagehand @ git+https://github.com/langchain-ai/langchain-browserbase.git@40d1ae1d5e0543fe1e49b13d0887df40acf1c4c8" deepagents langchain-openai
+```
+
+设置模型提供者凭证和您的 [Browserbase API key](https://www.browserbase.com)：
+
+```bash
+export OPENAI_API_KEY="your-openai-api-key"
+export BROWSERBASE_API_KEY="your-browserbase-api-key"
+```
+
+## 与 deep agent 一起使用
+
+创建一个 Browserbase 浏览器，附加一个 Stagehand 客户端，并将中间件传递给 @[`create_deep_agent`]：
+
+```python
+import asyncio
+import os
+
+from deepagents import create_deep_agent
+from langchain_stagehand import StagehandMiddleware
+from stagehand import Stagehand, browserbase
+
+
+async def main():
+    browser = await browserbase.launch(api_key=os.environ["BROWSERBASE_API_KEY"])
+    try:
+        stagehand = await Stagehand.create(browser=browser)
+        agent = create_deep_agent(
+            model="openai:gpt-5.5-2026-04-23",
+            middleware=[StagehandMiddleware(stagehand=stagehand)],
+        )
+        result = await agent.ainvoke({
+            "messages": [{
+                "role": "user",
+                "content": "Open news.ycombinator.com, read the top three stories, and summarize each one.",
+            }]
+        })
+        print(result["messages"][-1].content_blocks)
+    finally:
+        await browser.close()
+
+
+asyncio.run(main())
+```
+
+使用 `ainvoke` 或 `astream`：浏览器工具是异步的。中间件在工具描述中包含浏览器指导，并保持您的系统提示词不变。这些工具使用 Stagehand 的 Playwright 形式的接口，并且不需要单独的 Stagehand 模型。
+
+### 与 LangChain 一起使用
+
+保持相同的浏览器设置，并将 `create_deep_agent` 替换为 @[`create_agent`]：
+
+```python
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model="openai:gpt-5.5-2026-04-23",
+    middleware=[StagehandMiddleware(stagehand=stagehand)],
+)
+```
+
+## 选择浏览器
+
+您的应用程序直接配置浏览器和 Stagehand 客户端，而不是通过 MCP 服务器环境变量。
+
+- **Browserbase**：使用上面示例中的 `browserbase.launch(api_key=...)`。浏览器在远程运行，因此无法访问 `localhost` 在您的机器上或在沙盒中。
+- **本地 Chrome**：使用 `local_browser.launch(headless=True)` 在无可见窗口的情况下运行。Chrome 共享应用程序的 `localhost`，并需要已安装的 Google Chrome 或 Chromium 浏览器。
+
+要使用本地 Chrome，请将浏览器启动和客户端设置替换为：
+
+```python
+from stagehand import Stagehand, local_browser
+
+browser = await local_browser.launch(headless=True)
+stagehand = await Stagehand.create(browser=browser)
+middleware = StagehandMiddleware(stagehand=stagehand)
+```
+
+保持相同的应用程序级 `try`/`finally` 清理。所有 Stagehand 客户端设置都可以通过 `Stagehand.create(...)` 访问。
+
+要在您的应用程序旁边使用 Chrome 并具有 LangSmith 沙盒后端，请参阅 [在 LangSmith 沙盒中测试 Chrome 应用程序](/langchain/oss/deepagents/browser-use#在-langsmith-沙盒中使用-chrome-测试应用程序)。
+
+## 管理浏览器生命周期
+
+您的应用程序拥有客户端和浏览器。中间件跨运行重用提供的客户端，并且不会关闭或重新创建它。保持浏览器打开以保留标签和登录，然后在完成后调用 `await browser.close()`。如果浏览器断开连接，请提供一个新的配置好的客户端。
+
+选择在单个线程内还是跨一个认证用户的对话重用登录状态。中间件不实现范围选择、会话存储或浏览器检查点。为并发智能体提供单独的客户端和浏览器。有关权衡和用户隔离要求，请参阅 [选择浏览器范围](/langchain/oss/deepagents/browser-use#选择浏览器范围)。
+
+`screenshot` 工具直接将图像返回给模型。`run` 代码保存的屏幕截图（使用 `path`）将保存在当前工作目录，而不是 Deep Agents 后端。后端工件保存尚未支持。
+
+## 在执行操作前要求批准
+
+`snapshot` 和 `screenshot` 仅读取页面。`run` 导航、点击、输入和提交表单。要在每个 `run` 调用执行之前进行审查，请保持上述浏览器设置，并向智能体添加 `interrupt_on` 和一个检查点器：
+
+```python
+from langgraph.checkpoint.memory import InMemorySaver
+
+agent = create_deep_agent(
+    model="openai:gpt-5.5-2026-04-23",
+    middleware=[StagehandMiddleware(stagehand=stagehand)],
+    interrupt_on={"run": True},
+    checkpointer=InMemorySaver(),
+)
+config = {"configurable": {"thread_id": "browser-1"}}
+```
+
+将 `config` 传递给 `ainvoke`，并在审查和恢复中断时保持浏览器打开。每个中断列出了待处理的 `run` 参数。有关批准和恢复循环，请参阅 [Human-in-the-loop](/langchain/oss/deepagents/human-in-the-loop)。
+
+## 安全
+
+`run` 在 Stagehand 浏览器扩展内执行模型编写的 JavaScript。该代码可以使用会话登录的任何账户以及浏览器可以访问的任何网站。将 Browserbase 作为不受信任任务的隔离边界。Playwright 形式的 API 不是一个通用目的的安全沙盒。请参阅 Stagehand 的 [security boundary](https://docs.stagehand.dev/v4/integrations/agent-frameworks/overview#security-boundary)。
+
+将页面内容视为不受信任的输入。将凭证保存在您的应用程序环境中，而不是提示词或浏览器工具输入中。不要在无关用户之间共享个人浏览器会话。
+
+## 相关资源
+
+<CardGroup cols={2}>
+  <Card title="Browser use guide" icon="world" href="/langchain/oss/deepagents/browser-use">
+    用例、浏览器范围和沙盒测试设置。
+  </Card>
+  <Card title="Middleware source and examples" icon="brand-github" href="https://github.com/langchain-ai/langchain-browserbase">
+    原生 LangChain 中间件、客户端生命周期和浏览器工具。
+  </Card>
+  <Card title="Stagehand Deep Agents docs" icon="book" href="https://docs.stagehand.dev/v4/integrations/agent-frameworks/deep-agents">
+    上游 MCP 替代方案，包括与 JavaScript 智能体一起使用。
+  </Card>
+  <Card title="Browserbase provider page" icon="browser" href="/langchain/oss/python/integrations/providers/browserbase">
+    Browserbase 设置，以及 Search 和 Fetch 工具。
+  </Card>
+</CardGroup>
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 ID：[]；意外的额外 ID：['41']。请再次翻译完整文本，保持每个占位符（六边形括号 + 数字）在其原始位置，一次不多不少。
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/stagehand.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/stagehand.mdx) · 译文由 AI 生成，以英文原文为准。

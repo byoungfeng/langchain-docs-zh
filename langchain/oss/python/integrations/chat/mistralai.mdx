@@ -1,0 +1,109 @@
+---
+title: "ChatMistralAI 集成"
+description: "使用 LangChain Python 集成 ChatMistralAI 对话模型。"
+integration:
+  name: ChatMistralAI
+  pypi: langchain-mistralai
+  featured: true
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: false
+---
+
+这将帮助您快速入门Mistral [对话模型](/langchain/oss/langchain/models)。如需了解所有 `ChatMistralAI` 功能和配置的详细文档，请访问 [API参考](https://reference.langchain.com/python/langchain-mistralai/chat_models/ChatMistralAI)。`ChatMistralAI` 类基于 [Mistral API](https://docs.mistral.ai/api/) 构建而成。要查看Mistral支持的模型列表，请参考 [此页面](https://docs.mistral.ai/getting-started/models/)。
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | [JS支持](/langchain/oss/javascript/integrations/chat/mistral) | 下载量 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| [`ChatMistralAI`](https://reference.langchain.com/python/langchain-mistralai/chat_models/ChatMistralAI) | [`langchain-mistralai`](https://reference.langchain.com/python/langchain-mistralai) | beta | ✅ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain_mistralai?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain_mistralai?style=flat-square&label=%20) |
+
+### 模型特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token级流式输出](/langchain/oss/langchain/streaming/) | 原生异步 | [Token使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+## 配置
+
+要访问 `ChatMistralAI` 模型，您需要创建Mistral账户、获取API密钥并安装 `langchain-mistralai` 集成包。
+
+### 凭据
+与API通信需要有效的 [API密钥](https://console.mistral.ai/api-keys/)。配置完成后，请设置 MISTRAL_API_KEY 环境变量：
+
+```python
+import getpass
+import os
+
+if "MISTRAL_API_KEY" not in os.environ:
+    os.environ["MISTRAL_API_KEY"] = getpass.getpass("Enter your Mistral API key: ")
+```
+
+要启用模型调用自动追踪功能，请设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API密钥：
+
+```python
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### 安装
+
+LangChain Mistral集成包位于 `langchain-mistralai` 包中：
+
+```python
+pip install -qU langchain-mistralai
+```
+
+## 实例化
+
+现在我们可以实例化模型对象并生成对话补全：
+
+```python
+from langchain_mistralai import ChatMistralAI
+
+llm = ChatMistralAI(
+    model="mistral-large-latest",
+    temperature=0,
+    max_retries=2,
+    # other params...
+)
+```
+
+## 调用
+
+```python
+messages = [
+    (
+        "system",
+        "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ),
+    ("human", "I love programming."),
+]
+ai_msg = llm.invoke(messages)
+ai_msg
+```
+
+```text
+AIMessage(content='Sure, I\'d be happy to help you translate that sentence into French! The English sentence "I love programming" translates to "J\'aime programmer" in French. Let me know if you have any other questions or need further assistance!', response_metadata={'token_usage': {'prompt_tokens': 32, 'total_tokens': 84, 'completion_tokens': 52}, 'model': 'mistral-small', 'finish_reason': 'stop'}, id='run-64bac156-7160-4b68-b67e-4161f63e021f-0', usage_metadata={'input_tokens': 32, 'output_tokens': 52, 'total_tokens': 84})
+```
+
+```python
+print(ai_msg.content)
+```
+
+```text
+Sure, I'd be happy to help you translate that sentence into French! The English sentence "I love programming" translates to "J'aime programmer" in French. Let me know if you have any other questions or need further assistance!
+```
+
+---
+
+## API参考
+
+要获取所有属性和方法的详细文档，请访问 [API参考](https://reference.langchain.com/python/langchain-mistralai/chat_models/ChatMistralAI)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/mistralai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/mistralai.mdx) · 译文由 AI 生成，以英文原文为准。

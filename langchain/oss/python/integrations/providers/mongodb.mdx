@@ -1,0 +1,88 @@
+---
+title: "MongoDB 集成"
+description: "使用 LangChain Python 与 MongoDB 集成。"
+---
+
+)>[MongoDB](https://www.mongodb.com/) 是一种支持JSON-like文档且具有动态模式的NoSQL、文档导向型数据库。您可以选择自托管部署或[MongoDB Atlas](https://www.mongodb.com/docs/atlas/)（MongoDB完全托管的云数据库）进行运行。
+
+安装 `langchain-mongodb` 以支持自托管和Atlas集成。在您自己的基础设施上运行MongoDB，或使用Atlas获得完整的云托管体验。文档数据模型存储JSON-like文档，其灵活的模式可随应用需求自适应调整。
+
+## 安装与配置
+
+安装Python包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-mongodb
+```
+
+```bash uv
+uv add langchain-mongodb
+```
+</CodeGroup>
+
+### 获取MongoDB连接字符串
+
+在集成LangChain前，您需要已运行的MongoDB部署和连接字符串。根据环境选择对应方案。
+
+#### MongoDB Atlas
+
+MongoDB Atlas是MongoDB在AWS、Azure和GCP上提供的完全托管云数据库，是生产部署的首选方案，也是Atlas特定LangChain集成（如向量搜索、全文搜索和混合搜索）的必需组件。
+
+1. [注册免费Atlas账户](https://www.mongodb.com/cloud/atlas/register)并创建集群。
+2. 在Atlas控制台，进入目标集群并选择"连接"以获取连接字符串。
+
+示例连接字符串：
+
+```python
+MONGODB_ATLAS_URI = "mongodb+srv://<username>:<password>@<cluster-url>/"
+```
+
+
+#### 自托管MongoDB
+
+MongoDB可作为自托管部署用于本地开发、私有云或本地测试环境。MongoDB提供两种自托管版本：
+
+- **社区版**：免费开源，适用于本地开发和中小型部署。[下载社区版](https://www.mongodb.com/try/download/community)
+- **企业高级版**：适用于生产自托管环境，提供高级安全和管理功能。[下载企业高级版](https://www.mongodb.com/try/download/enterprise)
+
+根据部署类型确定连接字符串格式，请参考 [MongoDB连接字符串文档](https://www.mongodb.com/docs/manual/reference/connection-string/)。
+
+示例本地连接字符串：
+
+```python
+MONGODB_URI = "mongodb://localhost:27017/"
+```
+
+
+## 可用集成
+
+### 短期记忆与长期记忆
+
+将MongoDB作为智能体记忆的持久化后端：
+
+- [使用MongoDB Atlas实现短期记忆](/langchain/oss/python/integrations/memory/mongodb-short-term-memory)（`MongoDBSaver`检查点）
+- [使用MongoDB Atlas实现长期记忆](/langchain/oss/python/integrations/memory/mongodb-long-term-memory)（`MongoDBStore`）
+
+### 模型缓存
+
+`MongoDBCache`存储LLM响应至MongoDB，无需搜索索引或Atlas部署，支持自托管和Atlas两种部署方式。
+
+```python
+from langchain_mongodb.cache import MongoDBCache
+```
+
+
+### MongoDB Atlas集成
+
+以下功能需使用MongoDB Atlas：
+
+- **向量存储**：`MongoDBAtlasVectorSearch`在MongoDB中存储嵌入向量，支持语义搜索、过滤搜索和混合搜索（向量+BM25全文检索）。详见 [MongoDB Atlas向量存储指南](/langchain/oss/python/integrations/vectorstores/mongodb_atlas)。
+- **检索器**：`MongoDBAtlasFullTextSearchRetriever`和`MongoDBAtlasHybridSearchRetriever`支持全文检索和向量+关键词混合检索。详见 [MongoDB Atlas检索器指南](/langchain/oss/python/integrations/retrievers/mongodb_atlas)。
+- **语义缓存**：`MongoDBAtlasSemanticCache`基于语义相似度检索LLM响应缓存，底层依赖Atlas向量搜索。
+
+更多集成方法请参考 [MongoDB Atlas集成页面](/langchain/oss/python/integrations/providers/mongodb_atlas)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/mongodb.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/mongodb.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,138 @@
+---
+title: "TogetherEmbeddings 集成"
+description: "使用 LangChain 集成 TogetherEmbeddings 嵌入模型。"
+integration:
+  name: TogetherEmbeddings
+  featured: true
+  pypi: langchain-together
+---
+
+
+这将帮助您使用 LangChain 开始使用 Together 嵌入模型。有关 `TogetherEmbeddings` 功能和配置选项的详细文档，请参阅 [API 参考](https://reference.langchain.com/python/langchain-together/embeddings/TogetherEmbeddings)。
+
+## 概述
+
+### 集成细节
+
+<ItemTable category="embeddings" item="Together" />
+
+## 设置
+
+要访问 Together 嵌入模型，您需要创建一个 Together 账户，获取一个 API 密钥，并安装 `langchain-together` 集成包。
+
+### 凭证
+
+前往 [https://api.together.xyz/](https://api.together.xyz/) 注册 Together 并生成 API 密钥。完成后，设置 TOGETHER_API_KEY 环境变量：
+
+```python
+import getpass
+import os
+
+if not os.getenv("TOGETHER_API_KEY"):
+    os.environ["TOGETHER_API_KEY"] = getpass.getpass("Enter your Together API key: ")
+```
+
+要启用模型调用的自动跟踪，设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+```
+
+### 安装
+
+LangChain Together 集成位于 `langchain-together` 包中：
+
+```python
+pip install -qU langchain-together
+```
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成对话补全：
+
+```python
+from langchain_together import TogetherEmbeddings
+
+embeddings = TogetherEmbeddings(
+    model="togethercomputer/m2-bert-80M-8k-retrieval",
+)
+```
+
+## 索引和检索
+
+嵌入模型通常用于检索增强生成（RAG）流程中，既作为索引数据的一部分，也用于稍后检索。有关更详细的说明，请参阅我们的 [RAG 教程](/langchain/oss/deepagents/rag)。
+
+下面，看看如何使用我们上面初始化的 `embeddings` 对象来索引和检索数据。在这个例子中，我们将索引和检索一个 `InMemoryVectorStore` 中的示例文档。
+
+```python
+# Create a vector store with a sample text
+from langchain_core.vectorstores import InMemoryVectorStore
+
+text = "LangChain is the framework for building context-aware reasoning applications"
+
+vectorstore = InMemoryVectorStore.from_texts(
+    [text],
+    embedding=embeddings,
+)
+
+# Use the vectorstore as a retriever
+retriever = vectorstore.as_retriever()
+
+# Retrieve the most similar text
+retrieved_documents = retriever.invoke("What is LangChain?")
+
+# show the retrieved document's content
+retrieved_documents[0].page_content
+```
+
+```text
+'LangChain is the framework for building context-aware reasoning applications'
+```
+
+## 直接使用
+
+在底层，向量存储和检索器实现会调用 `embeddings.embed_documents(...)` 和 `embeddings.embed_query(...)` 来为 `from_texts` 中的文本(s) 创建嵌入，以及分别为检索 `invoke` 操作创建嵌入。
+
+您可以直接调用这些方法来获取您自己的用例的嵌入。
+
+### 嵌入单个文本
+
+您可以使用 `embed_query` 嵌入单个文本或文档：
+
+```python
+single_vector = embeddings.embed_query(text)
+print(str(single_vector)[:100])  # Show the first 100 characters of the vector
+```
+
+```text
+[0.3812227, -0.052848946, -0.10564975, 0.03480297, 0.2878488, 0.0084609175, 0.11605915, 0.05303011,
+```
+
+### 嵌入多个文本
+
+您可以使用 `embed_documents` 嵌入多个文本：
+
+```python
+text2 = (
+    "LangGraph is a library for building stateful, multi-actor applications with LLMs"
+)
+two_vectors = embeddings.embed_documents([text, text2])
+for vector in two_vectors:
+    print(str(vector)[:100])  # Show the first 100 characters of the vector
+```
+
+```text
+[0.3812227, -0.052848946, -0.10564975, 0.03480297, 0.2878488, 0.0084609175, 0.11605915, 0.05303011,
+[0.066308185, -0.032866564, 0.115751594, 0.19082588, 0.14017, -0.26976448, -0.056340694, -0.26923394
+```
+
+---
+
+## API 参考
+
+有关 `TogetherEmbeddings` 功能和配置选项的详细文档，请参阅 [API 参考](https://reference.langchain.com/python/langchain-together/embeddings/TogetherEmbeddings)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/together.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/together.mdx) · 译文由 AI 生成，以英文原文为准。

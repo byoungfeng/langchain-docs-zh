@@ -1,0 +1,149 @@
+---
+title: "Cloudflare vectorize 集成"
+description: "使用 LangChain JavaScript 集成 Cloudflare Vectorize 向量存储。"
+integration:
+  name: Cloudflare vectorize
+  npm: '@langchain/cloudflare'
+---
+
+如果你在 Cloudflare Worker 中部署你的项目，可以使用 [Cloudflare Vectorize](https://developers.cloudflare.com/vectorize/) 与 LangChain.js。
+这是一个直接集成在 Cloudflare 中的强大且便捷的选项。
+
+## 设置
+
+<Tip>
+**兼容性**
+
+Cloudflare Vectorize 目前处于公开测试阶段，使用它需要 Cloudflare 账户的付费计划。
+</Tip>
+
+在 [设置你的项目](https://developers.cloudflare.com/vectorize/get-started/intro/#prerequisites) 之后，
+通过运行以下 Wrangler 命令创建索引：
+
+```bash
+$ npx wrangler vectorize create <index_name> --preset @cf/baai/bge-small-en-v1.5
+```
+
+你可以在 [官方文档](https://developers.cloudflare.com/workers/wrangler/commands/#vectorize) 中查看 `vectorize` 命令的完整选项列表。
+
+然后，你需要更新你的 `wrangler.toml` 文件以包含 `[[vectorize]]` 的条目：
+
+```toml
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "<index_name>"
+```
+
+最后，你需要安装 LangChain Cloudflare 集成包：
+
+<Tip>
+请参考 [安装 LangChain 包的一般说明](/langchain/oss/langchain/install)。
+</Tip>
+
+<CodeGroup>
+```bash npm
+npm install @langchain/cloudflare @langchain/core
+```
+```bash yarn
+yarn add @langchain/cloudflare @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/cloudflare @langchain/core
+```
+</CodeGroup>
+
+## 使用
+
+下面是一个示例 Worker，它根据使用的路径将文档添加到向量存储、查询或清除。它还使用了 [Cloudflare Workers AI 嵌入](/langchain/oss/javascript/integrations/embeddings/cloudflare_ai)。
+
+<Note>
+如果本地运行，请确保以 `npx wrangler dev --remote` 身份运行 wrangler！
+</Note>
+
+```toml
+name = "langchain-test"
+main = "worker.ts"
+compatibility_date = "2024-01-10"
+
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "langchain-test"
+
+[ai]
+binding = "AI"
+```
+
+```typescript
+// @ts-nocheck
+
+import type {
+  VectorizeIndex,
+  Fetcher,
+  Request,
+} from "@cloudflare/workers-types";
+
+import {
+  CloudflareVectorizeStore,
+  CloudflareWorkersAIEmbeddings,
+} from "@langchain/cloudflare";
+
+export interface Env {
+  VECTORIZE_INDEX: VectorizeIndex;
+  AI: Fetcher;
+}
+
+export default {
+  async fetch(request: Request, env: Env) {
+    const { pathname } = new URL(request.url);
+    const embeddings = new CloudflareWorkersAIEmbeddings({
+      binding: env.AI,
+      model: "@cf/baai/bge-small-en-v1.5",
+    });
+    const store = new CloudflareVectorizeStore(embeddings, {
+      index: env.VECTORIZE_INDEX,
+    });
+    if (pathname === "/") {
+      const results = await store.similaritySearch("hello", 5);
+      return Response.json(results);
+    } else if (pathname === "/load") {
+      // Upsertion by id is supported
+      await store.addDocuments(
+        [
+          {
+            pageContent: "hello",
+            metadata: {},
+          },
+          {
+            pageContent: "world",
+            metadata: {},
+          },
+          {
+            pageContent: "hi",
+            metadata: {},
+          },
+        ],
+        { ids: ["id1", "id2", "id3"] }
+      );
+
+      return Response.json({ success: true });
+    } else if (pathname === "/clear") {
+      await store.delete({ ids: ["id1", "id2", "id3"] });
+      return Response.json({ success: true });
+    }
+
+    return Response.json({ error: "Not Found" }, { status: 404 });
+  },
+};
+```
+
+你也可以传递一个 `filter` 参数来按先前加载的元数据过滤。
+请参考 [官方文档](https://developers.cloudflare.com/vectorize/learning/metadata-filtering/) 了解所需的格式信息。
+
+## 相关
+
+- 向量存储 [概念指南](/langchain/oss/python/integrations/vectorstores)
+- 向量存储 [操作指南](/langchain/oss/python/integrations/vectorstores)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/vectorstores/cloudflare_vectorize.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/vectorstores/cloudflare_vectorize.mdx) · 译文由 AI 生成，以英文原文为准。

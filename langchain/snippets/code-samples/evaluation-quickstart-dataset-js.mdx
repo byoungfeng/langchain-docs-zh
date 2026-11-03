@@ -1,0 +1,39 @@
+```ts TypeScript
+// dataset.ts
+import { Client } from "langsmith";
+
+async function main() {
+const client = new Client();
+
+const dataset = await client.createDataset(
+    "Sample dataset",
+    { description: "A sample dataset in LangSmith." }
+);
+
+// Define examples
+const inputs = [
+    { question: "Which country is Mount Kilimanjaro located in?" },
+    { question: "What is Earth's lowest point?" },
+];
+const outputs = [
+    { answer: "Mount Kilimanjaro is located in Tanzania." },
+    { answer: "Earth's lowest point is The Dead Sea." },
+];
+
+await client.createExamples({
+    datasetId: dataset.id,
+    inputs,
+    outputs,
+});
+
+console.log("Created dataset:", dataset.name);
+}
+
+main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+});
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 id：['0']；意外的额外 id：[]。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。

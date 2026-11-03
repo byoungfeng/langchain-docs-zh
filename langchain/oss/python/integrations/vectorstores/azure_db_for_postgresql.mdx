@@ -1,0 +1,459 @@
+---
+title: "Azure PostgreSQL 数据库 - 灵活服务器集成"
+description: "使用 LangChain Python 集成 Azure Database for PostgreSQL 灵活服务器向量存储。"
+integration:
+  name: Azure database for postgresql - flexible server
+  pypi: langchain-azure-postgresql
+---
+
+[Azure Database for PostgreSQL - Flexible Server](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/service-overview) 是基于开源PostgreSQL数据库引擎构建的关系型数据库服务。它是一个完全受管理的数据库即服务（DBaaS），能够以可预测的性能、安全性和高可用性处理关键业务负载，并支持动态扩展。
+
+本指南展示如何利用集成[向量数据库](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/how-to-use-pgvector)存储文档到集合、创建索引并执行基于余弦距离、欧氏距离（L2）和内积（IP）等近似最近邻算法的向量搜索查询，从而定位与查询向量相近的文档。
+
+## 向量支持
+
+Azure Database for PostgreSQL - Flexible Server 支持高效存储和查询数百万量级的向量嵌入。同时可从概念验证（POC）扩展至生产环境：
+
+* 提供熟悉的SQL接口查询向量嵌入和关系型数据
+* 通过[DiskANN索引算法](https://aka.ms/pg-diskann-docs)提升`pgvector`性能，支持在百万级向量（100M+）上实现更快速且更精确的相似性搜索
+* 通过单一数据库整合关系元数据、向量嵌入和时间序列数据
+* 依托强大的PostgreSQL生态和Azure云服务，实现企业级功能（包括复制和高可用性）
+
+## 认证
+
+Azure Database for PostgreSQL - Flexible Server 支持基于密码和[Microsoft Entra](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-azure-ad-authentication)（原Azure Active Directory）的认证。
+
+Entra认证允许使用Entra身份验证PostgreSQL服务器。这消除了单独管理数据库用户名和密码的需求，并复用Azure其他服务使用的安全机制。
+
+本指南支持两种认证方式。您可在笔记本中后期配置是否使用Entra认证。
+
+## 配置
+
+Azure Database for PostgreSQL基于开源PostgreSQL。本集成使用专用[`langchain-azure-postgresql`](https://pypi.org/project/langchain-azure-postgresql/)软件包，提供DiskANN索引和Microsoft Entra认证优化支持。
+
+首先下载合作伙伴软件包：
+
+```python
+pip install -qU langchain-azure-postgresql langchain-openai azure-identity
+```
+
+### 启用pgvector
+
+参考[Azure Database for PostgreSQL的启用说明](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/how-to-use-pgvector)。
+
+### 设置凭据
+
+需要Azure Database for PostgreSQL的[连接详情](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/quickstart-create-server-portal#get-the-connection-information)，并将其作为环境变量运行本笔记本。
+
+将`USE_ENTRA_AUTH`标志设置为`True`以使用Microsoft Entra认证。若使用Entra认证，仅需提供主机和数据库名；若使用密码认证，还需设置用户名和密码。
+
+```python
+import getpass
+import os
+
+USE_ENTRA_AUTH = True
+
+# Supply the connection details for the database
+os.environ["DBHOST"] = "REPLACE_WITH_SERVER_NAME"
+os.environ["DBNAME"] = "REPLACE_WITH_DATABASE_NAME"
+os.environ["SSLMODE"] = "require"
+
+if not USE_ENTRA_AUTH:
+    # If using a username and password, supply them here
+    os.environ["DBUSER"] = "REPLACE_WITH_USERNAME"
+    os.environ["DBPASSWORD"] = getpass.getpass("Database Password:")
+```
+
+### 配置`AzureOpenAIEmbeddings`
+
+```python
+os.environ["AZURE_OPENAI_ENDPOINT"] = "REPLACE_WITH_AZURE_OPENAI_ENDPOINT"
+os.environ["AZURE_OPENAI_API_KEY"] = getpass.getpass("Azure OpenAI API Key:")
+```
+
+```python
+AZURE_OPENAI_ENDPOINT = os.environ["AZURE_OPENAI_ENDPOINT"]
+AZURE_OPENAI_API_KEY = os.environ["AZURE_OPENAI_API_KEY"]
+
+from langchain_openai import AzureOpenAIEmbeddings
+
+embeddings = AzureOpenAIEmbeddings(
+    model="text-embedding-3-small",
+    api_key=AZURE_OPENAI_API_KEY,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    azure_deployment="text-embedding-3-small",
+)
+```
+
+## 初始化
+
+### 使用Microsoft Entra认证
+
+以下章节演示如何使用LangChain实现Microsoft Entra认证。LangChain Azure Postgres包中的`AzurePGConnectionPool`类通过`DefaultAzureCredential`库从 `azure.identity` 获取Azure数据库服务令牌。
+
+可将连接配置传入LangChain向量存储的`connection`参数 `AzurePGVectorStore` 中。
+
+#### 登录 Azure
+
+要登录 Azure，请确保已安装 [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)。您需要在终端中运行以下命令：
+
+```bash
+az login
+```
+
+登录成功后，以下代码将能够获取令牌。
+
+```python
+from langchain_azure_postgresql.common import (
+    BasicAuth,
+    AzurePGConnectionPool,
+    ConnectionInfo,
+)
+from langchain_azure_postgresql.langchain import AzurePGVectorStore
+
+entra_connection_pool = AzurePGConnectionPool(
+    azure_conn_info=ConnectionInfo(
+        host=os.environ["DBHOST"], dbname=os.environ["DBNAME"]
+    )
+)
+```
+
+### 密码身份验证
+
+如果未使用 Microsoft Entra 认证，可通过 `BasicAuth` 类使用用户名和密码：
+
+```python
+basic_auth_connection_pool = AzurePGConnectionPool(
+    azure_conn_info=ConnectionInfo(
+        host=os.environ["DBHOST"],
+        dbname=os.environ["DBNAME"],
+        credentials=BasicAuth(
+            username=os.environ["DBUSER"],
+            password=os.environ["DBPASSWORD"],
+        ),
+    )
+)
+```
+
+### 创建向量存储
+
+```python
+from langchain_core.documents import Document
+from langchain_azure_postgresql.langchain import AzurePGVectorStore
+
+table_name = "my_docs"
+
+# The connection is either using Entra ID or Basic Auth
+connection = entra_connection_pool if USE_ENTRA_AUTH else basic_auth_connection_pool
+
+vector_store = AzurePGVectorStore(
+    embedding=embeddings,
+    table_name=table_name,
+    connection=connection,
+)
+```
+
+```text
+Metadata columns are specified as a string, defaulting to 'jsonb' type.
+Embedding type is not specified, defaulting to 'vector'.
+Embedding dimension is not specified, defaulting to 1536.
+Embedding index is not specified, defaulting to 'DiskANN' with 'vector_cosine_ops' opclass.
+```
+
+## 配置向量存储参数
+
+在初始化 `AzurePGVectorStore` 时，可覆盖元数据类型、嵌入维度、索引类型等默认参数。这允许您根据具体用例和数据需求定制向量存储。
+
+**关键配置选项：**
+
+- `metadata_column_type`：元数据列类型（默认: `'jsonb'`）。可设置为 `'jsonb'`、`'text'` 等。
+- `embedding_column_type`：嵌入列类型（默认: `'vector'`）。
+- `embedding_dimension`：嵌入向量维度（默认: `1536`）。
+- `embedding_index_type`：向量检索索引类型（默认: `'DiskANN'`）。其他选项包括 `'ivfflat'`、`'hnsw'` 等。
+- `embedding_index_opclass`：索引算子类（默认: `'vector_cosine_ops'`）。
+
+**示例：**
+
+```python
+vector_store = AzurePGVectorStore(
+    embedding=embeddings,
+    table_name=table_name,
+    connection=connection,
+    metadata_column_type="jsonb",           # or "text"
+    embedding_column_type="vector",
+    embedding_dimension=768,                # set to match your model's output
+    embedding_index_type="DiskANN",         # or "ivfflat", "hnsw", etc.
+    embedding_index_opclass="vector_cosine_ops",  # or "vector_l2_ops", etc.
+)
+```
+
+## 初始化 DiskANN 向量索引以实现更高效的向量检索
+
+[DiskANN](https://aka.ms/pg-diskann-blog) 是一种可扩展的近似最近邻搜索算法，适用于任何规模的向量检索。它能实现高召回率、高查询吞吐量、低查询延迟，甚至适用于十亿级数据集。这些特性使其成为处理大规模数据的有力工具。
+
+```python
+vector_store.create_index()
+```
+
+```text
+True
+```
+
+## 管理向量存储
+
+### 添加项目
+
+注意：通过文档 ID 添加文档会覆盖同名现有文档。
+
+```python
+docs = [
+    Document(
+        page_content="there are cats in the pond",
+        metadata={"doc_id": 1, "location": "pond", "topic": "animals"},
+    ),
+    Document(
+        page_content="ducks are also found in the pond",
+        metadata={"doc_id": 2, "location": "pond", "topic": "animals"},
+    ),
+    Document(
+        page_content="fresh apples are available at the market",
+        metadata={"doc_id": 3, "location": "market", "topic": "food"},
+    ),
+    Document(
+        page_content="the market also sells fresh oranges",
+        metadata={"doc_id": 4, "location": "market", "topic": "food"},
+    ),
+    Document(
+        page_content="the new art exhibit is fascinating",
+        metadata={"doc_id": 5, "location": "museum", "topic": "art"},
+    ),
+    Document(
+        page_content="a sculpture exhibit is also at the museum",
+        metadata={"doc_id": 6, "location": "museum", "topic": "art"},
+    ),
+    Document(
+        page_content="a new coffee shop opened on Main Street",
+        metadata={"doc_id": 7, "location": "Main Street", "topic": "food"},
+    ),
+    Document(
+        page_content="the book club meets at the library",
+        metadata={"doc_id": 8, "location": "library", "topic": "reading"},
+    ),
+    Document(
+        page_content="the library hosts a weekly story time for kids",
+        metadata={"doc_id": 9, "location": "library", "topic": "reading"},
+    ),
+    Document(
+        page_content="a cooking class for beginners is offered at the community center",
+        metadata={"doc_id": 10, "location": "community center", "topic": "classes"},
+    ),
+]
+
+uuids = vector_store.add_documents(docs)
+uuids
+```
+
+```python
+['00e2cfe6-6e58-4733-9ebf-a708fd16488a',
+ '224a22a8-567f-4e12-ac0f-5cfe4f0a4480',
+ '62058e25-8f5e-4388-81c2-a5b7348ffef0',
+ '1d37d282-504d-4d28-855a-8d39694b0265',
+ '1fffcd2e-6fce-423f-bac3-ee5dc9084673',
+ 'b99efbab-2247-418f-b80d-d865f01d3c9e',
+ 'd2a86d1b-5d81-4c53-b3d2-a6b1e5189a3f',
+ 'a9577242-823e-42bc-9b0f-01670dbec190',
+ 'eaa45ae8-a84b-46eb-8a27-bf8652148d17',
+ '7d7f04fd-6fb8-4a29-8708-b9f835ef270a']
+```
+
+### 更新项目
+
+```python
+updated_docs = [
+    Document(
+        page_content="Updated - cooking class for beginners is offered at the community center",
+        metadata={"doc_id": 10, "location": "community center", "topic": "classes"},
+        id=uuids[-1],
+    )
+]
+vector_store.add_documents(updated_docs, ids=[uuids[-1]], on_conflict_update=True)
+```
+
+```python
+['7d7f04fd-6fb8-4a29-8708-b9f835ef270a']
+```
+
+### 检索项目
+
+```python
+vector_store.get_by_ids([str(uuids[3])])
+```
+
+```text
+[Document(id='1d37d282-504d-4d28-855a-8d39694b0265', metadata={'topic': 'food', 'doc_id': 4, 'location': 'market'}, page_content='the market also sells fresh oranges')]
+```
+
+### 删除项目
+
+```python
+vector_store.delete(ids=[uuids[3]])
+```
+
+```text
+True
+```
+
+## 查询向量存储
+
+在创建向量存储并添加相关文档后，您可在链或智能体中查询向量存储。
+
+### 过滤
+
+向量存储支持通过 `FilterCondition`、`OrFilter` 和 `AndFilter`（位于 [LangChain Azure PostgreSQL](https://pypi.org/project/langchain-azure-postgresql/) 包中）对文档元数据字段应用过滤：
+
+| 运算符 | 含义/类别                |
+|--------|-------------------------|
+| `=`   | 等于                    |
+| `!=`   | 不等于                  |
+| `<`   | 小于                    |
+| `<=`   | 小于或等于              |
+| `>`   | 大于                    |
+| `>=`   | 大于或等于              |
+| `in`   | 特殊处理（在）            |
+| `not in`   | 特殊处理（不在）          |
+| `is null`   | 特殊处理（为空）          |
+| `is not null`   | 特殊处理（非空）          |
+| `between`   | 特殊处理（介于）           |
+| `not between`   | 特殊处理（不介于）           |
+| `like`   | 文本（模糊匹配）           |
+| `ilike`   | 文本（不区分大小写模糊匹配） |
+| `AND`   | 逻辑（与）                |
+| `OR`   | 逻辑（或）                |
+
+### 直接查询
+
+执行简单的相似度搜索可按如下方式：
+
+```python
+from langchain_azure_postgresql import FilterCondition, AndFilter
+
+results = vector_store.similarity_search(
+    "kitty",
+    k=10,
+    filter=FilterCondition(
+        column="(metadata->>'doc_id')::int",
+        operator="in",
+        value=[1, 5, 2, 9],
+    ),
+)
+
+for doc in results:
+    print("* " + doc.page_content + " [" + str(doc.metadata) + "]")
+```
+
+```text
+* there are cats in the pond [{'topic': 'animals', 'doc_id': 1, 'location': 'pond'}]
+* ducks are also found in the pond [{'topic': 'animals', 'doc_id': 2, 'location': 'pond'}]
+* the new art exhibit is fascinating [{'topic': 'art', 'doc_id': 5, 'location': 'museum'}]
+* the library hosts a weekly story time for kids [{'topic': 'reading', 'doc_id': 9, 'location': 'library'}]
+```
+
+若需使用 `AND` 逻辑过滤器，示例如下：
+
+```python
+results = vector_store.similarity_search(
+    "ducks",
+    k=10,
+    filter=AndFilter(
+        AND=[
+            FilterCondition(
+                column="(metadata->>'doc_id')::int",
+                operator="in",
+                value=[1, 5, 2, 9],
+            ),
+            FilterCondition(
+                column="metadata->>'location'",
+                operator="in",
+                value=["pond", "market"],
+            ),
+        ]
+    ),
+)
+
+for doc in results:
+    print("* " + doc.page_content + " [" + str(doc.metadata) + "]")
+```
+
+```text
+* ducks are also found in the pond [{'topic': 'animals', 'doc_id': 2, 'location': 'pond'}]
+* there are cats in the pond [{'topic': 'animals', 'doc_id': 1, 'location': 'pond'}]
+```
+
+若需执行相似度搜索并获取对应分数，可运行：
+
+```python
+results = vector_store.similarity_search_with_score(query="cats", k=1)
+for doc, score in results:
+    print(f"* [SIM={score:3f}] {doc.page_content} [{doc.metadata}]")
+```
+
+```text
+* [SIM=0.528167] there are cats in the pond [{'topic': 'animals', 'doc_id': 1, 'location': 'pond'}]
+```
+
+
+### 将向量存储转换为检索器
+
+可将向量存储转换为 `AzurePGVectorStore` 检索器，便于在链中更便捷使用。
+
+```python
+retriever = vector_store.as_retriever(search_kwargs={"k": 1})
+retriever.invoke("kitty")
+```
+
+```text
+[Document(id='00e2cfe6-6e58-4733-9ebf-a708fd16488a', metadata={'topic': 'animals', 'doc_id': 1, 'location': 'pond'}, page_content='there are cats in the pond')]
+```
+
+若需使用最大边际相关性搜索：
+
+```python
+results = vector_store.max_marginal_relevance_search(
+    "query about cats",
+    k=10,
+    lambda_mult=0.5,
+    filter=FilterCondition(
+        column="(metadata->>'doc_id')::int",
+        operator="in",
+        value=[1, 2, 5, 9],
+    ),
+)
+
+for doc in results:
+    print("* " + doc.page_content + " [" + str(doc.metadata) + "]")
+```
+
+```text
+* there are cats in the pond [{'topic': 'animals', 'doc_id': 1, 'location': 'pond'}]
+* the new art exhibit is fascinating [{'topic': 'art', 'doc_id': 5, 'location': 'museum'}]
+* the library hosts a weekly story time for kids [{'topic': 'reading', 'doc_id': 9, 'location': 'library'}]
+* ducks are also found in the pond [{'topic': 'animals', 'doc_id': 2, 'location': 'pond'}]
+```
+
+要查看 `AzurePGVectorStore` 向量存储支持的所有搜索类型，请参考 [文档](https://github.com/langchain-ai/langchain-azure/tree/main/libs/azure-postgresql)。
+
+## 检索增强生成使用指南
+
+关于如何使用此向量存储实现检索增强生成（RAG），请参考以下章节：
+
+- [检索文档](/langchain/oss/deepagents/retrieval)
+- [使用 LangChain 构建RAG应用](/langchain/oss/deepagents/rag)
+- [智能体式RAG](/langchain/oss/langgraph/agentic-rag)
+
+## API参考
+
+要查看所有 `AzurePGVectorStore` 功能和配置的详细文档，请访问 API参考：https://github.com/langchain-ai/langchain-azure/tree/main/libs/azure-postgresql/src/langchain_azure_postgresql/langchain
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/azure_db_for_postgresql.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/azure_db_for_postgresql.mdx) · 译文由 AI 生成，以英文原文为准。

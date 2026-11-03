@@ -1,0 +1,470 @@
+import SmithdbExperimentRunsQueryBasicBeforePy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-before-py.mdx';
+import SmithdbExperimentRunsQueryBasicAfterPy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-after-py.mdx';
+import SmithdbExperimentRunsQueryBasicBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-before-js.mdx';
+import SmithdbExperimentRunsQueryBasicAfterJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-after-js.mdx';
+import SmithdbExperimentRunsQueryBasicBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-before-kt.mdx';
+import SmithdbExperimentRunsQueryBasicAfterKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-after-kt.mdx';
+import SmithdbExperimentRunsQueryBasicBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-before-go.mdx';
+import SmithdbExperimentRunsQueryBasicAfterGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-after-go.mdx';
+import SmithdbExperimentRunsQueryBasicBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-before-sh.mdx';
+import SmithdbExperimentRunsQueryBasicAfterSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-basic-after-sh.mdx';
+import SmithdbExperimentRunsQueryPaginationBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-before-sh.mdx';
+import SmithdbExperimentRunsQueryPaginationAfterSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-after-sh.mdx';
+import SmithdbExperimentRunsQueryPaginationBeforePy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-before-py.mdx';
+import SmithdbExperimentRunsQueryPaginationAfterPy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-after-py.mdx';
+import SmithdbExperimentRunsQueryPaginationBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-before-js.mdx';
+import SmithdbExperimentRunsQueryPaginationAfterJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-after-js.mdx';
+import SmithdbExperimentRunsQueryPaginationBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-before-kt.mdx';
+import SmithdbExperimentRunsQueryPaginationAfterKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-after-kt.mdx';
+import SmithdbExperimentRunsQueryPaginationBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-before-go.mdx';
+import SmithdbExperimentRunsQueryPaginationAfterGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-pagination-after-go.mdx';
+import SmithdbExperimentRunsQuerySortBeforeSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-before-sh.mdx';
+import SmithdbExperimentRunsQuerySortAfterSh from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-after-sh.mdx';
+import SmithdbExperimentRunsQuerySortBeforePy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-before-py.mdx';
+import SmithdbExperimentRunsQuerySortAfterPy from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-after-py.mdx';
+import SmithdbExperimentRunsQuerySortBeforeJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-before-js.mdx';
+import SmithdbExperimentRunsQuerySortAfterJs from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-after-js.mdx';
+import SmithdbExperimentRunsQuerySortBeforeKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-before-kt.mdx';
+import SmithdbExperimentRunsQuerySortAfterKt from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-after-kt.mdx';
+import SmithdbExperimentRunsQuerySortBeforeGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-before-go.mdx';
+import SmithdbExperimentRunsQuerySortAfterGo from '/langchain/snippets/code-samples/smithdb-migration/experiment-runs-query-sort-after-go.mdx';
+
+## 数据集实验运行：查询
+
+查询数据集示例以及针对每个示例记录的实验运行。接受一个或多个 `experiment_ids`，以便并排查看多个实验的运行；结果以游标分页形式返回。
+
+### 主要变更
+
+#### 方法名称
+
+<Tabs>
+  <Tab title="Python">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.get_experiment_results()` | `client.datasets.experiment_runs.query()` |
+
+    <Note>
+    `client.datasets.experiment_runs.query()` 现在是异步的。使用 `await` 调用它。
+    </Note>
+
+    查看完整的参数和字段列表的 [参考](https://reference.langchain.com/python/langsmith/_openapi_client/resources/datasets/experiment_runs/ExperimentRunsResource/query)。
+  </Tab>
+  <Tab title="TypeScript">
+    | 之前 | 之后 |
+    |------|------|
+    | *(没有遗留的公共 `Client` 方法)* | `client.datasets.experimentRuns.query()` |
+
+    查看完整的参数和字段列表的 [参考](https://reference.langchain.com/javascript/langsmith/_openapi_client/resources/Datasets/ExperimentRuns/query)。
+  </Tab>
+  <Tab title="Java">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.datasets().runs().query()` | `client.datasets().experimentRuns().query()` |
+
+    查看完整的参数列表的 [参考](https://javadoc.io/doc/com.langchain.smith/langsmith-java/latest/com/langchain/smith/services/blocking/datasets/ExperimentRunService.html)。
+  </Tab>
+  <Tab title="Go">
+    | 之前 | 之后 |
+    |------|------|
+    | `client.Datasets.Runs.Query()` | `client.Datasets.ExperimentRuns.Query()` |
+
+    查看完整的参数列表的 [参考](https://pkg.go.dev/github.com/langchain-ai/langsmith-go#DatasetExperimentRunService.Query)。
+  </Tab>
+  <Tab title="cURL">
+    | 之前 | 之后 |
+    |------|------|
+    | `POST /api/v1/datasets/{dataset_id}/runs` | `POST /api/v2/datasets/{dataset_id}/experiment-runs` |
+
+    查看完整的参数和字段列表的 [API 文档](https://docs.langchain.com/langsmith/smith-api/datasets/fetch-experiment-runs-for-dataset-examples)。
+  </Tab>
+</Tabs>
+
+#### 查询参数
+
+<Tabs>
+  <Tab title="Python">
+    <Warning>
+    `experiment_ids` 是必需的，并替换 `session_ids`。值仍然是实验跟踪项目 UUID——如果你只知道实验的名称，请先解析它：`client.read_project(project_name="my-experiment").id`，或在异步代码中使用 `await client.aread_project(project_name="my-experiment")`。
+    </Warning>
+
+    | 之前 (`get_experiment_results`) | 之后 (`datasets.experiment_runs.query`) | 备注 |
+    |---|---|---|
+    | `project_id` | `experiment_ids` | `get_experiment_results` 接受一个项目/实验；新方法接受一个必需的非空列表 |
+    | `limit` | *(已移除)* | 使用 `page_size` 进行请求级别的批量大小设置 |
+    | *(不可用)* | `page_size` | 请求级别的结果数量（默认 20，最大 100） |
+    | *(内部处理)* | `cursor` | 将前一页的 `next_cursor` 传递给它以获取下一页 |
+    | `preview` | `selects` | 省略 `selects` 仅返回运行 ID；使用 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 进行预览，或使用 `INPUTS` 和 `OUTPUTS` 获取完整负载 |
+    | *(未公开)* | `sort` | 使用 `{by, order}` 进行反馈分数排序 |
+    | `filters` | `filters` | 未更改；将实验 UUID 字符串映射为过滤表达式 |
+    | `comparative_experiment_id` | `comparative_experiment_id` | 未更改 |
+    | *(未公开)* | `example_ids` | 可选的示例 UUID 过滤器，最大 1000 |
+  </Tab>
+  <Tab title="TypeScript">
+    <Warning>
+    `experiment_ids` 是必需的，并替换 `session_ids`。值仍然是实验跟踪项目 UUID——如果你只知道实验的名称，请先解析它：`(await client.readProject({ projectName: "my-experiment" })).id`。
+    </Warning>
+
+| 之前 | 之后 (`datasets.experimentRuns.query`) | 备注 |
+    |---|---|---|
+    | *(没有遗留的公共 `Client` 方法)* | `experiment_ids` | 必须且非空 |
+    | *(没有遗留的公共 `Client` 方法)* | `page_size` | 默认为 20，最大 100 |
+    | *(没有遗留的公共 `Client` 方法)* | `cursor` | 传递前一页的 `next_cursor` 而不是数字偏移量 |
+    | *(没有遗留的公共 `Client` 方法)* | `selects` | 省略 `selects` 仅返回运行 ID；使用 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 获取预览，或使用 `INPUTS` 和 `OUTPUTS` 获取完整负载 |
+    | *(没有遗留的公共 `Client` 方法)* | `sort` | 使用 `{ by, order }` 进行反馈分数排序 |
+    | *(没有遗留的公共 `Client` 方法)* | `filters` | 将实验 UUID 字符串映射到过滤表达式 |
+    | *(没有遗留的公共 `Client` 方法)* | `comparative_experiment_id` | 范围对标注反馈 |
+    | *(没有遗留的公共 `Client` 方法)* | `example_ids` | 可选的示例 UUID 过滤，最大 1000 |
+  </Tab>
+  <Tab title="Java">
+    <Warning>
+    `experimentIds()` 是必须的，替换了 `sessionIds()`。值仍然是实验跟踪项目 UUID——如果你只知道实验的名称，请先解析：`client.sessions().list(SessionListParams.builder().name("my-experiment").build()).items().first().id()`。
+    </Warning>
+
+    | 之前 (`RunQueryParams`) | 之后 (`ExperimentRunQueryParams`) | 备注 |
+    |---|---|---|
+    | `sessionIds()` | `experimentIds()` | 重命名；必须且非空 |
+    | `limit()` | *(已移除)* | 使用 `pageSize()` 进行每请求批处理大小 |
+    | *(不可用)* | `pageSize()` | 每请求结果计数（默认 20，最大 100） |
+    | `offset()` | `cursor()` | 传递前一页的 `nextCursor()` 而不是数字偏移量 |
+    | `preview()` | `selects()` | 省略选择仅返回运行 ID；添加 `Select.INPUTS_PREVIEW` 和 `Select.OUTPUTS_PREVIEW` 获取预览 |
+    | `sortParams()` | `sort()` | 结构从 `sortBy()` / `sortOrder()` 改为 `by()` / `order()` |
+    | `filters()` | `filters()` | 未更改 |
+    | `comparativeExperimentId()` | `comparativeExperimentId()` | 未更改 |
+    | `exampleIds()` | `exampleIds()` | 未更改，最大 1000 |
+    | `format()` | *(已移除)* | 新端点仅返回 JSON |
+    | `includeAnnotatorDetail()` | *(已移除)* | 没有新的 JSON 等价物 |
+  </Tab>
+  <Tab title="Go">
+    <Warning>
+    `ExperimentIDs` 是必须的，替换了 `SessionIDs`。值仍然是实验跟踪项目 UUID——如果你只知道实验的名称，请先解析：列出 `Name` 过滤的会话并取第一个结果的 `ID`。
+    </Warning>
+
+| 之前 (`DatasetRunQueryParams`) | 之后 (`DatasetExperimentRunQueryParams`) | 备注 |
+    |---|---|---|
+    | `SessionIDs` | `ExperimentIDs` | 重命名；必须且非空 |
+    | `Limit` | *(已移除)* | 使用 `PageSize` 设置请求级批处理大小 |
+    | *(不可用)* | `PageSize` | 请求级结果数量（默认 20，最大 100） |
+    | `Offset` | `Cursor` | 使用前页的 `NextCursor` 而非数字偏移量 |
+    | `Preview` | `Selects` | 省略选择返回仅运行 ID；使用 `InputsPreview` 和 `OutputsPreview` 选择预览常量 |
+    | `SortParams` | `Sort` | 结构从 `SortBy` / `SortOrder` 改为 `By` / `Order` |
+    | `Filters` | `Filters` | 未变更 |
+    | `ComparativeExperimentID` | `ComparativeExperimentID` | 未变更 |
+    | `ExampleIDs` | `ExampleIDs` | 未变更，最大 1000 |
+    | `Format` | *(已移除)* | 新端点仅返回 JSON |
+    | `IncludeAnnotatorDetail` | *(已移除)* | 无新的 JSON 等价物 |
+  </Tab>
+  <Tab title="cURL">
+    <Warning>
+    `experiment_ids` 必须且替换 `session_ids`。值仍是实验追踪项目 UUID——如果你只知道实验名称，先解析它：`GET /api/v1/sessions?name=my-experiment` 并获取 `.[0].id`。
+    </Warning>
+
+    | 之前 (`POST /api/v1/datasets/{dataset_id}/runs` 正文) | 之后 (`POST /api/v2/datasets/{dataset_id}/experiment-runs` 正文) | 备注 |
+    |---|---|---|
+    | `session_ids` | `experiment_ids` | 重命名；必须且非空 |
+    | `limit` | *(已移除)* | 使用 `page_size` 设置请求级批处理大小 |
+    | *(不可用)* | `page_size` | 请求级结果数量（默认 20，最大 100） |
+    | `offset` | `cursor` | 使用前页的 `next_cursor` 而非数字偏移量 |
+    | `preview` | `selects` | 省略 `selects` 返回仅运行 ID；使用 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 进行预览，或 `INPUTS` 和 `OUTPUTS` 获取完整负载 |
+    | `sort_params` | `sort` | 结构从 `{sort_by, sort_order}` 改为 `{by, order}` |
+    | `filters` | `filters` | 未变更；将实验 UUID 字符串映射为过滤表达式 |
+    | `comparative_experiment_id` | `comparative_experiment_id` | 未变更 |
+    | `example_ids` | `example_ids` | 未变更，最大 1000 |
+    | `format=csv` | *(已移除)* | 新端点仅返回 JSON |
+    | `include_annotator_detail` | *(已移除)* | 无新的 JSON 等价物 |
+  </Tab>
+</Tabs>
+
+#### 响应字段
+
+每页项目是一个数据集示例及其产生的运行结果——而非裸 `Run`。其 `runs` 字段包含与 [查询运行结果](#响应字段) 相同的 `Run` 对象；参见该部分了解每个运行的字段。下表描述了其余项目：示例字段与 `runs`。
+
+<Tabs>
+  <Tab title="Python">
+    `get_experiment_results` 返回实验结果时使用 `examples_with_runs` 迭代器。`datasets.experiment_runs.query` 返回分页页对象 (`page.items`, `page.next_cursor`)；每个项目包含：
+
+| 字段 | 备注 |
+    |---|---|
+    | `id` | 数据集示例 UUID |
+    | `dataset_id` | 父数据集 UUID |
+    | `name` | 示例名称（如果设置） |
+    | `created_at` / `modified_at` | 示例时间戳 |
+    | `inputs` / `outputs` | 示例输入和参考输出有效负载 |
+    | `metadata` | 示例元数据 |
+    | `source_run_id` | 示例创建所基于的运行 UUID（如果有） |
+    | `attachment_urls` | 每个附件名称的预签名下载 URL |
+    | `runs` | 此示例的运行——参见 [查询运行](#响应字段) |
+  </Tab>
+  <Tab title="TypeScript">
+    遗留数据集运行端点未在公共 TypeScript `Client` 中公开。`datasets.experimentRuns.query` 返回分页页面（`page.getPaginatedItems()`, `page.next_cursor`）；每个项目包含：
+
+    | 字段 | 备注 |
+    |---|---|
+    | `id` | 数据集示例 UUID |
+    | `dataset_id` | 父数据集 UUID |
+    | `name` | 示例名称（如果设置） |
+    | `created_at` / `modified_at` | 示例时间戳 |
+    | `inputs` / `outputs` | 示例输入和参考输出有效负载 |
+    | `metadata` | 示例元数据 |
+    | `source_run_id` | 示例创建所基于的运行 UUID（如果有） |
+    | `attachment_urls` | 每个附件名称的预签名下载 URL |
+    | `runs` | 此示例的运行——参见 [查询运行](#响应字段) |
+  </Tab>
+  <Tab title="Java">
+    `runs().query` 返回一个可选列表。`experimentRuns().query` 返回一个页面对象（`items()`, `nextCursor()`）；每个项目包含：
+
+    | 字段 | 备注 |
+    |---|---|
+    | `id()` | 数据集示例 UUID |
+    | `datasetId()` | 父数据集 UUID |
+    | `name()` | 示例名称（如果设置） |
+    | `createdAt()` / `modifiedAt()` | 示例时间戳 |
+    | `inputs()` / `outputs()` | 示例输入和参考输出有效负载 |
+    | `metadata()` | 示例元数据 |
+    | `sourceRunId()` | 示例创建所基于的运行 UUID（如果有） |
+    | `attachmentUrls()` | 每个附件名称的预签名下载 URL |
+    | `runs()` | 此示例的运行——参见 [查询运行](#响应字段) |
+  </Tab>
+  <Tab title="Go">
+    `Datasets.Runs.Query` 返回一个切片指针。`Datasets.ExperimentRuns.Query` 返回一个 `ItemsCursorPostPagination`（`Items`, `NextCursor`）；每个项目包含：
+
+    | 字段 | 备注 |
+    |---|---|
+    | `ID` | 数据集示例 UUID |
+    | `DatasetID` | 父数据集 UUID |
+    | `Name` | 示例名称（如果设置） |
+    | `CreatedAt` / `ModifiedAt` | 示例时间戳 |
+    | `Inputs` / `Outputs` | 示例输入和参考输出有效负载 |
+    | `Metadata` | 示例元数据 |
+    | `SourceRunID` | 示例创建所基于的运行 UUID（如果有） |
+    | `AttachmentURLs` | 每个附件名称的预签名下载 URL |
+    | `Runs` | 此示例的运行——参见 [查询运行](#响应字段) |
+  </Tab>
+  <Tab title="cURL">
+    `POST /api/v1/datasets/{dataset_id}/runs` 返回一个 JSON 数组。`POST /api/v2/datasets/{dataset_id}/experiment-runs` 返回 `{ "items": [...], "next_cursor": "..." }`；每个项目包含：
+
+| 字段 | 备注 |
+    |---|---|
+    | `id` | 数据集示例 UUID |
+    | `dataset_id` | 父数据集 UUID |
+    | `name` | 示例名称（如果设置） |
+    | `created_at` / `modified_at` | 示例时间戳 |
+    | `inputs` / `outputs` | 示例输入和参考输出有效负载 |
+    | `metadata` | 示例元数据 |
+    | `source_run_id` | 示例创建所依据的运行 UUID（如果有） |
+    | `attachment_urls` | 每个附件名称的预签名下载 URL |
+    | `runs` | 此示例的运行——参见 [查询运行](#响应字段) |
+  </Tab>
+</Tabs>
+
+### 示例
+
+#### 查询实验运行并请求预览字段
+
+<Tabs>
+  <Tab title="Python">
+    `preview=True` 自动返回截断的输入/输出。在新 API 中，请明确请求：在 `selects` 中传递 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 以获取相同的截断形状，或使用 `INPUTS`/`OUTPUTS` 获取未截断的值。省略 `selects` 仅返回 `id`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryBasicBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryBasicAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    新的 TypeScript SDK 方法公开了实验运行查询端点。传统的直接端点请求形状显示在 cURL 选项卡中。在 `selects` 中传递 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 以获取截断的输入/输出，或使用 `INPUTS`/`OUTPUTS` 获取未截断的值。省略 `selects` 仅返回 `id`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryBasicBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryBasicAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `preview(true)` 自动返回截断的输入/输出。在新 API 中，请明确请求：添加 `Select.INPUTS_PREVIEW` 和 `Select.OUTPUTS_PREVIEW` 以获取相同的截断形状，或使用 `Select.INPUTS`/`Select.OUTPUTS` 获取未截断的值。省略选择仅返回 `id`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryBasicBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryBasicAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `Preview: true` 自动返回截断的输入/输出。在新 API 中，请明确请求：添加 `InputsPreview` 和 `OutputsPreview` 选择常量以获取相同的截断形状，或使用 `Inputs`/`Outputs` 获取未截断的值。省略选择仅返回 `ID`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryBasicBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryBasicAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    `preview: true` 自动返回截断的输入/输出。在新 API 中，请明确请求：在 `selects` 中传递 `INPUTS_PREVIEW` 和 `OUTPUTS_PREVIEW` 以获取相同的截断形状，或使用 `INPUTS`/`OUTPUTS` 获取未截断的值。省略 `selects` 仅返回 `id`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryBasicBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryBasicAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 分页浏览结果
+
+下述两个示例均获取最多 100 条结果，直到所需页数结束然后停止——因此这两个操作是可比的，而不是“一页”与“全部”的比较。根据您的用例调整 `100`/`page_size` 的值。
+
+<Tabs>
+  <Tab title="Python">
+    `get_experiment_results` 内部分页，返回 `limit` 个总结果后停止。`datasets.experiment_runs.query` 没有总计数 `limit`；获取足够数据后，使用 `async for` 和 `break` 迭代返回的分页。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryPaginationBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryPaginationAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    遗留数据集运行端点未在公共 TypeScript `Client` 上公开。`client.datasets.experimentRuns.query(...)` 返回异步可迭代对象—使用 `for await...of`（无需额外 `await`）并在获取足够数据后使用 `break`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryPaginationBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryPaginationAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    遗留端点每次调用返回一页，无自动分页—手动循环，递增 `offset`，获取足够数据后停止。`.experimentRuns().query(...).autoPager()` 自动遍历分页—获取足够运行后跳出循环。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryPaginationBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryPaginationAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    遗留端点每次调用返回一页，无自动分页—手动循环，递增 `Offset`，获取足够数据后停止。在新端点中，通过在请求中设置 `Cursor`（基于前一个响应的 `NextCursor`）手动分页，获取足够数据后停止；避免 `QueryAutoPaging`，它将游标作为查询参数发送，而此 POST 端点不读取，导致永久重新获取第一页。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryPaginationBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryPaginationAfterGo />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="cURL">
+    原生 HTTP 没有自动分页辅助工具：将前一个响应的 `next_cursor` 作为 `cursor` 传回以获取下一页。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQueryPaginationBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQueryPaginationAfterSh />
+  </Tab>
+</Tabs>
+
+  </Tab>
+</Tabs>
+
+#### 按反馈分数排序
+
+按反馈分数对数据集示例进行排序，仅在查询单个实验时支持。在 Go 和 Java 中，这取代了遗留的 `sort_params.sort_by`/`sort_params.sort_order`（现 `sort.by`/`sort.order`）；Python 和 TypeScript 在新 API 中首次获得排序功能。
+
+<Tabs>
+  <Tab title="Python">
+    `get_experiment_results` 不支持按反馈分数排序。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQuerySortBeforePy />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQuerySortAfterPy />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="TypeScript">
+    遗留数据集运行端点未在公共 TypeScript `Client` 上公开，因此在新 API 之前无法按反馈分数排序。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQuerySortBeforeJs />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQuerySortAfterJs />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Java">
+    `sortParams()` 被 `sort()` 取代，`sortBy()`/`sortOrder()` 重命名为 `by()`/`order()`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQuerySortBeforeKt />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQuerySortAfterKt />
+  </Tab>
+</Tabs>
+
+  </Tab>
+  <Tab title="Go">
+    `SortParams` 被 `Sort` 取代，`SortBy`/`SortOrder` 重命名为 `By`/`Order`。
+
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQuerySortBeforeGo />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQuerySortAfterGo />
+  </Tab>
+</Tabs>
+
+</Tab>
+  <Tab title="cURL">
+<Tabs sync={false}>
+  <Tab title="Before">
+    <SmithdbExperimentRunsQuerySortBeforeSh />
+  </Tab>
+  <Tab title="After">
+    <SmithdbExperimentRunsQuerySortAfterSh />
+  </Tab>
+</Tabs>
+  </Tab>
+</Tabs>

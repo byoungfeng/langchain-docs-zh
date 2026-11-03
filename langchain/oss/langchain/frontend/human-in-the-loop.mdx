@@ -1,0 +1,546 @@
+---
+title: "人在回路"
+description: "添加基于中断式人工审核的审批工作流"
+---
+
+并非每个智能体操作都应该无监督运行。当智能体即将发送电子邮件、删除记录、执行金融交易或执行任何不可逆操作时，您需要先让人类进行审核和批准。Human-in-the-Loop (HITL) 模式允许您的智能体暂停执行，向用户展示待处理的操作，并在明确批准后才能继续。
+
+由于 HITL 基于LangGraph中断和检查点构建，因此暂停是持久的。用户可以刷新页面，审核员可以从不同的组件回答，而智能体仍然可以从执行停止的确切点恢复，而不是重播整个运行。
+
+:::python
+<Note>
+本页面使用默认的批量中断模式。对于每次调用中断（`interrupt_mode="per_call"`），请参阅[每次工具调用暂停](/langchain/oss/langchain/human-in-the-loop#每次工具调用暂停一次)。
+</Note>
+:::
+
+:::js
+<Note>
+本页面使用默认的批量中断模式。对于每次调用中断（`interruptMode: "per_call"`），请参阅[每次工具调用暂停](/langchain/oss/langchain/human-in-the-loop#每次工具调用暂停一次)。
+</Note>
+:::
+
+import { PatternEmbed } from "/langchain/snippets/pattern-embed.jsx"
+import UseStreamTypeInference from '/langchain/snippets/oss/use-stream-type-inference.mdx';
+
+<PatternEmbed pattern="human-in-the-loop" />
+
+## 中断的工作原理
+
+LangGraph 智能体支持**中断**，这是智能体明确将控制权交还给客户端的暂停点。当智能体遇到中断时：
+
+1. 智能体停止执行并发出中断有效负载
+2. The @[`useStream`] 钩子通过 `stream.interrupt` 提交中断
+3. 您的 UI 渲染带有批准/拒绝/编辑选项的审核卡片
+4. 用户做出决定
+5. 您的代码调用 `stream.submit()` 并带有恢复命令
+6. 智能体从停止的地方继续
+
+前端 SDK 将中断与线程状态的其他部分一起保留，因此您的 UI 可以在合适的位置渲染它：在转录中内联、在审核队列中、在管理控制台中，或在阻止下一个用户操作的模态中，直到做出决定。
+
+## 设置 `useStream`
+
+将 @[`useStream`] 连接到您的 Human-in-the-Loop 智能体。当图遇到中断时，钩子会在 `stream.interrupt` 上暴露待处理的负载。在设置该值时渲染一个审批卡片，然后在用户批准、拒绝或编辑操作后使用 `stream.submit(null, { command: { resume: response } })` 恢复运行。
+
+<UseStreamTypeInference />
+
+<CodeGroup>
+```tsx React
+import { useStream } from "@langchain/react";
+
+const AGENT_URL = "http://localhost:2024";
+
+export function Chat() {
+  const stream = useStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "human_in_the_loop",
+  });
+
+  const interrupt = stream.interrupt;
+
+  return (
+    <div>
+      {stream.messages.map((msg) => (
+        <Message key={msg.id} message={msg} />
+      ))}
+      {interrupt && (
+        <ApprovalCard
+          interrupt={interrupt}
+          onRespond={(response) =>
+            stream.submit(null, { command: { resume: response } })
+          }
+        />
+      )}
+    </div>
+  );
+}
+```
+
+```vue Vue
+<script setup lang="ts">
+import { useStream } from "@langchain/vue";
+
+const AGENT_URL = "http://localhost:2024";
+
+const stream = useStream<typeof myAgent>({
+  apiUrl: AGENT_URL,
+  assistantId: "human_in_the_loop",
+});
+
+function handleRespond(response: HITLResponse) {
+  stream.submit(null, { command: { resume: response } });
+}
+</script>
+
+<template>
+  <div>
+    <Message
+      v-for="msg in stream.messages.value"
+      :key="msg.id"
+      :message="msg"
+    />
+    <ApprovalCard
+      v-if="stream.interrupt.value"
+      :interrupt="stream.interrupt.value"
+      @respond="handleRespond"
+    />
+  </div>
+</template>
+```
+
+```svelte Svelte
+<script lang="ts">
+  import { useStream } from "@langchain/svelte";
+
+  const AGENT_URL = "http://localhost:2024";
+
+  const stream = useStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "human_in_the_loop",
+  });
+
+  function handleRespond(response: HITLResponse) {
+    stream.submit(null, { command: { resume: response } });
+  }
+</script>
+
+<div>
+  {#each stream.messages as msg (msg.id)}
+    <Message message={msg} />
+  {/each}
+
+  {#if stream.interrupt}
+    <ApprovalCard interrupt={stream.interrupt} onRespond={handleRespond} />
+  {/if}
+</div>
+```
+
+```ts Angular
+import { Component } from "@angular/core";
+import { injectStream } from "@langchain/angular";
+import type { HITLResponse } from "langchain";
+
+const AGENT_URL = "http://localhost:2024";
+
+@Component({
+  selector: "app-chat",
+  template: `
+    @for (msg of stream.messages(); track msg.id) {
+      <app-message [message]="msg" />
+    }
+    @if (stream.interrupt()) {
+      <app-approval-card
+        [interrupt]="stream.interrupt()"
+        (respond)="handleRespond($event)"
+      />
+    }
+  `,
+})
+export class ChatComponent {
+  stream = injectStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "human_in_the_loop",
+  });
+
+  handleRespond(response: HITLResponse) {
+    this.stream.submit(null, { command: { resume: response } });
+  }
+}
+```
+</CodeGroup>
+
+## 中断有效负载
+
+当智能体暂停时，`stream.interrupt` 包含一个 @[HITLRequest]，其结构如下：
+
+```ts
+interface HITLRequest {
+  actionRequests: ActionRequest[];
+  reviewConfigs: ReviewConfig[];
+}
+
+interface ActionRequest {
+  name: string;
+  args: Record<string, unknown>;
+  description?: string;
+}
+
+interface ReviewConfig {
+  allowedDecisions: ("approve" | "reject" | "edit" | "respond")[];
+}
+```
+
+| 属性 | 描述 |
+| --- | --- |
+| `actionRequests` | 智能体希望执行的待处理操作数组 |
+| `actionRequests[].name` | 操作名称（例如 `"send_email"`、`"delete_record"`） |
+| `actionRequests[].args` | 操作的结构化参数 |
+| `actionRequests[].description` | 可选的人类可读描述，说明操作的作用 |
+| `reviewConfigs` | 控制允许哪些决策的每个操作配置 |
+| `reviewConfigs[].allowedDecisions` | 显示哪些按钮：`"approve"`、`"reject"`、`"edit"`、`"respond"` |
+
+## 决策类型
+
+HITL 模式支持四种决策类型：
+
+### 批准
+
+用户确认操作应按原样进行：
+
+```ts
+const response: HITLResponse = {
+  decisions: [{ type: "approve" }],
+};
+
+stream.submit(null, { command: { resume: response } });
+```
+
+### 拒绝
+
+用户拒绝操作并提供可选的原因。工具不会执行：
+
+```ts
+const response: HITLResponse = {
+  decisions: [
+    {
+      type: "reject",
+      message: "The email tone is too aggressive. Do not send it.",
+    },
+  ],
+};
+
+stream.submit(null, { command: { resume: response } });
+```
+
+<Note>
+当操作被拒绝时，智能体会收到拒绝原因并决定如何继续。如果您省略 `message`，后端会使用默认消息告知模型工具未执行，并且除非用户请求，否则不要重试相同的工具调用。对于有副作用的工具，传递一个清晰的消息，告诉智能体是否放弃操作、询问后续问题或尝试更安全的替代方案。
+</Note>
+
+### 编辑
+
+用户在批准前修改操作的参数：
+
+```ts
+const response: HITLResponse = {
+  decisions: [
+    {
+      type: "edit",
+      editedAction: {
+        name: actionRequest.name,
+        args: {
+          ...actionRequest.args,
+          subject: "Updated subject line",
+          body: "Revised email body with softer language.",
+        },
+      },
+    },
+  ],
+};
+
+stream.submit(null, { command: { resume: response } });
+```
+
+### 响应
+
+用户为“询问用户”风格的工具提供直接回复。`message` 成为工具结果，而工具本身不会执行：
+
+```ts
+const response: HITLResponse = {
+  decisions: [{ type: "respond", message: "Blue." }],
+};
+
+stream.submit(null, { command: { resume: response } });
+```
+
+<Note>
+当工具有意作为人类输入的占位符时使用 `respond`，例如一个 `ask_user` 工具，提示智能体从用户那里收集信息。不要使用 `respond` 来拒绝建议的操作，因为它会作为成功的工具结果返回给模型。
+</Note>
+
+## 构建审批卡片
+
+这是审批卡片使用的决策接线。UI 可以将每个操作拆分为自己的卡片，但恢复负载是一个 `HITLResponse`，每个待处理操作都有一个决策：
+
+```tsx
+async function approveAll() {
+  const resume: HITLResponse = {
+    decisions: actionRequests.map(() => ({ type: "approve" })),
+  };
+  await stream.submit(null, { command: { resume } });
+}
+
+async function rejectOne(index: number, message: string) {
+  const resume: HITLResponse = {
+    decisions: actionRequests.map((_, i) =>
+      i === index
+        ? { type: "reject", message }
+        : { type: "reject", message: "Rejected along with other actions" },
+    ),
+  };
+  await stream.submit(null, { command: { resume } });
+}
+
+async function editOne(index: number, editedArgs: Record<string, unknown>) {
+  const originalAction = actionRequests[index];
+  const resume: HITLResponse = {
+    decisions: actionRequests.map((_, i) =>
+      i === index
+        ? {
+            type: "edit",
+            editedAction: { name: originalAction.name, args: editedArgs },
+          }
+        : { type: "approve" },
+    ),
+  };
+  await stream.submit(null, { command: { resume } });
+}
+```
+
+## 恢复流程
+
+在用户做出决定后，完整周期如下：
+
+1. 调用 `stream.submit(null, { command: { resume: hitlResponse } })`
+2. The @[`useStream`] 钩子将恢复命令发送到 LangGraph 后端
+3. 智能体收到 `HITLResponse` 并继续执行。`decisions` 中的每个条目可能是：
+    - `{ type: "approve" }`：智能体继续执行操作
+    - `{ type: "reject", message }`：工具不会执行，智能体在决定下一步之前会收到拒绝消息
+    - `{ type: "edit", editedAction }`：智能体使用编辑后的参数运行工具
+    - `{ type: "respond", message }`：人类的消息直接作为工具结果返回，而不会执行工具
+4. `interrupt` 属性在智能体恢复流式传输时重置为 `null`
+
+<Tip>
+您可以在单个智能体运行中链式多个 HITL 检查点。例如，智能体可能会请求批准搜索，然后在发送包含结果的电子邮件之前再次请求批准。每个中断都是独立处理的。
+</Tip>
+
+## 处理多个待处理操作
+
+当中断包含多个 `actionRequests` 时，智能体希望一次性执行多个操作。为每个渲染卡片并收集所有决策后再恢复：
+
+```tsx
+function MultiActionReview({
+  interrupt,
+  onRespond,
+}: {
+  interrupt: { value: HITLRequest };
+  onRespond: (response: HITLResponse) => void;
+}) {
+  const [decisions, setDecisions] = useState<Record<number, HITLResponse["decisions"][number]>>({});
+  const request = interrupt.value;
+
+  const allDecided =
+    Object.keys(decisions).length === request.actionRequests.length;
+
+  return (
+    <div className="space-y-4">
+      {request.actionRequests.map((action, i) => (
+        <SingleActionCard
+          key={i}
+          action={action}
+          config={request.reviewConfigs[i]}
+          onDecide={(response) =>
+            setDecisions((prev) => ({ ...prev, [i]: response }))
+          }
+        />
+      ))}
+      {allDecided && (
+        <button
+          className="rounded bg-green-600 px-4 py-2 text-white"
+          onClick={() =>
+            onRespond({
+              decisions: request.actionRequests.map((_, i) => decisions[i]),
+            })
+          }
+        >
+          Submit All Decisions
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+## 自定义中断表单
+
+[恢复流程](#恢复流程) 使用 `humanInTheLoopMiddleware`，它将工具包装在一个通用的批准/拒绝/编辑/响应卡片中。有时一组按钮是不够的：预订航班、批准退款和审核社交帖子都需要一个*不同的*表单，具有自己的字段、验证和文案。为此，从*工具内部*提升 `interrupt()`，并让负载描述 UI 应渲染的确切表单。每个工具可以显示完全不同的界面。
+
+<PatternEmbed pattern="hitl-interrupt-forms" />
+
+### 在中断有效负载中描述表单
+
+`interrupt()` 接受任何 JSON 可序列化的值，这允许你提供一个前端知道如何渲染的“卡片”，例如，表单类型、标题、人类正在审查的上下文以及收集的字段。`interrupt()` 对其输入和返回类型（`interrupt<I, R>(value: I): R`）是泛型的，因此你可以为发送的卡片（`InterruptCard`）和用户解析的值（`ReviewDecision`）进行类型注解。导出这些类型，以便前端可以导入它们并保持同步：
+
+```ts
+import { createAgent, tool } from "langchain";
+import { interrupt } from "@langchain/langgraph";
+import { z } from "zod";
+
+export interface FormField {
+  name: string;
+  label: string;
+  type: "select" | "checkbox" | "textarea" | "currency";
+  options?: string[];
+  default?: unknown;
+}
+
+/** What the user resolves the interrupt with. */
+export interface ReviewDecision {
+  approved: boolean;
+  /** Edited / collected form values the tool should act on. */
+  values?: Record<string, unknown>;
+}
+
+/** The form spec ("card") an interrupt hands to the frontend. */
+export interface InterruptCard {
+  formType: "flight-booking" | "refund-approval" | "content-review";
+  tool: string;
+  title: string;
+  context: Record<string, unknown>;
+  fields: FormField[];
+  /** Populated by the frontend when it commits the resolved card to state. */
+  resolved?: boolean;
+  decision?: ReviewDecision;
+}
+
+const bookFlight = tool(
+  async ({ origin, destination, date, passengers }) => {
+    // Pause the tool and hand the frontend a typed form spec; the typed return
+    // is whatever the UI resolves the interrupt with.
+    const decision = interrupt<InterruptCard, ReviewDecision>({
+      formType: "flight-booking",
+      tool: "book_flight",
+      title: "Confirm flight booking",
+      context: { origin, destination, date, passengers },
+      fields: [
+        {
+          name: "seatClass",
+          label: "Seat class",
+          type: "select",
+          options: ["Economy", "Premium Economy", "Business"],
+          default: "Economy",
+        },
+        { name: "insurance", label: "Add trip insurance", type: "checkbox", default: false },
+      ],
+    });
+
+    if (!decision.approved) {
+      return `Booking cancelled. No flight from ${origin} to ${destination} was reserved.`;
+    }
+
+    // Run the real (possibly slow) work with the values the human confirmed.
+    const seatClass = String(decision.values?.seatClass ?? "Economy");
+    return `Flight booked from ${origin} to ${destination} in ${seatClass}.`;
+  },
+  {
+    name: "book_flight",
+    description: "Book a flight. Requires human confirmation of trip details.",
+    schema: z.object({
+      origin: z.string(),
+      destination: z.string(),
+      date: z.string(),
+      passengers: z.number().int().min(1),
+    }),
+  },
+);
+```
+
+为每个工具分配一个唯一的 `formType`（例如 `"refund-approval"`、`"content-review"`），以便前端可以基于它切换并渲染匹配的表单。
+
+### 每个工具渲染不同的表单
+
+在客户端，卡片作为 `stream.interrupt.value` 到达。从你的智能体模块中导入 `InterruptCard` 和 `ReviewDecision` 类型，以便表单和有效负载保持同步，基于 `formType` 选择正确的表单，并将 `fields` 输入到你的输入中：
+
+```tsx
+import { useStream } from "@langchain/react";
+import type { InterruptCard, ReviewDecision } from "./agent";
+
+function Chat() {
+  const stream = useStream<typeof myAgent>({
+    apiUrl: AGENT_URL,
+    assistantId: "hitl_interrupt_forms",
+  });
+
+  const card = stream.interrupt?.value as InterruptCard | undefined;
+
+  return (
+    <div>
+      {stream.messages.map((msg) => (
+        <Message key={msg.id} message={msg} />
+      ))}
+      {card && <InterruptForm card={card} onResolve={handleResolve} />}
+    </div>
+  );
+}
+
+// `InterruptForm` renders a flight / refund / content card based on
+// `card.formType`, collects `card.fields`, and calls `onResolve` with the
+// user's decision and edited values.
+```
+
+### 使用 `respond(decision, { update })` 在屏幕上保持卡片
+
+当你解析一个普通的中断时，卡片会在中断清除的瞬间消失，并且只返回工具结果。这意味着一个丰富的审查卡片会在运行中途消失。为了在屏幕上保持它，解析中断 **并且** 提交一个携带卡片的消息到 *相同* 超步中的状态，使用 @[`useStream`] 的 `respond`：
+
+```tsx
+import { AIMessage } from "langchain";
+
+function handleResolve(decision: ReviewDecision) {
+  // Snapshot the card with the decision baked in so it renders read-only.
+  const resolvedCard = { ...card, resolved: true, decision };
+  const cardMessage = new AIMessage({
+    content: `Review ${decision.approved ? "approved" : "declined"}.`,
+    response_metadata: { cards: resolvedCard },
+  });
+
+  // Resume the interrupt AND push the card into state atomically. Maps to
+  // LangGraph's `Command(resume, update)`: one checkpoint, no extra state write.
+  stream.respond(decision, { update: { messages: [cardMessage] } });
+}
+```
+
+`respond(response, { update })` 乐观地应用 `update`：卡片立即渲染，一旦恢复的运行回显相同消息，就会通过 ID 进行协调。后端不会重新发出卡片，因此它在（可能较慢的）工具运行时保持渲染，没有任何闪烁。通过从消息中读取来渲染解析的卡片：
+
+```tsx
+{stream.messages.map((msg) => {
+  const card = (msg.response_metadata as { cards?: InterruptCard })?.cards;
+  if (card) return <InterruptForm key={msg.id} card={card} readOnly />;
+  return <Message key={msg.id} message={msg} />;
+})}
+```
+
+<Tip>
+由于解析的卡片存在于消息历史中，它会在刷新时存活，并且每个读取线程和人类的组件都能看到它，人类的决定成为持久的记录，而不仅仅是临时的 UI 状态。
+</Tip>
+
+## 最佳实践
+
+在实现 HITL 工作流时，请记住以下指南：
+
+- **显示清晰的上下文**。始终显示智能体想要做什么以及 *为什么*。包括操作描述和完整参数。
+- **使批准是最简单的路径**。如果操作看起来是正确的，批准应该是单击操作。为拒绝/编辑保留多步流程。
+- **验证编辑的参数**。当用户编辑操作参数时，在发送之前验证 JSON 结构。对于格式不正确的输入，显示内联错误。
+- **持久化中断状态**。如果用户刷新页面，中断仍然应该可见。@[`useStream`] 通过线程的检查点处理此问题。
+- **记录所有决定**。对于审计跟踪，记录每个批准/拒绝/编辑决定，包括时间戳和做出决定的用户。
+- **谨慎设置超时**。长时间运行的智能体不应无限期地阻塞人类审查。考虑显示智能体等待了多长时间。
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/human-in-the-loop.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/human-in-the-loop.mdx) · 译文由 AI 生成，以英文原文为准。

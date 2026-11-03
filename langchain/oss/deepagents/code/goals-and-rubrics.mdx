@@ -1,0 +1,130 @@
+---
+title: "目标与评分标准"
+sidebarTitle: "目标与评分标准"
+description: "为 Deep Agents Code 会话定义目标和验收标准"
+---
+
+目标和评分标准帮助 Deep Agents Code 检查其工作是否满足您关心的标准。使用目标来定义以目标驱动的任务，此时智能体应帮助定义验收标准；使用评分标准，当您已经知道标准时。
+
+## 选择目标或评分标准
+
+当您有一个可衡量的目标，并希望 Deep Agents Code 在开始前起草验收标准时，使用 **目标**。目标具有生命周期：一旦被接受，它会在回合之间保持活跃状态，直到您暂停它、智能体将其标记为完成或阻塞，或您清除它。您也可以在不重新启动工作的情况下修改活跃目标。
+
+当您已经知道要评估智能体的标准时，使用 **评分标准**。评分标准可以仅适用于下一回合，或在未来的回合之间持续存在。
+
+常见模式：
+
+- **一个目标，智能体起草标准**：使用 `/goal <objective>`。
+- **每个回合的持久标准**：使用 `/rubric set <criteria>`。
+- **存储在文件中的标准**：使用 `/rubric file <path>`。
+- **单回合质量门**：使用 `/rubric next <criteria>`。
+
+## 使用目标
+
+当您知道期望的结果，但希望 Deep Agents Code 在工作开始前提出验收标准时，使用 `/goal`。目标适用于开放式工作：智能体将目标转化为完成的明确定义，然后迭代直到满足这些标准。
+
+```text
+/goal add OAuth refresh handling
+```
+
+Deep Agents Code 在开始任务前起草验收标准供审核。
+
+如何处理起草的标准取决于您的 [审批模式](/langchain/oss/deepagents/code/approval-modes)：
+
+<Accordion title="Review behavior by approval mode">
+    - **手动**：始终打开内联审核。
+    - **自动**：默认打开审核。在 `~/.deepagents/config.toml` 中设置 `goals.auto_accept_criteria = true` 以自动应用生成标准。
+    - **YOLO**：无需审核直接应用生成标准。
+</Accordion>
+
+验收标准后，目标会在回合之间保持活跃状态，直到被暂停、完成、阻塞或清除。
+
+这种方法让您可以在多个回合中朝着更大的目标工作：
+
+```text
+/goal migrate auth callbacks to the new API
+start with the OAuth callback
+now update the tests
+check the docs too
+```
+
+输入上方的目标面板显示当前目标及其是否活跃、暂停、阻塞或完成。使用 `/goal show` 查看当前目标，使用 `/goal clear` 移除它。
+
+### 修改、暂停和恢复目标
+
+在不取消当前任务和重放工作的情况下引导进行中的目标：
+
+- `/goal amend <feedback>` 提出对目标和标准的协调更新。修改在最终确定前会经过相同的内联审核（接受、编辑、修订或取消）。
+- `/goal pause` 保存目标而不让它驱动工作或评分，因此中间提示词在没有它的情况下运行。`/goal resume` 重新激活保存的目标并继续现有对话。
+
+```text
+/goal amend remove JSON export, add streaming CSV support, keep the CSV tests
+/goal pause
+/goal resume
+```
+
+### 完成和评分
+
+每个后续回合都会根据目标的验收标准进行评分，直到工作完成。
+
+- 当目标的完成被批准时，Deep Agents Code 清除目标
+
+<AccordionGroup>
+    <Accordion title="Goal command reference">
+        - `/goal <objective>`：从自然语言目标起草验收标准，并在工作开始前进行审核。
+        - `/goal amend <feedback>`：提出对目标和标准的协调更新供审核。
+        - `/goal pause`：保存目标而不让它驱动工作或评分。
+        - `/goal resume`：重新激活暂停的目标并继续现有对话。
+        - `/goal show`：查看当前目标、其状态及其标准。
+        - `/goal clear`：移除活跃目标。
+        - `/goal model [provider:model|clear]`：设置或清除评分目标的模型。
+        - `/goal max-iterations <N|clear>`：设置或清除目标的最大评分迭代次数。
+    </Accordion>
+</AccordionGroup>
+
+## 使用评分标准
+
+当您已经知道验收标准并希望它们作为智能体工作的质量门时，使用 `/rubric`。
+
+```text
+/rubric set tests pass; no unrelated files changed; help text is updated
+/rubric next only change the auth callback; do not refactor unrelated code
+/rubric file acceptance.md
+```
+
+粘性评分标准适用于清除前未来的回合。下一回合评分标准仅适用于下一个提交的任务。
+
+<AccordionGroup>
+    <Accordion title="Rubric command reference">
+        - `/rubric show`：查看活跃评分标准。
+        - `/rubric clear`：移除活跃评分标准。
+        - `/rubric model <provider:model>`：设置评分评分结果的模型。
+    </Accordion>
+
+    <Accordion title="Use rubrics in non-interactive mode">
+        非交互式运行不能暂停以进行目标审核。对于已知标准的工作，使用 `--rubric`：
+
+        ```bash
+        dcode -n "implement OAuth refresh handling" --rubric "tests pass; no unrelated files changed"
+        dcode -n "implement OAuth refresh handling" --rubric @acceptance.md
+        ```
+
+        您还可以设置评分模型和最大评分迭代次数：
+
+        ```bash
+        dcode -n "implement OAuth refresh handling" \
+          --rubric "tests pass; no unrelated files changed" \
+          --rubric-model openai:gpt-5.5 \
+          --rubric-max-iterations 3
+        ```
+    </Accordion>
+</AccordionGroup>
+
+## 参考文档
+
+- [Deep Agents Code 概述](/langchain/oss/deepagents/code/overview)
+- [快速入门](/langchain/oss/deepagents/code/quickstart)
+
+---
+
+> 官方原文：[src/oss/deepagents/code/goals-and-rubrics.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/code/goals-and-rubrics.mdx) · 译文由 AI 生成，以英文原文为准。

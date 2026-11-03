@@ -1,0 +1,226 @@
+---
+title: "使用 MongoDB Atlas 的长期记忆"
+sidebarTitle: "MongoDB 长期记忆"
+description: "使用 MongoDBStore 和 MongoDB Atlas 持久化智能体长期记忆。"
+---
+
+[长期记忆](/langchain/oss/langchain/long-term-memory)允许您的智能体跨不同的对话和会话存储和回忆信息。本指南展示了如何使用[MongoDB Atlas](https://www.mongodb.com/docs/atlas/)作为持久化存储后端。
+
+MongoDB将记忆存储为集合中的文档。通过Atlas向量搜索索引，相同的存储可以运行对存储记忆的语义搜索。
+
+<Tip>
+如需深入了解记忆类型和写入记忆的策略，请参阅[记忆概念指南](/langchain/oss/concepts/memory#长期记忆)。
+</Tip>
+
+## 设置
+
+### 安装
+
+`MongoDBStore`与MongoDB检查点器一同打包：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/langgraph-checkpoint-mongodb
+```
+
+```bash yarn
+yarn add @langchain/langgraph-checkpoint-mongodb
+```
+
+```bash pnpm
+pnpm add @langchain/langgraph-checkpoint-mongodb
+```
+</CodeGroup>
+
+### 凭证
+
+设置您的Atlas连接字符串：
+
+```bash
+export MONGODB_ATLAS_URI="your-atlas-connection-string"
+```
+
+如果您希望自动跟踪您的模型调用，设置您的[LangSmith](https://docs.langchain.com/langsmith/home) API密钥：
+
+```bash
+export LANGSMITH_API_KEY="your-api-key"
+export LANGSMITH_TRACING="true"
+```
+
+## 使用
+
+
+创建一个 `MongoDBStore` 并使用 `fromConnString`（等待 Promise）将其传递给 `createAgent`。`fromConnString` 连接客户端并调用 `start()` 以确保索引存在。从包根目录导入 `MongoDBStore`；没有 `/store` 子路径导出。
+
+```typescript
+import { createAgent } from "langchain";
+import { MongoDBStore } from "@langchain/langgraph-checkpoint-mongodb";
+
+const MONGODB_ATLAS_URI = process.env.MONGODB_ATLAS_URI;
+if (!MONGODB_ATLAS_URI) {
+  throw new Error("MONGODB_ATLAS_URI is required");
+}
+
+const store = await MongoDBStore.fromConnString(MONGODB_ATLAS_URI);
+
+const agent = createAgent({
+  model: "anthropic:claude-sonnet-4-6",
+  tools: [],
+  store,
+});
+```
+
+## 记忆存储
+
+LangGraph 将记忆存储为按 `namespace` 和 `key` 组织的 JSON 文档。命名空间通常包含用户或组织 ID 以保持记忆的作用域。
+
+下面的示例配置了向量索引，以便 `store.search` 可以运行语义查询。传递一个嵌入实例和 `indexConfig`。如果你使用 `OpenAIEmbeddings`（或替换为另一个嵌入类），请安装 `@langchain/openai`：
+
+```typescript
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { MongoDBStore } from "@langchain/langgraph-checkpoint-mongodb";
+
+const MONGODB_ATLAS_URI = process.env.MONGODB_ATLAS_URI;
+if (!MONGODB_ATLAS_URI) {
+  throw new Error("MONGODB_ATLAS_URI is required");
+}
+
+const store = await MongoDBStore.fromConnString(MONGODB_ATLAS_URI, {
+  embeddings: new OpenAIEmbeddings({ model: "text-embedding-3-small" }),
+  indexConfig: {
+    name: "store_vector_index",
+    dims: 1536,
+    similarityFunction: "cosine",
+  },
+});
+
+const userId = "my-user";
+const applicationContext = "chitchat";
+const namespace = [userId, applicationContext];
+
+await store.put(namespace, "a-memory", {
+  rules: [
+    "User likes short, direct language",
+    "User only speaks English and TypeScript",
+  ],
+  "my-key": "my-value",
+});
+
+const item = await store.get(namespace, "a-memory");
+const items = await store.search(namespace, {
+  filter: { "my-key": "my-value" },
+  query: "language preferences",
+});
+```
+
+有关存储操作的更多信息，请参阅 [存储](/langchain/oss/langgraph/stores) 指南。
+
+## 工具中读取长期记忆
+
+工具可以使用 `runtime` 参数从存储中读取，LangGraph 会自动注入该参数：
+
+```typescript
+import * as z from "zod";
+import { createAgent, tool, type ToolRuntime } from "langchain";
+import { MongoDBStore } from "@langchain/langgraph-checkpoint-mongodb";
+
+const MONGODB_ATLAS_URI = process.env.MONGODB_ATLAS_URI;
+if (!MONGODB_ATLAS_URI) {
+  throw new Error("MONGODB_ATLAS_URI is required");
+}
+
+const store = await MongoDBStore.fromConnString(MONGODB_ATLAS_URI);
+
+const contextSchema = z.object({ userId: z.string() });
+
+await store.put(["users"], "user_123", {
+  name: "John Smith",
+  language: "English",
+});
+
+const getUserInfo = tool(
+  async (_, runtime: ToolRuntime<unknown, z.infer<typeof contextSchema>>) => {
+    const userId = runtime.context.userId;
+    if (!userId) throw new Error("userId is required");
+    const userInfo = await runtime.store?.get(["users"], userId);
+    return userInfo?.value ? JSON.stringify(userInfo.value) : "Unknown user";
+  },
+  {
+    name: "getUserInfo",
+    description: "Look up user info by userId from the store.",
+    schema: z.object({}),
+  },
+);
+
+const agent = createAgent({
+  model: "anthropic:claude-sonnet-4-6",
+  tools: [getUserInfo],
+  contextSchema,
+  store,
+});
+
+await agent.invoke(
+  { messages: [{ role: "user", content: "look up user information" }] },
+  { context: { userId: "user_123" } },
+);
+```
+
+## 工具中写入长期记忆
+
+工具还可以使用 `runtime.store.put` 向存储写入，以持久化跨线程的数据：
+
+```typescript
+import * as z from "zod";
+import { tool, createAgent, type ToolRuntime } from "langchain";
+import { MongoDBStore } from "@langchain/langgraph-checkpoint-mongodb";
+
+const MONGODB_ATLAS_URI = process.env.MONGODB_ATLAS_URI;
+if (!MONGODB_ATLAS_URI) {
+  throw new Error("MONGODB_ATLAS_URI is required");
+}
+
+const store = await MongoDBStore.fromConnString(MONGODB_ATLAS_URI);
+
+const contextSchema = z.object({ userId: z.string() });
+
+const UserInfo = z.object({ name: z.string() });
+
+const saveUserInfo = tool(
+  async (
+    userInfo: z.infer<typeof UserInfo>,
+    runtime: ToolRuntime<unknown, z.infer<typeof contextSchema>>,
+  ) => {
+    const userId = runtime.context.userId;
+    if (!userId) throw new Error("userId is required");
+    await runtime.store?.put(["users"], userId, userInfo);
+    return "Successfully saved user info.";
+  },
+  { name: "save_user_info", description: "Save user info", schema: UserInfo },
+);
+
+const agent = createAgent({
+  model: "anthropic:claude-sonnet-4-6",
+  tools: [saveUserInfo],
+  contextSchema,
+  store,
+});
+
+await agent.invoke(
+  { messages: [{ role: "user", content: "My name is John Smith" }] },
+  { context: { userId: "user_123" } },
+);
+
+const result = await store.get(["users"], "user_123");
+console.log(result?.value);
+```
+
+## 参考文档
+
+- [长期记忆](/langchain/oss/langchain/long-term-memory)
+- [存储](/langchain/oss/langgraph/stores)
+- [存储集成](/langchain/oss/python/integrations/long-term-memory)
+- [使用 MongoDB Atlas 的短期记忆](/langchain/oss/python/integrations/memory/mongodb-short-term-memory)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/memory/mongodb-long-term-memory.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/memory/mongodb-long-term-memory.mdx) · 译文由 AI 生成，以英文原文为准。

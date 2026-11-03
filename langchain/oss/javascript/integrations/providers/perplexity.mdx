@@ -1,0 +1,74 @@
+---
+title: "Perplexity 集成"
+description: "使用 LangChain JavaScript 与 Perplexity 集成。"
+---
+
+>[困惑度](https://www.perplexity.ai/pro) 是使用无限 Pro 搜索、升级 AI 模型、无限文件上传、图像生成和 API 信用搜索互联网的最强大方式。
+
+## 安装和设置
+
+为 LangChain JavaScript 安装困惑度集成包：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/perplexity @langchain/core
+```
+```bash yarn
+yarn add @langchain/perplexity @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/perplexity @langchain/core
+```
+</CodeGroup>
+
+从 [困惑度 API 密钥控制面板](https://www.perplexity.ai/account/api/keys) 获取您的 API 密钥并将其设置为 `PERPLEXITY_API_KEY` 环境变量。有关更多详细信息，请参阅 [困惑度入门指南](https://docs.perplexity.ai/docs/getting-started)。
+
+```bash
+export PERPLEXITY_API_KEY="your-api-key"
+```
+
+## 对话模型
+
+查看 [使用示例](/langchain/oss/python/integrations/chat/perplexity)。
+
+```typescript
+import { ChatPerplexity } from "@langchain/perplexity";
+```
+
+`ChatPerplexity` 还可以通过传递 `useResponsesApi: true`（或通过传递 `tools: [{ type: "web_search" }]` 自动启用）来针对 [困惑度智能体 API](https://docs.perplexity.ai/api-reference/agent-api)。有关详细信息和示例，请参阅对话页面上的 [智能体 API 支持](/langchain/oss/python/integrations/chat/perplexity#智能体-api-支持（use_responses_api）)。
+
+## 检索器
+
+您可以使用 [`PerplexitySearchRetriever`](/langchain/oss/python/integrations/retrievers/perplexity_search) 从 [困惑度搜索 API](https://docs.perplexity.ai/docs/search/quickstart) 在标准检索管道中作为 `Document` 对象获取网络搜索结果。
+
+查看 [使用示例](/langchain/oss/python/integrations/retrievers/perplexity_search)。
+
+```typescript
+import { PerplexitySearchRetriever } from "@langchain/perplexity";
+```
+
+## 工具
+
+您可以将困惑度用作智能体工具，以使您的智能体能够访问困惑度搜索 API。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/perplexity_search)。
+
+### 困惑度搜索结果
+
+查询困惑度搜索 API 并返回包含结果（标题、URL、片段、日期、最后更新）的 JSON 数组的工具。
+
+```typescript
+import { PerplexitySearchResults } from "@langchain/perplexity";
+```
+
+## 组件参考
+
+| 类 | 抽象 | 导入路径 | 描述 |
+|-------|-------------|-------------|-------------|
+| `ChatPerplexity` | 对话模型 | `import { ChatPerplexity } from "@langchain/perplexity"` | 包装困惑度 API 以进行有根据的对话补全的对话模型。 |
+| `PerplexitySearchRetriever` | 检索器 | `import { PerplexitySearchRetriever } from "@langchain/perplexity"` | 从困惑度搜索 API 返回 `Document` 对象的检索器。 |
+| `PerplexitySearchResults` | 工具 | `import { PerplexitySearchResults } from "@langchain/perplexity"` | 返回作为智能体 JSON 数组的困惑度搜索 API 结果的工具。 |
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/perplexity.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/perplexity.mdx) · 译文由 AI 生成，以英文原文为准。

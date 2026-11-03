@@ -1,0 +1,153 @@
+---
+title: "Microsoft 集成"
+description: "使用 LangChain JavaScript 集成 Microsoft"
+sidebarTitle: "概述"
+---
+
+所有与 `Microsoft Azure` 及其他 `Microsoft` 产品的相关功能。
+
+## 对话模型
+
+### Azure OpenAI
+
+查看 [使用示例](/langchain/oss/javascript/integrations/chat/azure)
+
+```typescript
+import { AzureChatOpenAI } from "@langchain/openai";
+
+const model = new AzureChatOpenAI({
+  temperature: 0.9,
+  azureOpenAIApiKey: "<your_key>", // In Node.js defaults to process.env.AZURE_OPENAI_API_KEY
+  azureOpenAIApiInstanceName: "<your_instance_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_INSTANCE_NAME
+  azureOpenAIApiDeploymentName: "<your_deployment_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME
+  azureOpenAIApiVersion: "<api_version>", // In Node.js defaults to process.env.AZURE_OPENAI_API_VERSION
+});
+```
+
+## 大语言模型
+
+### Azure OpenAI
+
+> [Microsoft Azure](https://en.wikipedia.org/wiki/Microsoft_Azure)，通常被称为 `Azure` 是由 `Microsoft` 运营的云计算平台，通过全球数据中心提供应用程序和服务的访问、管理和开发。它提供了一系列功能，包括软件即服务（SaaS）、平台即服务（PaaS）和基础设施即服务（IaaS）。`Microsoft Azure` 支持多种编程语言、工具和框架，包括 Microsoft 特有的和第三方软件及系统。
+
+> [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service/) 是一个云服务，帮助您快速使用 OpenAI、Meta 及其他来源的多种预构建和精选模型开发生成式 AI 体验。
+
+LangChain.js 支持通过 [OpenAI SDK](https://github.com/openai/openai-node) 中的新 Azure 集成与 [Azure OpenAI](https://azure.microsoft.com/products/ai-services/openai-service/) 集成。
+
+您可以在 [此页面](https://learn.microsoft.com/azure/ai-services/openai/overview) 上了解更多关于 Azure OpenAI 及其与 OpenAI API 的区别的信息。如果您没有 Azure 账户，可以通过 [创建免费账户](https://azure.microsoft.com/free/) 开始使用。
+
+您需要部署一个 Azure OpenAI 实例。您可以通过 [此指南](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) 在 Azure 门户上部署一个版本。
+
+在您启动实例后，请确保您有实例的名称和密钥。您可以在 Azure 门户中找到密钥，位于您的实例的“密钥和端点”部分。
+
+如果您使用的是 Node.js，可以通过定义以下环境变量来使用该服务：
+
+```bash
+AZURE_OPENAI_API_INSTANCE_NAME=<YOUR_INSTANCE_NAME>
+AZURE_OPENAI_API_DEPLOYMENT_NAME=<YOUR_DEPLOYMENT_NAME>
+AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME=<YOUR_EMBEDDINGS_DEPLOYMENT_NAME>
+AZURE_OPENAI_API_KEY=<YOUR_KEY>
+AZURE_OPENAI_API_VERSION="2024-02-01"
+```
+
+<Info>
+**您可以在 [Azure OpenAI 文档](https://learn.microsoft.com/azure/ai-services/openai/reference) 中找到支持的 API 版本列表。**
+
+</Info>
+
+<Tip>
+查看 [此部分了解安装 LangChain 包的一般说明](/langchain/oss/langchain/install)。
+</Tip>
+
+```bash npm
+npm install @langchain/openai @langchain/core
+```
+查看 [使用示例](/langchain/oss/javascript/integrations/llms/azure)。
+
+```typescript
+import { AzureOpenAI } from "@langchain/openai";
+
+const model = new AzureOpenAI({
+  azureOpenAIApiKey: "<your_key>", // In Node.js defaults to process.env.AZURE_OPENAI_API_KEY
+  azureOpenAIApiInstanceName: "<your_instance_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_INSTANCE_NAME
+  azureOpenAIApiDeploymentName: "<your_deployment_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_DEPLOYMENT_NAME
+  azureOpenAIApiVersion: "<api_version>", // In Node.js defaults to process.env.AZURE_OPENAI_API_VERSION
+});
+```
+
+## 文本嵌入模型
+
+### Azure OpenAI
+
+查看 [使用示例](/langchain/oss/python/integrations/embeddings/azure_openai)
+
+```typescript
+import { AzureOpenAIEmbeddings } from "@langchain/openai";
+
+const model = new AzureOpenAIEmbeddings({
+  azureOpenAIApiKey: "<your_key>", // In Node.js defaults to process.env.AZURE_OPENAI_API_KEY
+  azureOpenAIApiInstanceName: "<your_instance_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_INSTANCE_NAME
+  azureOpenAIApiEmbeddingsDeploymentName: "<your_embeddings_deployment_name>", // In Node.js defaults to process.env.AZURE_OPENAI_API_EMBEDDINGS_DEPLOYMENT_NAME
+  azureOpenAIApiVersion: "<api_version>", // In Node.js defaults to process.env.AZURE_OPENAI_API_VERSION
+});
+```
+
+## 向量存储
+
+### Azure cosmos DB for NoSQL
+
+> [Azure Cosmos DB for NoSQL](https://learn.microsoft.com/azure/cosmos-db/nosql/) 提供了对具有灵活模式的项目的查询支持，并原生支持 JSON。它现在提供了向量索引和搜索功能。该功能旨在处理高维向量，从而在任何规模下实现高效准确的向量搜索。您现在可以直接在文档中存储向量，与您的数据一起存储。您的数据库中的每个文档不仅可以包含传统模式无关的数据，还可以包含作为文档其他属性的 高维向量。
+
+```bash npm
+npm install @langchain/azure-cosmosdb @langchain/core
+```
+查看 [使用示例](/langchain/oss/javascript/integrations/vectorstores/azure_cosmosdb_nosql)。
+
+```typescript
+import { AzureCosmosDBNoSQLVectorStore } from "@langchain/azure-cosmosdb";
+```
+### Azure DocumentDB
+
+> [Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/)（以前称为 Azure Cosmos DB for MongoDB vCore）使创建具有完整原生 MongoDB 支持的数据库变得容易。您可以通过将应用程序指向连接字符串来应用您的 MongoDB 经验，并继续使用您喜欢的 MongoDB 驱动程序、SDK 和工具。使用 Azure DocumentDB 中的向量搜索，可以无缝地将基于 AI 的应用程序与存储在 Azure DocumentDB 中的数据集成。
+
+```bash npm
+npm install @langchain/azure-cosmosdb @langchain/core
+```
+查看 [使用示例](/langchain/oss/javascript/integrations/vectorstores/azure_documentdb)。
+
+```typescript
+import { AzureDocumentDBVectorStore } from "@langchain/azure-cosmosdb";
+```
+## 语义缓存
+
+### Azure cosmos DB NoSQL 语义缓存
+
+> 语义缓存功能通过 Azure Cosmos DB for NoSQL 集成得到支持，使用户能够根据用户输入与先前缓存结果之间的语义相似性检索缓存的响应。它利用 [AzureCosmosDBNoSQLVectorStore](/langchain/oss/javascript/integrations/vectorstores/azure_cosmosdb_nosql)，该存储器存储了缓存的提示词的向量嵌入。这些嵌入使相似性搜索成为可能，允许系统检索相关的缓存结果。
+
+```bash npm
+npm install @langchain/azure-cosmosdb @langchain/core
+```
+查看 [使用示例](/langchain/oss/javascript/integrations/llm_caching/azure_cosmosdb_nosql)。
+
+```typescript
+import { AzureCosmosDBNoSQLSemanticCache } from "@langchain/azure-cosmosdb";
+```
+
+## 工具
+
+### Azure Container apps dynamic sessions
+
+> [Azure Container Apps dynamic sessions](https://learn.microsoft.com/azure/container-apps/sessions) 提供了对安全的沙盒化环境的快速访问，这些环境非常适合运行需要与其他工作负载强隔离的代码或应用程序。
+
+```bash npm
+npm install @langchain/azure-dynamic-sessions @langchain/core
+```
+查看 [使用示例](/langchain/oss/python/integrations/tools/azure_dynamic_sessions)。
+
+```typescript
+import { SessionsPythonREPLTool } from "@langchain/azure-dynamic-sessions";
+```
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/providers/microsoft.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/providers/microsoft.mdx) · 译文由 AI 生成，以英文原文为准。

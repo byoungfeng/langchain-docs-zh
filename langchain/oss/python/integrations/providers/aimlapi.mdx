@@ -1,0 +1,51 @@
+---
+title: "AI/ML API 集成"
+description: "使用 LangChain Python 集成 AI/ML API。"
+---
+
+>[AI/ML API](https://aimlapi.com/app/?utm_source=langchain&utm_medium=github&utm_campaign=integration) 提供了一个统一的 API，用于访问 300 多个托管的基座模型（DeepSeek、Gemini、GPT 等），具有企业级的稳定性和吞吐量。
+
+## 安装和设置
+
+- 安装 AI/ML API 集成包。
+
+  ```bash
+  pip install langchain-aimlapi
+  ```
+
+- 在 [aimlapi.com](https://aimlapi.com/app/?utm_source=langchain&utm_medium=github&utm_campaign=integration) 创建账户并生成 API 密钥。
+- 通过设置 `AIMLAPI_API_KEY` 环境变量进行身份验证。
+
+```python
+import os
+
+os.environ["AIMLAPI_API_KEY"] = "aimlapi_..."
+```
+
+## 对话模型
+
+查看 [使用示例](https://docs.aimlapi.com/)。
+
+```python
+from langchain_aimlapi import ChatAimlapi
+```
+
+## LLM
+
+查看 [使用示例](/langchain/oss/python/integrations/llms/aimlapi)。
+
+```python
+from langchain_aimlapi import AimlapiLLM
+```
+
+## 嵌入模型
+
+查看 [使用示例](https://docs.aimlapi.com/)。
+
+```python
+from langchain_aimlapi import AimlapiEmbeddings
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/aimlapi.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/aimlapi.mdx) · 译文由 AI 生成，以英文原文为准。

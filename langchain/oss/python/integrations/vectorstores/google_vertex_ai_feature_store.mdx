@@ -1,0 +1,191 @@
+---
+title: "Gemini Enterprise Agent Platform 上的 Feature Store 集成"
+description: "使用 LangChain Python 与 Gemini Enterprise Agent Platform 上的 Feature Store 向量存储集成。"
+integration:
+  name: Feature Store on Gemini Enterprise Agent Platform
+  pypi: langchain-google-vertexai
+---
+
+
+> [Google Cloud Vertex Feature Store](https://docs.cloud.google.com/gemini-enterprise-agent-platform/machine-learning/featurestore/latest/overview) 为您的机器学习特征管理和在线服务流程提供支持，能够以低延迟将数据发布到 [Google Cloud BigQuery](https://cloud.google.com/bigquery?hl=en)，并支持对嵌入（embeddings）执行近似邻近检索（approximate neighbor retrieval）
+
+本教程将演示如何直接从BigQuery数据中实现低延迟向量搜索和近似邻近检索，从而快速构建强大的机器学习应用，且无需复杂配置。我们使用 `VertexFSVectorStore` 类来实现这一功能。
+
+该类属于包含2个类的功能组，可为Google Cloud提供统一的数据存储和灵活的向量搜索能力：
+
+- **BigQuery向量搜索**：通过 `BigQueryVectorStore` 类实现，适用于无需基础设施即可快速进行原型开发和小批量检索的场景。
+- **特征库在线存储**：通过 `VertexFSVectorStore` 类实现，支持手动或定时数据同步，特别适合生产就绪的用户生成式AI（GenAI）应用。
+
+![Diagram BQ-VertexFS](/images/integrations/bigquery-vertex-feature-store.png)
+
+## 快速入门
+
+### 安装库
+
+```python
+pip install -qU  langchain langchain-google-vertexai "langchain-google-community[featurestore]"
+```
+
+要在Jupyter运行环境中使用新安装的包，必须重启运行时环境。可通过执行下方单元格重启当前内核。
+
+```python
+import IPython
+
+app = IPython.Application.instance()
+app.kernel.do_shutdown(True)
+```
+
+## 准备工作
+
+#### 设置项目ID
+
+如不知项目ID，请按以下步骤操作：
+- 运行 `gcloud config list`
+- 运行 `gcloud projects list`
+- 查看支持页面：[定位项目ID](https://support.google.com/googleapi/answer/7014113)
+
+```python
+PROJECT_ID = ""  # @param {type:"string"}
+
+# Set the project id
+! gcloud config set project {PROJECT_ID}
+```
+
+#### 设置区域
+
+您也可以修改 `REGION` 变量，该变量由BigQuery使用。了解更多关于 [BigQuery区域](https://cloud.google.com/bigquery/docs/locations#supported_locations) 的信息。
+
+```python
+REGION = "us-central1"  # @param {type: "string"}
+```
+
+#### 设置数据集和表名
+
+这些将作为您的BigQuery向量存储。
+
+```python
+DATASET = "my_langchain_dataset"  # @param {type: "string"}
+TABLE = "doc_and_vectors"  # @param {type: "string"}
+```
+
+### 注释环境认证
+
+- 若使用 **Colab** 运行本笔记本，请取消注释下方单元格并继续。
+- 若使用 **Gemini Enterprise Agent Platform Workbench**，请查阅 [Gemini Enterprise Agent Platform Workbench设置指南](https://github.com/GoogleCloudPlatform/generative-ai/tree/main/setup-env)。
+
+```python
+# from google.colab import auth as google_auth
+
+# google_auth.authenticate_user()
+```
+
+## 示例：VertexFSVectorStore
+
+### 创建嵌入类实例
+
+您可能需要通过运行
+`gcloud services enable aiplatform.googleapis.com --project {PROJECT_ID}`
+（将 `{PROJECT_ID}` 替换为您的项目名称）
+来启用Gemini Enterprise Agent Platform API。
+
+您可以使用任意 [LangChain嵌入模型](/langchain/oss/python/integrations/embeddings/)。
+
+```python
+from langchain_google_vertexai import VertexAIEmbeddings
+
+embedding = VertexAIEmbeddings(
+    model_name="textembedding-gecko@latest", project=PROJECT_ID
+)
+```
+
+### 初始化VertexFSVectorStore
+
+BigQuery数据集和表将自动创建（如不存在）。查看 [类定义](https://github.com/langchain-ai/langchain-google/blob/main/libs/community/langchain_google_community/bq_storage_vectorstores/featurestore.py#L33) 以了解所有可选参数。
+
+```python
+from langchain_google_community import VertexFSVectorStore
+
+store = VertexFSVectorStore(
+    project_id=PROJECT_ID,
+    dataset_name=DATASET,
+    table_name=TABLE,
+    location=REGION,
+    embedding=embedding,
+)
+```
+
+### 添加文本
+
+> 注意：首次同步过程将耗时约20分钟，因需创建特征在线存储。
+
+```python
+all_texts = ["Apples and oranges", "Cars and airplanes", "Pineapple", "Train", "Banana"]
+metadatas = [{"len": len(t)} for t in all_texts]
+
+store.add_texts(all_texts, metadatas=metadatas)
+```
+
+您也可以通过执行 `sync_data` 方法手动触发同步。
+
+```python
+store.sync_data()
+```
+
+在生产环境中，您还可以通过 `cron_schedule` 类参数设置自动定时同步。例如：
+
+```python
+store = VertexFSVectorStore(cron_schedule="TZ=America/Los_Angeles 00 13 11 8 *", ...)
+```
+
+### 搜索文档
+
+```python
+query = "I'd like a fruit."
+docs = store.similarity_search(query)
+print(docs)
+```
+
+### 通过向量搜索文档
+
+```python
+query_vector = embedding.embed_query(query)
+docs = store.similarity_search_by_vector(query_vector, k=2)
+print(docs)
+```
+
+### 通过元数据过滤器搜索文档
+
+```python
+# This should only return "Banana" document.
+docs = store.similarity_search_by_vector(query_vector, filter={"len": 6})
+print(docs)
+```
+
+### 添加带嵌入的文本
+
+您也可以通过 `add_texts_with_embeddings` 方法传入自定义嵌入。
+
+这特别适用于需要预处理的多模态数据（如文本图像混合数据）的嵌入生成场景。
+
+```python
+items = ["some text"]
+embs = embedding.embed(items)
+
+ids = store.add_texts_with_embeddings(
+    texts=["some text"], embs=embs, metadatas=[{"len": 1}]
+)
+```
+
+### 批量处理与BigQuery
+
+您可直接使用 `.to_bq_vector_store()` 方法获取 BigQueryVectorStore 对象，该对象针对批量场景优化性能。所有必填参数将从现有类自动迁移。查看 [类定义](https://github.com/langchain-ai/langchain-google/blob/main/libs/community/langchain_google_community/bq_storage_vectorstores/bigquery.py#L26) 以了解所有可用参数。
+
+返回 BigQueryVectorStore 的 `.to_vertex_fs_vector_store()` 方法同样简单。
+
+```python
+store.to_bq_vector_store()  # pass optional VertexFSVectorStore parameters as arguments
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/google_vertex_ai_feature_store.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/google_vertex_ai_feature_store.mdx) · 译文由 AI 生成，以英文原文为准。

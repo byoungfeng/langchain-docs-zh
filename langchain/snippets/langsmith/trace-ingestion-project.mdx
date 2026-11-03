@@ -1,0 +1,16 @@
+在发送追踪信息之前，在 LangSmith 中创建智能体：
+
+1. 在 [基于智能体的工作区](https://docs.langchain.com/langsmith/agent-registry)中，打开 **+ 智能体**，选择 **可观察性**，并创建一个具有 **智能体名称** 和 **智能体 ID** 的智能体。这需要 `projects:create` 权限。如果智能体已存在，则复用它。
+2. 复制 **智能体 ID** 并选择环境：`local`、`development`、`staging` 或 `production`。
+3. 在运行智能体之前配置 [智能体寻址](https://docs.langchain.com/langsmith/log-traces-to-agent)：
+
+    ```bash
+    export LANGSMITH_AGENT_ID="<your-agent-id>"
+    export LANGSMITH_AGENT_ENVIRONMENT="production"
+    ```
+
+一次注册智能体，而不是为每个追踪信息注册。从您的代码运行环境中移除 `LANGSMITH_PROJECT`、`LANGCHAIN_PROJECT` 和 `LANGCHAIN_SESSION`。不要将传统目标设置与智能体寻址结合使用。要通过 SDK 调用或 API 请求创建智能体，请参阅 [以编程方式创建智能体](https://docs.langchain.com/langsmith/create-an-agent#create-an-agent-programmatically)。
+
+<Accordion title="Project-based workspaces and self-hosted LangSmith">
+智能体寻址可在 LangSmith Cloud 上的基于智能体的工作区中使用。在基于项目的工作区（包括自托管 LangSmith）中，将 `LANGSMITH_PROJECT` 设置为您的追踪项目名称，而不是设置两个智能体变量。
+</Accordion>

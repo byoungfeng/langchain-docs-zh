@@ -1,0 +1,137 @@
+---
+title: "Google drive 集成"
+description: "本笔记本演示如何将 LangChain 连接到 Google Drive API。"
+integration:
+  name: Google drive
+  pypi: langchain-googledrive
+---
+
+本笔记本演示如何将 LangChain 连接到 `Google Drive API`。
+
+## 前置条件
+
+1. 创建 Google Cloud 项目或使用现有项目
+1. 启用 [Google Drive API](https://console.cloud.google.com/flows/enableapi?apiid=drive.googleapis.com)
+1. [为桌面应用授权凭据](https://developers.google.com/drive/api/quickstart/python#authorize_credentials_for_a_desktop_application)
+1. `pip install -U google-api-python-client google-auth-httplib2 google-auth-oauthlib`
+
+## 获取 Google 文档数据的操作步骤
+
+默认情况下，`GoogleDriveTools` 和 `GoogleDriveWrapper` 期望 `credentials.json` 文件为 `~/.credentials/credentials.json`，但可通过设置 `GOOGLE_ACCOUNT_FILE` 环境变量为你的 `custom/path/to/credentials.json` 进行配置。
+`token.json` 的位置使用相同目录（或通过 `token_path` 参数指定）。注意 `token.json` 将在首次使用工具时自动创建。
+
+`GoogleDriveSearchTool` 可通过多次请求检索指定文件。
+
+默认情况下，若使用 `folder_id`，当文件名称与查询匹配时，该文件夹内所有文件可被检索到 `Document`。
+
+```python
+pip install -qU  google-api-python-client google-auth-httplib2 google-auth-oauthlib
+```
+
+可通过以下 URL 获取文件夹和文档 ID：
+
+* 文件夹：[drive.google.com/drive/u/0/folders/1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5](https://drive.google.com/drive/u/0/folders/1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5) -> 文件夹 ID 是 `"1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5"`
+* 文档：[docs.google.com/document/d/1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw/edit](https://docs.google.com/document/d/1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw/edit) -> 文档 ID 是 `"1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw"`
+
+特殊值 `root` 表示您的个人主页。
+
+```python
+folder_id = "root"
+# folder_id='1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5'
+```
+
+默认情况下，以下 MIME 类型文件可转换为 `Document`：
+* text/text
+* text/plain
+* text/html
+* text/csv
+* text/markdown
+* image/png
+* image/jpeg
+* application/epub+zip
+* application/pdf
+* application/rtf
+* application/vnd.google-apps.document (GDoc)
+* application/vnd.google-apps.presentation (GSlide)
+* application/vnd.google-apps.spreadsheet (GSheet)
+* application/vnd.google.colaboratory (Notebook colab)
+* application/vnd.openxmlformats-officedocument.presentationml.presentation (PPTX)
+* application/vnd.openxmlformats-officedocument.wordprocessingml.document (DOCX)
+
+可通过 `GoogleDriveAPIWrapper` 文档更新或自定义此设置。对应包需已安装。
+
+```python
+pip install -qU  unstructured langchain-googledrive
+```
+
+```python
+import os
+
+from langchain_googledrive.tools.google_drive.tool import GoogleDriveSearchTool
+from langchain_googledrive.utilities.google_drive import GoogleDriveAPIWrapper
+
+os.environ["GOOGLE_ACCOUNT_FILE"] = "custom/path/to/credentials.json"
+
+# By default, search only in the filename.
+tool = GoogleDriveSearchTool(
+    api_wrapper=GoogleDriveAPIWrapper(
+        folder_id=folder_id,
+        num_results=2,
+        template="gdrive-query-in-folder",  # Search in the body of documents
+    )
+)
+```
+
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+```
+
+```python
+tool.run("machine learning")
+```
+
+```python
+tool.description
+```
+
+```text
+"A wrapper around Google Drive Search. Useful for when you need to find a document in google drive. The input should be formatted as a list of entities separated with a space. As an example, a list of keywords is 'hello word'."
+```
+
+
+## 在 ReAct 智能体内使用工具
+
+要创建使用 Google Jobs 工具的智能体，需安装 LangGraph
+
+```python
+pip install -qU langgraph langchain-openai
+```
+
+并使用 @[`create_agent`] 功能初始化 ReAct 智能体。还需设置 OPEN_API_KEY（访问 [platform.openai.com](https://platform.openai.com)）以访问 OpenAI 的对话模型。
+
+```python
+import os
+
+from langchain.chat_models import init_chat_model
+from langchain.agents import create_agent
+
+
+os.environ["OPENAI_API_KEY"] = "your-openai-api-key"
+
+
+model = init_chat_model("gpt-5.4-mini", model_provider="openai", temperature=0)
+agent = create_agent(model, tools=[tool])
+
+stream = agent.stream_events(
+    {"messages": [("user", "Search in google drive, who is 'Yann LeCun' ?")]},
+    version="v3",
+)
+for snapshot in stream.values:
+    snapshot["messages"][-1].pretty_print()
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/google_drive.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/google_drive.mdx) · 译文由 AI 生成，以英文原文为准。

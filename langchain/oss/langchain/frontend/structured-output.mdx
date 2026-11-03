@@ -1,0 +1,315 @@
+---
+title: "结构化输出"
+description: "使用自定义 UI 组件渲染结构化智能体响应，而不是纯文本"
+---
+
+结构化输出使智能体能够返回类型化的机器可读数据，而不是纯文本。与其渲染单个字符串，您将获得一个结构化对象，可以将其映射到任何 UI：卡片、表格、图表、逐步分解或特定领域的渲染器。
+
+import { PatternEmbed } from "/langchain/snippets/pattern-embed.jsx"
+import UseStreamTypeInference from '/langchain/snippets/oss/use-stream-type-inference.mdx';
+
+<PatternEmbed pattern="structured-output-latex" />
+
+## 什么是结构化输出？
+
+智能体不返回自由形式的文本响应，而是使用工具调用返回符合预定义模式的结构化对象。这为您提供了：
+
+- **类型安全的数据**：将响应解析为已知的 TypeScript 类型
+- **精确的渲染控制**：使用各自的 UI 处理方式渲染每个字段
+- **一致的格式**：无论底层模型如何，每个响应都遵循相同的结构
+
+智能体通过调用一个“结构化输出”工具来实现这一点，该工具的参数包含响应数据。该工具本身不执行任何逻辑，纯粹是返回类型化数据的载体。
+
+## 用例
+
+- **产品比较**：功能表格、优缺点列表、评分
+- **数据分析**：带有指标、分解和亮点的摘要
+- **逐步指南**：带有描述和代码片段的有序说明
+- **食谱**：配料、步骤、时间和营养成分信息
+- **数学和科学**：使用 LaTeX 渲染的公式、逐步推导
+- **旅行规划**：带有日期、地点和成本估算的行程安排
+
+## 定义模式
+
+为智能体返回的结构化数据定义 TypeScript 类型。此模式的形状决定了您如何渲染 UI。
+
+以下是嵌入式演示中使用的数学解决方案模式：
+
+```ts
+interface MathSolution {
+  problem: string; // The original math problem
+  steps: {
+    explanation: string;
+    latex: string; // Optional display math for this step
+  }[]; // Step-by-step derivation
+  finalAnswer: string; // Plain-text final answer
+  finalAnswerLatex: string; // LaTeX representation of the final answer
+}
+```
+
+您的模式可以是任何形式。无论形状如何，模式的工作方式都相同。
+
+## 从消息中提取结构化输出
+
+结构化输出位于最后一个 `AIMessage` 的 `tool_calls` 数组中。通过找到 AI 消息并访问第一个工具调用的参数来提取它：
+
+```ts
+import { AIMessage } from "langchain";
+
+function extractStructuredOutput<T>(messages: any[]): T | null {
+  const aiMessage = messages.find(AIMessage.isInstance);
+  const toolCall = aiMessage?.tool_calls?.[0];
+  if (!toolCall) return null;
+
+  return toolCall.args as T;
+}
+```
+
+<Note>
+结构化输出工具调用可能直到智能体完成流式传输时才填充 `args`。在流式传输期间，`args` 可能部分填充或未定义。在渲染之前，始终检查完整性。
+</Note>
+
+## 设置 `useStream`
+
+将 @[`useStream`] 连接到您的结构化输出智能体，然后读取
+`stream.messages` 并从最新的 @[`AIMessage`] 工具调用中提取类型化的有效负载。`args` 完成后渲染您的自定义 UI，`stream.isLoading` 为真时显示加载状态（工具参数可能逐步流式传输），并使用 `stream.submit()` 发送下一个提示。
+
+<UseStreamTypeInference />
+
+<CodeGroup>
+
+```tsx React
+import { useStream } from "@langchain/react";
+import { AIMessage } from "langchain";
+
+function MathSolutionChat() {
+  const stream = useStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "structured_output_latex",
+  });
+
+  const solution = extractStructuredOutput<MathSolution>(stream.messages);
+
+  return (
+    <div>
+      {!solution && !stream.isLoading && (
+        <PromptInput onSubmit={(text) =>
+          stream.submit({ messages: [{ type: "human", content: text }] })
+        } />
+      )}
+      {stream.isLoading && <LoadingIndicator />}
+      {solution && <SolutionCard solution={solution} />}
+    </div>
+  );
+}
+```
+
+```vue Vue
+<script setup lang="ts">
+import { useStream } from "@langchain/vue";
+import { AIMessage } from "langchain";
+import { computed } from "vue";
+
+const stream = useStream<typeof myAgent>({
+  apiUrl: "http://localhost:2024",
+  assistantId: "structured_output_latex",
+});
+
+const solution = computed(() =>
+  extractStructuredOutput<MathSolution>(stream.messages.value)
+);
+
+function handleSubmit(text: string) {
+  stream.submit({ messages: [{ type: "human", content: text }] });
+}
+</script>
+
+<template>
+  <div>
+    <PromptInput v-if="!solution && !stream.isLoading" @submit="handleSubmit" />
+    <LoadingIndicator v-if="stream.isLoading" />
+    <SolutionCard v-if="solution" :solution="solution" />
+  </div>
+</template>
+```
+
+```svelte Svelte
+<script lang="ts">
+  import { useStream } from "@langchain/svelte";
+  import { AIMessage } from "langchain";
+
+  const stream = useStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "structured_output_latex",
+  });
+
+  const solution = $derived(extractStructuredOutput<MathSolution>(stream.messages));
+
+  function handleSubmit(text: string) {
+    stream.submit({ messages: [{ type: "human", content: text }] });
+  }
+</script>
+
+<div>
+  {#if !solution && !stream.isLoading}
+    <PromptInput on:submit={(e) => handleSubmit(e.detail)} />
+  {/if}
+  {#if stream.isLoading}
+    <LoadingIndicator />
+  {/if}
+  {#if solution}
+    <SolutionCard {solution} />
+  {/if}
+</div>
+```
+
+```ts Angular
+import { Component, computed } from "@angular/core";
+import { injectStream } from "@langchain/angular";
+
+@Component({
+  selector: "app-math-solution-chat",
+  template: `
+    @if (!solution() && !stream.isLoading()) {
+      <prompt-input (onSubmit)="handleSubmit($event)" />
+    }
+    @if (stream.isLoading()) {
+      <loading-indicator />
+    }
+    @if (solution()) {
+      <solution-card [solution]="solution()" />
+    }
+  `,
+})
+export class MathSolutionChatComponent {
+  stream = injectStream<typeof myAgent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "structured_output_latex",
+  });
+
+  solution = computed(() =>
+    extractStructuredOutput<MathSolution>(this.stream.messages())
+  );
+
+  handleSubmit(text: string) {
+    this.stream.submit({
+      messages: [{ type: "human", content: text }],
+    });
+  }
+}
+```
+
+</CodeGroup>
+
+## 渲染结构化数据
+
+一旦您获得了一个类型化的对象，就构建一个组件，将每个字段映射到适当的 UI 元素。这是模式的核心：将结构化数据转换为定制的界面。
+
+```tsx
+function LatexBlock({ latex }: { latex: string }) {
+  return <div className="latex-block">{latex}</div>; // Render with KaTeX or MathJax.
+}
+
+function SolutionCard({ solution }: { solution: MathSolution }) {
+  return (
+    <div className="solution-card">
+      <h3>{solution.problem}</h3>
+      <ol>
+        {solution.steps.map((step, i) => (
+          <li key={i}>
+            <span>{step.explanation}</span>
+            {step.latex && <LatexBlock latex={step.latex} />}
+          </li>
+        ))}
+      </ol>
+      <strong>{solution.finalAnswer}</strong>
+      {solution.finalAnswerLatex && <LatexBlock latex={solution.finalAnswerLatex} />}
+    </div>
+  );
+}
+```
+
+## 处理部分流式传输数据
+
+在流式传输期间，工具调用参数可能是不完整的 JSON。在您的提取逻辑中防止这种情况：
+
+```ts
+function extractStructuredOutput<T>(
+  messages: any[],
+  requiredFields: string[] = [],
+): T | null {
+  const aiMessages = messages.filter(AIMessage.isInstance);
+  if (aiMessages.length === 0) return null;
+
+  const lastAI = aiMessages[aiMessages.length - 1];
+  const toolCall = lastAI.tool_calls?.[0];
+  if (!toolCall?.args) return null;
+
+  const args = toolCall.args as Record<string, unknown>;
+  const hasRequired = requiredFields.every(
+    (field) => args[field] !== undefined
+  );
+
+  if (requiredFields.length > 0 && !hasRequired) return null;
+  return args as T;
+}
+```
+
+使用 `requiredFields` 参数在渲染之前等待关键字段填充：
+
+```ts
+const solution = extractStructuredOutput<MathSolution>(stream.messages, [
+  "problem",
+  "steps",
+  "finalAnswer",
+]);
+```
+
+## 在流式传输期间逐步渲染
+
+与其等待完整的结构化输出，不如按到达顺序渲染字段。这在使用智能体生成时为用户提供即时反馈：
+
+```tsx
+function ProgressiveSolutionCard({ messages }: { messages: any[] }) {
+  const partial = extractStructuredOutput<Partial<MathSolution>>(messages);
+  if (!partial) return null;
+
+  return (
+    <div className="solution-card">
+      {partial.problem && <h3>{partial.problem}</h3>}
+
+      {partial.steps && partial.steps.length > 0 && (
+        <div className="solution-steps">
+          <h4>Steps</h4>
+          {partial.steps.map((step, i) => (
+            <div key={i} className="step">
+              <div className="step-number">Step {i + 1}</div>
+              <p>{step.explanation}</p>
+              {step.latex && <LatexBlock latex={step.latex} />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {partial.finalAnswer && <strong>{partial.finalAnswer}</strong>}
+    </div>
+  );
+}
+```
+
+<Tip>
+逐步渲染在模式具有自然自上而下的顺序时效果很好：问题，然后推导步骤，然后最终答案。智能体通常按模式顺序生成字段，因此 UI 自然填充。
+</Tip>
+
+## 最佳实践
+
+- **渲染前验证**：始终检查在渲染之前是否存在必需字段，因为流式传输可能会提供部分数据
+- **使用通用的提取函数**：使用类型和必需字段参数化您的提取逻辑，以便它适用于不同的模式
+- **逐步渲染**：按到达顺序显示字段，而不是等待完整的对象，以便用户获得即时反馈
+- **提供备用表示**：如果字段支持丰富渲染（LaTeX、Markdown、图表），则也在您的模式中包含纯文本等效项作为备用
+- **尽可能保持模式扁平**：深度嵌套的模式更难逐步渲染，并且在部分流式传输期间更容易中断
+- **使 UI 与数据匹配**：选择最能表示每个字段类型的渲染策略（数组使用表格，嵌套对象使用卡片，状态字段使用徽章）
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/structured-output.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/structured-output.mdx) · 译文由 AI 生成，以英文原文为准。

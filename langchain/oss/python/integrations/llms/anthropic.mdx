@@ -1,0 +1,60 @@
+---
+title: "AnthropicLLM 集成"
+description: "使用 LangChain Python 集成 AnthropicLLM。"
+integration:
+  name: AnthropicLLM
+  pypi: langchain-anthropic
+---
+
+<Warning>
+**您当前所在的页面是关于使用Anthropic legacy Claude 2模型作为文本补全模型的文档。Anthropic最新且最流行的模型是[chat completion models](/langchain/oss/langchain/models)，文本补全模型已被弃用。**
+
+您可能需要查看[此页面](/langchain/oss/python/integrations/chat/anthropic/)。
+</Warning>
+
+本示例演示如何使用LangChain与`Anthropic`模型交互。
+
+## 安装
+
+```python
+pip install -qU langchain-anthropic
+```
+
+## 环境配置
+
+我们需要获取[Anthropic](https://console.anthropic.com/settings/keys) API密钥并设置`ANTHROPIC_API_KEY`环境变量：
+
+```python
+import os
+from getpass import getpass
+
+if "ANTHROPIC_API_KEY" not in os.environ:
+    os.environ["ANTHROPIC_API_KEY"] = getpass()
+```
+
+## 使用方法
+
+```python
+from langchain_anthropic import AnthropicLLM
+from langchain_core.prompts import PromptTemplate
+
+template = """Question: {question}
+
+Answer: Let's think step by step."""
+
+prompt = PromptTemplate.from_template(template)
+
+model = AnthropicLLM(model="claude-2.1")
+
+chain = prompt | model
+
+chain.invoke({"question": "What is LangChain?"})
+```
+
+```text
+'\nLangChain is a decentralized blockchain network that leverages AI and machine learning to provide language translation services.'
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/llms/anthropic.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/llms/anthropic.mdx) · 译文由 AI 生成，以英文原文为准。

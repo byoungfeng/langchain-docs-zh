@@ -1,0 +1,76 @@
+---
+title: "缺失检查点"
+description: "您正在尝试使用内置的LangGraph持久化功能，但未提供检查点器。"
+---
+
+您正在尝试使用内置的LangGraph持久化功能，但未提供检查点器。
+
+:::python
+这发生在@[`StateGraph`][StateGraph]或@[`@entrypoint`]的`compile()`方法缺少`checkpointer`时。
+:::
+
+:::js
+这发生在@[`StateGraph`][StateGraph]或@[`entrypoint`]的`compile()`方法缺少`checkpointer`时。
+:::
+
+## 问题排查
+
+以下方法可能有助于解决此错误：
+
+:::python
+-   在@[`StateGraph`][StateGraph]或@[`@entrypoint`]的`compile()`方法中初始化并传递检查点器。
+:::
+:::js
+-   在@[`StateGraph`][StateGraph]或@[`entrypoint`]的`compile()`方法中初始化并传递检查点器。
+:::
+
+:::python
+
+```python
+from langgraph.checkpoint.memory import InMemorySaver
+checkpointer = InMemorySaver()
+
+# Graph API
+from langgraph.graph import StateGraph
+graph = StateGraph(...).compile(checkpointer=checkpointer)
+
+# Functional API
+from langgraph.func import entrypoint
+@entrypoint(checkpointer=checkpointer)
+def workflow(messages: list[str]) -> str:
+    ...
+```
+
+:::
+
+:::js
+
+```typescript
+import { InMemorySaver, StateGraph } from "@langchain/langgraph";
+const checkpointer = new InMemorySaver();
+
+// Graph API
+import { StateGraph } from "@langchain/langgraph";
+const graph = new StateGraph(...).compile({ checkpointer });
+
+// Functional API
+import { entrypoint } from "@langchain/langgraph";
+const workflow = entrypoint(
+    { checkpointer, name: "workflow" },
+    async (messages: string[]) => {
+        // ...
+    }
+);
+```
+
+:::
+
+-   使用LangGraph API无需手动实现或配置检查点器。API会为您处理所有持久化基础设施。
+
+## 相关内容
+
+-   [更多关于持久化](/langchain/oss/langgraph/persistence)内容。
+
+---
+
+> 官方原文：[src/oss/langgraph/errors/MISSING_CHECKPOINTER.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langgraph/errors/MISSING_CHECKPOINTER.mdx) · 译文由 AI 生成，以英文原文为准。

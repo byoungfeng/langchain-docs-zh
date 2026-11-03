@@ -1,0 +1,394 @@
+---
+title: "Azure Cosmos DB for NoSQL 集成"
+description: "使用 LangChain JavaScript 集成 Azure Cosmos DB for NoSQL 向量存储。"
+integration:
+  name: Azure Cosmos DB for NoSQL
+  npm: '@langchain/azure-cosmosdb'
+---
+
+> [Azure Cosmos DB for NoSQL](https://learn.microsoft.com/azure/cosmos-db/nosql/) 提供了对具有灵活模式的项目的查询支持，并原生支持 JSON。它现在提供了向量索引和搜索功能。此功能旨在处理高维向量，能够在任何规模下实现高效且准确的向量搜索。您现在可以直接将向量存储在文档中，与您的数据一起。您的数据库中的每个文档不仅可以包含传统模式无关的数据，还可以将高维向量作为文档的其他属性。
+
+从 [此页面](https://learn.microsoft.com/azure/cosmos-db/nosql/vector-search) 了解如何利用 Azure Cosmos DB for NoSQL 的向量搜索功能。如果您没有 Azure 账户，可以通过 [创建免费账户](https://azure.microsoft.com/free/) 开始使用。
+
+## 设置
+
+有关检索增强生成（RAG）的快速入门，请参阅 [LangChain.js 和 Azure Cosmos DB 快速入门](https://github.com/AzureCosmosDB/langchainjs-cosmosdb-rag-quickstart) 和 [Microsoft Learn 教程](https://learn.microsoft.com/en-us/azure/cosmos-db/gen-ai/langchain-javascript-get-started)。
+
+在配置您的容器之前，请查看 [Azure Cosmos DB 向量搜索文档](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/vector-search) 和 [针对特定工作负载的向量索引选择指南](https://github.com/AzureCosmosDB/cosmosdb-agent-kit/blob/main/skills/cosmosdb-best-practices/rules/vector-index-type.md)。
+
+您首先需要安装 [`@langchain/azure-cosmosdb`](https://www.npmjs.com/package/@langchain/azure-cosmosdb) 包：
+
+<Tip>
+请参阅 [此部分，了解安装 LangChain 包的一般说明](/langchain/oss/langchain/install)。
+</Tip>
+
+```bash npm
+npm install @langchain/azure-cosmosdb @langchain/core
+```
+您还需要运行 Azure Cosmos DB for NoSQL 实例。您可以在 Azure 门户上部署免费版本，无需任何费用，请按照 [此指南](https://learn.microsoft.com/azure/cosmos-db/nosql/quickstart-portal) 操作。
+
+一旦您的实例运行起来，请确保您有连接字符串。您可以在 Azure 门户中找到它们，在您的实例的“设置 / 密钥”部分下。然后您需要设置以下环境变量：
+
+```bash .env example
+# Use connection string to authenticate
+AZURE_COSMOSDB_NOSQL_CONNECTION_STRING=
+
+# Use managed identity to authenticate
+AZURE_COSMOSDB_NOSQL_ENDPOINT=
+```
+
+### 使用 Azure Managed identity
+
+如果您使用 Azure Managed Identity，可以像这样配置凭据：
+
+```typescript
+import { AzureCosmosDBNoSQLVectorStore } from "@langchain/azure-cosmosdb";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+// Create Azure Cosmos DB vector store
+const store = new AzureCosmosDBNoSQLVectorStore(new OpenAIEmbeddings(), {
+  // Or use environment variable AZURE_COSMOSDB_NOSQL_ENDPOINT
+  endpoint: "https://my-cosmosdb.documents.azure.com:443/",
+
+  // Database and container must already exist
+  databaseName: "my-database",
+  containerName: "my-container",
+});
+```
+
+<Info>
+**当使用 Azure Managed Identity 和基于角色的访问控制时，您必须确保数据库和容器已预先创建。RBAC 不会提供创建数据库和容器的权限。您可以在 [Azure Cosmos DB 文档](https://learn.microsoft.com/azure/cosmos-db/how-to-setup-rbac#permission-model) 中了解更多关于权限模型的信息。**
+
+</Info>
+
+### 使用过滤器时的安全注意事项
+
+<Warning>
+**使用过滤器与用户提供输入时，如果数据没有正确清理，可能会存在安全风险。请遵循以下建议，以防止潜在的安全问题。**
+
+</Warning>
+
+允许原始用户输入连接到类似 SQL 的子句（例如 `WHERE ${userFilter}`）会引入 SQL 注入攻击的关键风险，可能会暴露意外数据或损害您的系统完整性。为了减轻这种风险，请始终使用 Azure Cosmos DB 的参数化查询机制，传入 `@param` 占位符，这将查询逻辑与用户提供输入清晰地区分开来。
+
+以下是不安全代码的示例：
+
+```typescript
+import { AzureCosmosDBNoSQLVectorStore } from "@langchain/azure-cosmosdb";
+
+const store = new AzureCosmosDBNoSQLVectorStore(embeddings, {});
+
+// Unsafe: user-controlled input injected into the query
+const userId = req.query.userId; // e.g. "123' OR 1=1"
+const unsafeQuerySpec = {
+  query: `SELECT * FROM c WHERE c.metadata.userId = '${userId}'`,
+};
+
+await store.delete({ filter: unsafeQuerySpec });
+```
+如果攻击者提供 `123 OR 1=1`，则查询将变为 `SELECT * FROM c WHERE c.metadata.userId = '123' OR 1=1`，这将强制条件始终为真，导致它绕过预期过滤器并删除所有文档。
+
+为了防止这种注入风险，您定义一个占位符，如 `@userId`，Cosmos DB 将用户输入作为参数单独绑定，确保它被严格视为数据，而不是可执行的查询逻辑，如下所示。
+
+```typescript
+import { SqlQuerySpec } from "@azure/cosmos";
+
+const safeQuerySpec: SqlQuerySpec = {
+  query: "SELECT * FROM c WHERE c.metadata.userId = @userId",
+  parameters: [{ name: "@userId", value: userId }],
+};
+
+await store.delete({ filter: safeQuerySpec });
+```
+
+现在，如果攻击者输入 `123 OR 1=1`，输入将被视为要匹配的纯文字值，而不是查询结构的一部分。
+
+请参阅 [Azure Cosmos DB for NoSQL 中的参数化查询](https://learn.microsoft.com/azure/cosmos-db/nosql/query/parameterized-queries) 的官方文档，了解更多使用示例和最佳实践。
+
+## 使用示例
+
+以下示例展示了如何在 Azure Cosmos DB for NoSQL 中索引文件中的文档，运行向量搜索查询，并最终使用链根据检索到的文档用自然语言回答问题。
+
+```typescript
+import { AzureCosmosDBNoSQLVectorStore } from "@langchain/azure-cosmosdb";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { createStuffDocumentsChain } from "@langchain/classic/chains/combine_documents";
+import { createRetrievalChain } from "@langchain/classic/chains/retrieval";
+import { TextLoader } from "@langchain/classic/document_loaders/fs/text";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+
+// Load documents from file
+const loader = new TextLoader("./state_of_the_union.txt");
+const rawDocuments = await loader.load();
+const splitter = new RecursiveCharacterTextSplitter({
+  chunkSize: 1000,
+  chunkOverlap: 0,
+});
+const documents = await splitter.splitDocuments(rawDocuments);
+
+// Create Azure Cosmos DB vector store
+const store = await AzureCosmosDBNoSQLVectorStore.fromDocuments(
+  documents,
+  new OpenAIEmbeddings(),
+  {
+    databaseName: "langchain",
+    containerName: "documents",
+  }
+);
+
+// Performs a similarity search
+const resultDocuments = await store.similaritySearch(
+  "What did the president say about Ketanji Brown Jackson?"
+);
+
+console.log("Similarity search results:");
+console.log(resultDocuments[0].pageContent);
+/*
+  Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections.
+
+  Tonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service.
+
+  One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
+
+  And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
+*/
+
+// Use the store as part of a chain
+const model = new ChatOpenAI({ model: "gpt-3.5-turbo-1106" });
+const questionAnsweringPrompt = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    "Answer the user's questions based on the below context:\n\n{context}",
+  ],
+  ["human", "{input}"],
+]);
+
+const combineDocsChain = await createStuffDocumentsChain({
+  llm: model,
+  prompt: questionAnsweringPrompt,
+});
+
+const chain = await createRetrievalChain({
+  retriever: store.asRetriever(),
+  combineDocsChain,
+});
+
+const res = await chain.invoke({
+  input: "What is the president's top priority regarding prices?",
+});
+
+console.log("Chain response:");
+console.log(res.answer);
+/*
+  The president's top priority is getting prices under control.
+*/
+
+// Clean up
+await store.delete();
+```
+
+## 高级搜索选项
+
+所有搜索类型都通过使用过滤器选项中的 `searchType` 参数通过统一的 `similaritySearch` 和 `similaritySearchWithScore` 方法访问。搜索类型作为 `AzureCosmosDBNoSQLSearchType` 中的常量提供：
+
+可用搜索类型：
+
+- `AzureCosmosDBNoSQLSearchType.Vector`（默认）：标准向量相似度搜索
+- `AzureCosmosDBNoSQLSearchType.VectorScoreThreshold`：带最小分数过滤器的向量搜索
+- `AzureCosmosDBNoSQLSearchType.FullTextSearch`：使用 FullTextContains 的全文搜索（预览）
+- `AzureCosmosDBNoSQLSearchType.FullTextRanking`：使用 BM25 排序的全文搜索（预览）
+- `AzureCosmosDBNoSQLSearchType.Hybrid`：使用 RRF 的混合向量 + 全文搜索（预览）
+- `AzureCosmosDBNoSQLSearchType.HybridScoreThreshold`：带分数阈值的混合搜索（预览）
+
+您还可以在创建存储时使用 `defaultSearchType` 配置选项设置默认搜索类型，这样您就不必在每次查询中都指定它：
+
+```typescript
+import {
+  AzureCosmosDBNoSQLVectorStore,
+  AzureCosmosDBNoSQLSearchType,
+} from "@langchain/azure-cosmosdb";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const store = new AzureCosmosDBNoSQLVectorStore(new OpenAIEmbeddings(), {
+  databaseName: "langchain",
+  containerName: "documents",
+  defaultSearchType: AzureCosmosDBNoSQLSearchType.VectorScoreThreshold,
+});
+```
+
+### 带分数阈值的向量搜索
+
+根据最小相似度分数过滤结果：
+
+```typescript
+import {
+  AzureCosmosDBNoSQLVectorStore,
+  AzureCosmosDBNoSQLSearchType,
+} from "@langchain/azure-cosmosdb";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const store = new AzureCosmosDBNoSQLVectorStore(new OpenAIEmbeddings(), {
+  databaseName: "langchain",
+  containerName: "documents",
+});
+
+// Only return results with similarity score >= 0.8
+const results = await store.similaritySearchWithScore(
+  "What is the capital of France?",
+  10,
+  {
+    searchType: AzureCosmosDBNoSQLSearchType.VectorScoreThreshold,
+    threshold: 0.8,
+  }
+);
+
+for (const [doc, score] of results) {
+  console.log(`Score: ${score}, Content: ${doc.pageContent}`);
+}
+```
+
+### 最大边际相关性（MMR）搜索
+
+MMR 搜索在结果的相关性和多样性之间取得平衡：
+
+```typescript
+import { AzureCosmosDBNoSQLVectorStore } from "@langchain/azure-cosmosdb";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const store = new AzureCosmosDBNoSQLVectorStore(new OpenAIEmbeddings(), {
+  databaseName: "langchain",
+  containerName: "documents",
+});
+
+const results = await store.maxMarginalRelevanceSearch("machine learning", {
+  k: 5, // Number of results to return
+  fetchK: 20, // Number of candidates to consider
+  lambda: 0.5, // 0 = max diversity, 1 = max relevance
+});
+```
+
+## 全文和混合搜索（预览）
+
+<Warning>
+全文和混合搜索是 Azure Cosmos DB 中的预览功能。您需要使用全文策略和适当的索引来配置您的容器以使用这些功能。请参阅 [Azure Cosmos DB 文档](https://learn.microsoft.com/azure/cosmos-db/gen-ai/full-text-search) 了解设置说明。
+</Warning>
+
+要使用全文或混合搜索，在创建存储时启用它：
+
+```typescript
+import {
+  AzureCosmosDBNoSQLVectorStore,
+  AzureCosmosDBNoSQLSearchType,
+} from "@langchain/azure-cosmosdb";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const store = new AzureCosmosDBNoSQLVectorStore(new OpenAIEmbeddings(), {
+  databaseName: "langchain",
+  containerName: "documents",
+  fullTextSearchEnabled: true,
+  fullTextPolicy: {
+    defaultLanguage: "en-US",
+    fullTextPaths: [{ path: "/text", language: "en-US" }],
+  },
+  indexingPolicy: {
+    indexingMode: "consistent",
+    automatic: true,
+    includedPaths: [{ path: "/*" }],
+    excludedPaths: [{ path: "/_etag/?" }],
+    vectorIndexes: [{ path: "/vector", type: "quantizedFlat" }],
+    fullTextIndexes: [{ path: "/text" }],
+  },
+});
+```
+
+### 全文搜索
+
+```typescript
+// Full-text search using FullTextContains in the filter clause
+const fullTextResults = await store.similaritySearch("", 10, {
+  searchType: AzureCosmosDBNoSQLSearchType.FullTextSearch,
+  filterClause: "WHERE FullTextContains(c.text, 'artificial intelligence')",
+});
+```
+
+### 全文排序
+
+```typescript
+// Full-text ranking with BM25 scoring
+const rankingResults = await store.similaritySearch("", 10, {
+  searchType: AzureCosmosDBNoSQLSearchType.FullTextRanking,
+  fullTextRankFilter: [
+    { searchField: "text", searchText: "artificial intelligence" },
+  ],
+});
+```
+
+### 混合搜索
+
+混合搜索结合了向量相似度与使用互惠排名融合（RRF）的全文搜索：
+
+```typescript
+// Hybrid search combining vector and full-text results
+const hybridResults = await store.similaritySearchWithScore(
+  "machine learning",
+  10,
+  {
+    searchType: AzureCosmosDBNoSQLSearchType.Hybrid,
+    fullTextRankFilter: [
+      { searchField: "text", searchText: "machine learning" },
+    ],
+  }
+);
+
+// Hybrid search with score threshold
+const filteredResults = await store.similaritySearchWithScore(
+  "machine learning",
+  10,
+  {
+    searchType: AzureCosmosDBNoSQLSearchType.HybridScoreThreshold,
+    fullTextRankFilter: [
+      { searchField: "text", searchText: "machine learning" },
+    ],
+    threshold: 0.5,
+  }
+);
+```
+
+## 实用方法
+
+### 删除文档
+
+```typescript
+// Delete specific documents by ID
+await store.delete({ ids: ["document-id-123"] });
+
+// Delete documents matching a filter
+await store.delete({
+  filter: {
+    query: "SELECT * FROM c WHERE c.metadata.category = @category",
+    parameters: [{ name: "@category", value: "old" }],
+  },
+});
+
+// Delete all documents
+await store.delete();
+```
+
+### 访问底层容器
+
+```typescript
+// Get direct access to the Cosmos DB container for advanced operations
+const container = store.getContainer();
+const { resources } = await container.items
+  .query("SELECT * FROM c WHERE c.metadata.category = 'tech'")
+  .fetchAll();
+```
+
+## 相关
+
+- 向量存储 [概念指南](/langchain/oss/python/integrations/vectorstores)
+- 向量存储 [操作指南](/langchain/oss/python/integrations/vectorstores)
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/vectorstores/azure_cosmosdb_nosql.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/vectorstores/azure_cosmosdb_nosql.mdx) · 译文由 AI 生成，以英文原文为准。

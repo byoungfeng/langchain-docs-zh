@@ -1,0 +1,22 @@
+```python Python
+from langsmith import Client
+from openai import OpenAI
+from langchain_core.messages import convert_to_openai_messages
+
+client = Client()
+oai_client = OpenAI()
+
+prompt = client.pull_prompt("prompt-quickstart")
+
+# Since the prompt only has one variable you could also pass in the value directly
+# Equivalent to formatted_prompt = prompt.invoke("What is the color of the sky?")
+formatted_prompt = prompt.invoke({"question": "What is the color of the sky?"})
+
+response = oai_client.chat.completions.create(
+    model="gpt-5.5",
+    messages=convert_to_openai_messages(formatted_prompt.messages),
+)
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 id：['0']；意外的额外 id：[]。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。

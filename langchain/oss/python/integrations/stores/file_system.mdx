@@ -1,0 +1,106 @@
+---
+title: "LocalFileStore 集成"
+description: "使用 LangChain Python 集成 LocalFileStore 存储。"
+integration:
+  name: LocalFileStore
+---
+
+这将帮助您从本地文件系统[key-value stores](/langchain/oss/python/integrations/stores)入门。如需了解所有`LocalFileStore`功能及配置的详细文档，请访问[API reference](https://reference.langchain.com/python/langchain-classic/storage/file_system/LocalFileStore)。
+
+## 概述
+
+`LocalFileStore`是`ByteStore`的持久化实现，可将所有数据存储在您指定的文件夹中。如果您使用单一机器且能容忍文件被添加或删除，这将很有用。
+
+### 集成细节
+
+| 类别 | 包   | 本地 | [JS支持](/langchain/oss/javascript/integrations/stores/file_system) | 下载量 | 版本 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| [`LocalFileStore`](https://reference.langchain.com/python/langchain-classic/storage/file_system/LocalFileStore) | [langchain](https://reference.langchain.com/python/langchain) | ✅ | ✅ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain?style=flat-square&label=%20) |
+
+### 安装
+
+LangChain的`LocalFileStore`集成位于`langchain`包中：
+
+```python
+pip install -qU langchain-classic
+```
+
+## 实例化
+
+现在我们可以实例化我们的字节存储：
+
+```python
+from pathlib import Path
+
+from langchain_classic.storage import LocalFileStore
+
+root_path = Path.cwd() / "data"  # can also be a path set by a string
+
+kv_store = LocalFileStore(root_path)
+```
+
+## 使用
+
+您可以通过`mset`方法以键值形式设置数据：
+
+```python
+kv_store.mset(
+    [
+        ["key1", b"value1"],
+        ["key2", b"value2"],
+    ]
+)
+
+kv_store.mget(
+    [
+        "key1",
+        "key2",
+    ]
+)
+```
+
+```text
+[b'value1', b'value2']
+```
+
+您可以在您的`data`文件夹中查看生成的文件：
+
+```python
+!ls {root_path}
+```
+
+```text
+key1 key2
+```
+
+您可以使用`mdelete`方法删除数据：
+
+```python
+kv_store.mdelete(
+    [
+        "key1",
+        "key2",
+    ]
+)
+
+kv_store.mget(
+    [
+        "key1",
+        "key2",
+    ]
+)
+```
+
+```text
+[None, None]
+```
+
+---
+
+## API参考
+
+如需了解所有`LocalFileStore`功能及配置的详细文档，请访问[API reference](https://reference.langchain.com/python/langchain-classic/storage/file_system/LocalFileStore)
+
+---
+
+> 官方原文：[src/oss/python/integrations/stores/file_system.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/stores/file_system.mdx) · 译文由 AI 生成，以英文原文为准。

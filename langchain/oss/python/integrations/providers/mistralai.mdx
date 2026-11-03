@@ -1,0 +1,46 @@
+---
+title: "MistralAI 集成"
+description: "使用 LangChain Python 集成 MistralAI。"
+---
+
+>[Mistral AI](https://docs.mistral.ai/api/) 是一个提供其强大开源模型托管服务的平台。
+
+## 安装和配置
+
+需要有效的 [API key](https://console.mistral.ai/users/api-keys/) 才能与 API 通信。
+
+您还需要 `langchain-mistralai` 包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-mistralai
+```
+
+```bash uv
+uv add langchain-mistralai
+```
+</CodeGroup>
+
+## 聊天模型
+
+### ChatMistralAI
+
+请参考 [使用示例](/langchain/oss/python/integrations/chat/mistralai)。
+
+```python
+from langchain_mistralai.chat_models import ChatMistralAI
+```
+
+## 嵌入模型
+
+### MistralAIEmbeddings
+
+请参考 [使用示例](/langchain/oss/python/integrations/embeddings/mistralai)。
+
+```python
+from langchain_mistralai import MistralAIEmbeddings
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/mistralai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/mistralai.mdx) · 译文由 AI 生成，以英文原文为准。

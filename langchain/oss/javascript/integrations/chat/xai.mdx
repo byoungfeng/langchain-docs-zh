@@ -1,0 +1,149 @@
+---
+title: "ChatXAI 集成"
+description: "使用 LangChain JavaScript 集成 ChatXAI 对话模型。"
+integration:
+  name: ChatXAI
+  npm: '@langchain/xai'
+  featured: true
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: false
+---
+
+<Warning>
+本页面记录了来自 [xAI](https://docs.x.ai/docs/overview) 的 Grok 模型。不要将 xAI 与 [Groq](https://console.groq.com/docs/overview) 混淆，Groq 是一个独立的推理提供者。请参阅 [Groq 集成](/langchain/oss/python/integrations/chat/groq)。
+</Warning>
+
+[xAI](https://x.ai/) 开发 Grok 对话模型。有关可用的模型 ID，请参阅 [xAI 模型文档](https://docs.x.ai/docs/models)。
+
+本指南将帮助您开始使用 `ChatXAI` [对话模型](/langchain/oss/langchain/models)。有关所有 `ChatXAI` 功能和配置的详细文档，请前往 [API 参考](https://reference.langchain.com/javascript/langchain-xai/ChatXAI)。
+
+## 概述
+
+### 集成详情
+
+| 类 | 包 | 可序列化 | [PY 支持](/langchain/oss/python/integrations/chat/xai) | 下载次数 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| [`ChatXAI`](https://reference.langchain.com/javascript/langchain-xai/ChatXAI) | [`@langchain/xai`](https://www.npmjs.com/package/@langchain/xai) | ✅ | ✅ | ![NPM - 下载](https://img.shields.io/npm/dm/@langchain/xai?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/xai?style=flat-square&label=%20&) |
+
+### 模型功能
+
+请查看表头中的链接，了解如何使用特定功能。
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token 级流式输出](/langchain/oss/langchain/streaming/) | [Token 使用情况](/langchain/oss/langchain/models#token-使用) | [Logprobs](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: |  :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
+
+## 设置
+
+要访问 `ChatXAI` 模型，请创建一个 xAI 账户，[获取 API 密钥](https://console.x.ai/)，并安装 `@langchain/xai` 集成包。
+
+### 凭证
+
+前往 [xAI 网站](https://x.ai) 注册并生成 API 密钥。设置 `XAI_API_KEY` 环境变量：
+
+```bash
+export XAI_API_KEY="your-api-key"
+```
+
+如果您希望自动跟踪您的模型调用，您还可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```bash
+# export LANGSMITH_TRACING="true"
+# export LANGSMITH_API_KEY="your-api-key"
+```
+
+### 安装
+
+LangChain `ChatXAI` 集成位于 `@langchain/xai` 包中：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/xai @langchain/core
+```
+```bash yarn
+yarn add @langchain/xai @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/xai @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成对话补全：
+
+```typescript
+import { ChatXAI } from "@langchain/xai";
+
+const llm = new ChatXAI({
+    model: "grok-3-fast",
+    temperature: 0,
+    maxTokens: undefined,
+    maxRetries: 2,
+    // other params...
+})
+```
+
+## 调用
+
+```typescript
+const aiMsg = await llm.invoke([
+    [
+      "system",
+      "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ],
+    ["human", "I love programming."],
+])
+console.log(aiMsg)
+```
+
+```text
+AIMessage {
+  "id": "71d7e3d8-30dd-472c-8038-b6b283dcee63",
+  "content": "J'adore programmer.",
+  "additional_kwargs": {},
+  "response_metadata": {
+    "tokenUsage": {
+      "promptTokens": 30,
+      "completionTokens": 6,
+      "totalTokens": 36
+    },
+    "finish_reason": "stop",
+    "usage": {
+      "prompt_tokens": 30,
+      "completion_tokens": 6,
+      "total_tokens": 36
+    },
+    "system_fingerprint": "fp_3e3898d4ce"
+  },
+  "tool_calls": [],
+  "invalid_tool_calls": [],
+  "usage_metadata": {
+    "output_tokens": 6,
+    "input_tokens": 30,
+    "total_tokens": 36,
+    "input_token_details": {},
+    "output_token_details": {}
+  }
+}
+```
+
+```typescript
+console.log(aiMsg.content)
+```
+
+```text
+J'adore programmer.
+```
+
+---
+
+## API 参考
+
+有关所有 `ChatXAI` 功能和配置的详细文档，请前往 [API 参考](https://reference.langchain.com/javascript/langchain-xai/ChatXAI)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/chat/xai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/chat/xai.mdx) · 译文由 AI 生成，以英文原文为准。

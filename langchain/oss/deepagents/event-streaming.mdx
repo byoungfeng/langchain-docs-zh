@@ -1,0 +1,170 @@
+---
+title: "事件流"
+description: "从 Deep Agents 中流式输出子智能体、消息、工具调用和最终结果。"
+tag: "Beta"
+---
+
+import EventStreamingSubagentsPy from '/langchain/snippets/code-samples/event-streaming-subagents-py.mdx';
+import EventStreamingSubagentsJs from '/langchain/snippets/code-samples/event-streaming-subagents-js.mdx';
+import EventStreamingLifecyclePy from '/langchain/snippets/code-samples/event-streaming-lifecycle-py.mdx';
+import EventStreamingLifecycleJs from '/langchain/snippets/code-samples/event-streaming-lifecycle-js.mdx';
+import EventStreamingMessagesPy from '/langchain/snippets/code-samples/event-streaming-messages-py.mdx';
+import EventStreamingMessagesJs from '/langchain/snippets/code-samples/event-streaming-messages-js.mdx';
+import EventStreamingToolCallsPy from '/langchain/snippets/code-samples/event-streaming-tool-calls-py.mdx';
+import EventStreamingToolCallsJs from '/langchain/snippets/code-samples/event-streaming-tool-calls-js.mdx';
+import EventStreamingNestedPy from '/langchain/snippets/code-samples/event-streaming-nested-py.mdx';
+import EventStreamingNestedJs from '/langchain/snippets/code-samples/event-streaming-nested-js.mdx';
+import EventStreamingInterleavePy from '/langchain/snippets/code-samples/event-streaming-interleave-py.mdx';
+import EventStreamingConcurrentJs from '/langchain/snippets/code-samples/event-streaming-concurrent-js.mdx';
+import EventStreamingRawProtocolPy from '/langchain/snippets/code-samples/event-streaming-raw-protocol-py.mdx';
+import EventStreamingRawProtocolJs from '/langchain/snippets/code-samples/event-streaming-raw-protocol-js.mdx';
+
+本页面涵盖 Deep Agents 特定的流式处理问题——最重要的是通过 `stream.subagents` 从委托的智能体进行流式处理。对于通用的智能体流式处理（`stream.messages`、`stream.values`、工具调用、自定义更新），请参阅 [LangChain 流式处理](/langchain/oss/langchain/event-streaming)。
+
+## 流式处理子智能体
+
+Deep Agents 在 LangGraph 流式处理的基础上添加了子智能体投影。当你希望每个委托的 `task` 调用都有一个流式处理句柄时，请使用 `stream.subagents`。该投影非常轻量级：它首先发现子智能体任务，并且只有在你在子智能体句柄上访问消息、工具调用和值流时才会打开这些流。
+
+每个句柄的 `name` 是子智能体的配置名称：协调器在调用 `task` 工具时传递的 `subagent_type`。Deep Agents 将该名称绑定到委托的运行，因此你在子智能体规范中定义的相同标签就是你流式处理中过滤和路由的标签。
+
+:::python
+<EventStreamingSubagentsPy />
+:::
+
+:::js
+<EventStreamingSubagentsJs />
+:::
+
+## 子智能体流式字段
+
+每个子智能体流式处理暴露与父运行相同的投影类型，例如消息、工具调用、嵌套子智能体和最终输出。有关通用的父运行流式处理模型，请参阅 [LangChain 流式处理](/langchain/oss/langchain/event-streaming)。
+
+:::python
+Python 使用 snake_case 投影名称，例如 `tool_calls`。每个子智能体流式处理可以暴露 `.messages`、`.tool_calls`、`.values`、`.subagents` 和 `.output`。
+:::
+
+:::js
+TypeScript 使用 camelCase 投影名称，例如 `toolCalls` 和 `taskInput`。每个子智能体流式处理可以暴露 `.messages`、`.toolCalls`、`.values`、`.subagents` 和 `.output`。
+:::
+
+| 字段 | 描述 |
+| ----- | ----------- |
+| `name` | 子智能体名称，来自协调器在其 `task` 调用中选择的 `subagent_type`。 |
+| `messages` | 子智能体发出的消息。 |
+| `subagents` | 嵌套子智能体调用。 |
+| `output` | 最终子智能体状态，或委托任务的完成信号。 |
+:::python
+| `path` | 子智能体流式处理的命名空间路径。 |
+| `status` | 生命周期状态，例如 `started`、`completed`、`failed` 或 `interrupted`。 |
+| `tool_calls` | 限定在子智能体范围内的工具调用。 |
+::::::js
+| `taskInput` | 传递给任务工具的提示词的 Promise。 |
+| `toolCalls` | 限定在子智能体范围内的工具调用。 |
+:::
+
+## 跟踪子智能体生命周期
+
+当你只需要显示哪些子智能体已启动和已结束时，请使用 `stream.subagents`。除非你在单个子智能体上访问这些投影，否则你不需要订阅消息或值流。
+
+:::python
+<EventStreamingLifecyclePy />
+:::
+
+:::js
+<EventStreamingLifecycleJs />
+:::
+
+## 流式处理消息
+
+Deep Agents 可以从协调器智能体和委托的子智能体发出消息。使用 `stream.messages` 表示顶层消息，使用 `subagent.messages` 表示每个委托的子智能体。
+
+:::python
+<EventStreamingMessagesPy />
+:::
+
+:::js
+<EventStreamingMessagesJs />
+:::
+
+## 流式处理工具调用
+
+Deep Agents 在智能体树的每个级别都暴露工具调用。使用顶层 `stream.tool_calls` 表示协调器工具，使用每个 `subagent.tool_calls` 表示委托的工作。
+
+:::python
+<EventStreamingToolCallsPy />
+:::
+
+:::js
+<EventStreamingToolCallsJs />
+:::
+
+## 流式处理嵌套工作
+
+你可以递归进入子智能体流式处理以观察嵌套子智能体、消息和工具调用。
+
+:::python
+<EventStreamingNestedPy />
+:::
+
+:::js
+<EventStreamingNestedJs />
+:::
+
+## 并发消费
+
+协调器和子智能体的输出经常交错。当你需要实时 UI 更新时，请并发消费投影。
+
+:::python
+在异步代码中进行并发消费，请使用 `astream_events` 与 `asyncio.gather`：
+
+```py
+import asyncio
+
+stream = await agent.astream_events(input, version="v3")
+
+async def consume_coordinator():
+    async for message in stream.messages:
+        print("[coordinator]", await message.text)
+
+async def consume_subagents():
+    async for subagent in stream.subagents:
+        async for message in subagent.messages:
+            print(f"[{subagent.name}]", await message.text)
+
+await asyncio.gather(consume_coordinator(), consume_subagents())
+```
+
+在同步代码中，请使用 `stream.interleave(...)` 代替：
+
+<EventStreamingInterleavePy />
+:::
+
+:::js
+在 JavaScript 中使用并发消费者：
+
+<EventStreamingConcurrentJs />
+:::
+
+当你需要在协调器和所有子智能体之间保持精确的到达顺序时，迭代原始协议事件并使用 `namespace` 来识别来源：
+
+:::python
+<EventStreamingRawProtocolPy />
+:::
+
+:::js
+<EventStreamingRawProtocolJs />
+:::
+
+## 子智能体与子图
+
+`stream.subgraphs` 显示图执行结构。`stream.subagents` 显示产品级别的 Deep Agents 任务委托。使用 `stream.subagents` 用于用户界面的 UI，因为它隐藏了内部图节点并直接暴露了子智能体概念。
+
+## 相关
+
+- [LangChain 流式处理](/langchain/oss/langchain/event-streaming) 涵盖了通用智能体消息和工具调用流式处理概念。
+- [子智能体前端流式处理](/langchain/oss/deepagents/frontend/subagent-streaming) 显示将协调器消息与子智能体卡片分离的 UI 模式。
+- [LangGraph 流式处理](/langchain/oss/langgraph/event-streaming) 涵盖了底层的图流式处理模型。
+
+---
+
+> 官方原文：[src/oss/deepagents/event-streaming.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/event-streaming.mdx) · 译文由 AI 生成，以英文原文为准。

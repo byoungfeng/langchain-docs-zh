@@ -1,0 +1,70 @@
+## `AGENT_POSTGRES_IAM_AUTH_PROVIDER`
+
+将 `AGENT_POSTGRES_IAM_AUTH_PROVIDER` 设置为 `aws`、`azure` 或 `gcp`，以使用短期云身份令牌替换 PostgreSQL 连接 URI 中的密码。需要 `langgraph-api>=0.12.0`。
+
+有关提供程序先决条件和连接 URI 要求，请参阅 [为数据存储配置 IAM 身份验证](https://docs.langchain.com/langsmith/configure-iam-auth)。
+
+## `AGENT_REDIS_IAM_AUTH_PROVIDER`
+
+将 `AGENT_REDIS_IAM_AUTH_PROVIDER` 设置为 `aws`、`azure` 或 `gcp`，以使用短期云身份令牌对 Redis 连接进行身份验证。需要 `langgraph-api>=0.12.0`。
+
+有关提供程序先决条件和连接 URI 要求，请参阅 [为数据存储配置 IAM 身份验证](https://docs.langchain.com/langsmith/configure-iam-auth)。
+
+## `LANGGRAPH_SERVER_HOST`
+
+将 `LANGGRAPH_SERVER_HOST` 设置为控制智能体服务器监听的地址族：
+
+* **空字符串**：监听 IPv4 和 IPv6。自 `langgraph-api>=0.14.0` 起这是默认设置。
+* **`0.0.0.0`**：仅监听 IPv4。
+* **`::`**：仅监听 IPv6。
+
+版本低于 `langgraph-api` 0.14.0 的默认设置为 `0.0.0.0`，该设置仅监听 IPv4。
+
+## `LANGSMITH_API_KEY`
+
+要将跟踪发送到自托管的 LangSmith 实例，将 `LANGSMITH_API_KEY` 设置为自托管实例创建的 API 密钥。
+
+## `LANGSMITH_ENDPOINT`
+
+要将跟踪发送到自托管的 LangSmith 实例，将 `LANGSMITH_ENDPOINT` 设置为自托管实例的主机名。
+
+## `MOUNT_PREFIX`
+
+将 `MOUNT_PREFIX` 设置为在特定路径前缀下提供智能体服务器。这对于服务器位于需要特定路径前缀的反向代理或负载均衡器后面的部署很有用。
+
+例如，如果服务器要在 `https://example.com/langgraph` 下提供，请将 `MOUNT_PREFIX` 设置为 `/langgraph`。
+
+## `POSTGRES_URI_CUSTOM`
+
+指定 `POSTGRES_URI_CUSTOM` 以使用自定义 Postgres 实例。`POSTGRES_URI_CUSTOM` 的值必须是一个有效的 [Postgres 连接 URI](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-URIS)。
+
+Postgres：
+
+* 版本 15.8 或更高。
+* 必须存在初始数据库，并且连接 URI 必须引用该数据库。
+
+控制平面功能：
+
+* 如果 `POSTGRES_URI_CUSTOM` 指定，控制平面不会为服务器创建数据库。
+* 如果 `POSTGRES_URI_CUSTOM` 移除，控制平面不会为服务器创建数据库，并且不会删除外部管理的 Postgres 实例。
+* 如果 `POSTGRES_URI_CUSTOM` 移除，修订版本的部署将不会成功。一旦 `POSTGRES_URI_CUSTOM` 指定，它必须始终为部署的生命周期设置。
+* 如果部署被删除，控制平面不会删除外部管理的 Postgres 实例。
+* `POSTGRES_URI_CUSTOM` 的值可以更新。例如，URI 中的密码可以更新。
+
+数据库连接：
+
+* 自定义 Postgres 实例必须可被智能体服务器访问。用户负责确保连接性。
+
+## `REDIS_CLUSTER`
+
+<Warning>
+此功能处于 Alpha 版本。
+</Warning>
+
+将 `REDIS_CLUSTER` 设置为 `True` 以启用 Redis 集群模式。启用后，系统将使用集群模式连接到 Redis。这在连接到 Redis 集群部署时很有用。
+
+默认值为 `False`。
+
+## `REDIS_URI_CUSTOM`
+
+指定 `REDIS_URI_CUSTOM` 以使用自定义 Redis 实例。`REDIS_URI_CUSTOM` 的值必须是一个有效的 [Redis 连接 URI](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis.from_url)。

@@ -1,0 +1,110 @@
+---
+title: "Browser Use 集成"
+description: "使用 LangChain Python 集成 Browser Use。"
+integration:
+  name: Browser Use
+  pypi: browser-use-sdk
+---
+
+[浏览器使用](https://browser-use.com) 运行浏览器智能体和云端浏览器用于 AI 应用：
+
+- [浏览器使用云端智能体](https://docs.browser-use.com/cloud/agent/quickstart) 接收纯文本任务，在真实浏览器中完成，并返回结果。
+- [云端浏览器](https://docs.browser-use.com/cloud/browser/quickstart) 是通过 CDP 控制的远程 Chrome 实例，具有隐身、代理、实时预览和录制功能。
+- 开源 [`browser-use`](https://github.com/browser-use/browser-use) 库在您的机器上运行浏览器智能体。
+
+本页面展示如何给 LangChain 智能体一个工具，该工具将网页任务交给 Browser Use Cloud 智能体。
+
+## 安装和设置
+
+从 [Browser Use 云端控制面板](https://cloud.browser-use.com/settings?tab=api-keys&new=1) 获取 API 密钥，并将其设置在 `BROWSER_USE_API_KEY` 环境变量中：
+
+```python Set API key icon="key"
+import getpass
+import os
+
+if "BROWSER_USE_API_KEY" not in os.environ:
+    os.environ["BROWSER_USE_API_KEY"] = getpass.getpass("Enter your Browser Use API key: ")
+```
+
+安装 [Browser Use SDK](https://pypi.org/project/browser-use-sdk/)：
+
+<CodeGroup>
+    ```bash pip
+    pip install -U browser-use-sdk langchain
+    ```
+    ```bash uv
+    uv add browser-use-sdk langchain
+    ```
+</CodeGroup>
+
+## 浏览器智能体工具
+
+下述工具启动 Browser Use Cloud 智能体运行，等待其完成，并返回智能体的答案。完成的运行会保留其云端浏览器以供后续运行，因此该工具在返回前会停止该浏览器。
+
+```python Define the tool icon="tool"
+from browser_use_sdk.v4 import BrowserUse
+from langchain.tools import tool
+
+
+@tool
+def browser_use_task(task: str) -> str:
+    """Complete a task in a real web browser and return the result.
+
+    Describe the goal in plain language and include any URL to start from.
+    """
+    with BrowserUse() as client:
+        run = client.runs.create(task)
+        result = client.runs.wait_for_completion(run.id)
+        # The run keeps its cloud browser alive for follow-up runs. Stop it.
+        for event in client.runs.events(run.id).events:
+            if event.type == "browser.ready":
+                client.browsers.stop(event.data["browser_session_id"])
+    if result.result is None:
+        return f"Browser task ended with status {result.status}: {result.error}"
+    return result.result
+```
+
+直接调用该工具：
+
+```python Call tool icon="rocket"
+browser_use_task.invoke({"task": "Open https://example.com and return the page title."})
+```
+
+```text
+Example Domain
+```
+
+### 在智能体中使用
+
+```python Agent with tool icon="robot"
+# pip install -qU "langchain[anthropic]" to call the model
+from langchain.agents import create_agent
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=[browser_use_task],
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "What is the page title of https://example.com?"}]}
+)
+print(result["messages"][-1].content)
+```
+
+```text
+The page title of [https://example.com](https://example.com) is **"Example Domain"**.
+```
+
+每次工具调用都是计费的 Browser Use Cloud 运行。请参阅 [Browser Use 定价](https://browser-use.com/pricing) 了解当前费率。
+
+## 云端浏览器
+
+若要使用您自己的 Playwright 或 Puppeteer 代码驱动浏览器而不是智能体，请创建云端浏览器并连接到其 CDP URL。请参阅 [Browser Use 浏览器快速入门](https://docs.browser-use.com/cloud/browser/quickstart)。
+
+## API 参考
+
+有关会话、结构化输出、配置文件和其他选项，请参阅 [Browser Use 文档](https://docs.browser-use.com)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/browser_use.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/browser_use.mdx) · 译文由 AI 生成，以英文原文为准。

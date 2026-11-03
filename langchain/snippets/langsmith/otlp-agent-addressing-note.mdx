@@ -1,0 +1,12 @@
+<Note>
+**基于智能体的工作区。** 将 OTLP 追踪发送到已注册的智能体和环境，同时包含以下两个头部：
+
+- **`Langsmith-Agent-Id`**: 智能体的标识符。它必须由 1 到 63 个小写字母、数字或连字符组成，以字母开头，并以字母或数字结尾。[在配置导出器之前创建智能体](https://docs.langchain.com/langsmith/create-an-agent)。归档的智能体仍然保留其标识符，因此 LangSmith 会拒绝发送到它的请求`409`。
+- **`Langsmith-Agent-Environment`**: 追踪所属的环境。可以是 `local`、`development`、`staging` 或 `production` 中的一个。
+
+例如，设置 `OTEL_EXPORTER_OTLP_HEADERS="x-api-key=<your langsmith api key>,Langsmith-Agent-Id=<agent id>,Langsmith-Agent-Environment=<environment>"`。使用 `langsmith>=0.14.9` 时，Python SDK 的 OpenTelemetry 导出器在 `OTEL_EXPORTER_OTLP_HEADERS` 未设置时从 `LANGSMITH_AGENT_ID` 和 `LANGSMITH_AGENT_ENVIRONMENT` 设置这两个头部。使用 TypeScript SDK 或其他 OpenTelemetry 导出器时，请自行设置这些头部。
+
+在基于项目的工作区（包括自托管 LangSmith）中，使用 `Langsmith-Project` 而不是两个智能体头部。
+
+这些头部适用于请求中的每个跨度。发送两个头部或都不发送：LangSmith 会拒绝设置其中一个而不设置另一个的请求，或者同时设置 `Langsmith-Project` 的请求，并返回 `400` 错误。跨度属性（包括 `gen_ai.agent.name`）不会将追踪发送到智能体。有关将追踪发送到智能体的更多信息，请参阅 [将追踪记录到智能体](https://docs.langchain.com/langsmith/log-traces-to-agent)。
+</Note>

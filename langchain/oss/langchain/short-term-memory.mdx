@@ -1,0 +1,1171 @@
+---
+title: "短期记忆"
+description: "记忆是一个存储先前交互信息的系统。对于智能体而言，记忆至关重要，因为它能让智能体记住之前的交互、从反馈中学习，并适应用户偏好。随着智能体处理日益复杂的任务和大量用户交互，这种能力对效率和用户体验都至关重要。"
+---
+
+import ShortTermMemoryUsagePy from '/langchain/snippets/code-samples/short-term-memory-usage-py.mdx';
+import ShortTermMemoryUsageJs from '/langchain/snippets/code-samples/short-term-memory-usage-js.mdx';
+
+## 概述
+
+记忆是一个存储先前交互信息的系统。对于智能体而言，记忆至关重要，因为它能让智能体记住之前的交互、从反馈中学习，并适应用户偏好。随着智能体处理日益复杂的任务和大量用户交互，这种能力对效率和用户体验都至关重要。
+
+短期记忆能让您的应用在单个线程或会话中记住之前的交互。
+
+<Note>
+    线程组织会话中的多个交互，类似于邮件组将消息整合为单一对话。
+</Note>
+
+会话历史是短期记忆最常见的形式。长对话对当前的大语言模型（LLMs）构成挑战——完整的会话历史可能超出模型上下文窗口，导致上下文丢失或错误。
+
+即使您的模型支持完整上下文长度，大多数LLMs在长上下文下仍表现不佳。它们会因过时或无关内容分心，同时面临响应时间变长和成本增加的问题。
+
+对话模型通过[消息](/langchain/oss/langchain/messages)接收上下文，其中包含指令（系统消息）和输入（人类消息）。在聊天应用中，消息会在人类输入和模型响应之间交替，导致消息列表随时间增长。由于上下文窗口有限，许多应用受益于移除或“遗忘”过时信息的技术。
+
+<Tip>
+    需要跨会话记住信息？使用[长期记忆](/langchain/oss/langchain/long-term-memory)存储和检索用户特定或应用级数据，可在不同线程和会话间调用。
+</Tip>
+
+## 使用方法
+
+为智能体添加短期记忆（线程级持久化），需在创建智能体时指定`checkpointer`。
+
+<Info>
+    LangChain的智能体将短期记忆作为其状态的一部分进行管理。
+
+    通过将信息存储在图的状态中，智能体能访问特定会话的完整上下文，同时保持不同线程间的隔离。
+
+    状态通过检查点持久化到数据库（或内存），以便随时恢复线程。
+
+    智能体在调用或完成工具调用等步骤时更新记忆，每个步骤开始时读取状态。
+</Info>
+
+:::python
+
+<ShortTermMemoryUsagePy />
+
+:::
+:::js
+
+<ShortTermMemoryUsageJs />
+
+:::
+
+### 生产环境
+
+在生产环境中，使用数据库支持的检查点：
+
+:::python
+<CodeGroup>
+```bash pip
+pip install -U langgraph-checkpoint-postgres "psycopg[binary]"
+```
+
+```bash uv
+uv add langgraph-checkpoint-postgres "psycopg[binary]"
+```
+</CodeGroup>
+
+<Note>
+默认情况下 `langgraph-checkpoint-postgres` 安装 `psycopg`（Psycopg 3）但不包含扩展包。上述安装会添加 `psycopg[binary]`，这是大多数用户的首选。其他选项请参考 [Psycopg 安装文档](https://www.psycopg.org/psycopg3/docs/basic/install.html)。
+</Note>
+
+```python
+from langchain.agents import create_agent
+from langgraph.checkpoint.postgres import PostgresSaver  # [!code highlight]
+
+def get_user_info() -> str:
+    """Look up information about the current user."""
+    return "No user profile on file."
+
+DB_URI = "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    checkpointer.setup() # auto create tables in PostgreSQL
+    agent = create_agent(
+        "gpt-5.5",
+        tools=[get_user_info],
+        checkpointer=checkpointer,  # [!code highlight]
+    )
+```
+:::
+:::js
+```ts
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+
+const DB_URI = "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable";
+const checkpointer = PostgresSaver.fromConnString(DB_URI);
+```
+:::
+
+<Note>
+    关于 SQLite、Postgres 和 Azure Cosmos DB 等检查点选项，请参阅持久化文档中的 [检查点库列表](/langchain/oss/langgraph/checkpointers#检查点库)。
+</Note>
+
+## 定制化智能体记忆
+
+:::python
+默认情况下，智能体使用 @@`AgentState` 管理短期记忆，特别是通过 `messages` 键存储的会话历史。
+
+你可以通过扩展@[`AgentState`]来添加额外的字段。自定义状态模式通过@[`create_agent`]的@[`state_schema`]参数传递。
+
+```python
+from langchain.agents import create_agent, AgentState
+from langgraph.checkpoint.memory import InMemorySaver
+
+
+class CustomAgentState(AgentState):  # [!code highlight]
+    user_id: str  # [!code highlight]
+    preferences: dict  # [!code highlight]
+
+agent = create_agent(
+    "gpt-5.5",
+    tools=[get_user_info],
+    state_schema=CustomAgentState,  # [!code highlight]
+    checkpointer=InMemorySaver(),
+)
+
+# Custom state can be passed in invoke
+result = agent.invoke(
+    {
+        "messages": [{"role": "user", "content": "Hello"}],
+        "user_id": "user_123",  # [!code highlight]
+        "preferences": {"theme": "dark"}  # [!code highlight]
+    },
+    {"configurable": {"thread_id": "1"}})
+```
+:::
+
+:::js
+你可以通过为智能体创建自定义中间件来扩展其状态。自定义状态模式可通过中间件中的@[`stateSchema`]参数传递。建议使用@[`StateSchema`]类来定义状态（普通Zod对象也支持）。
+:::
+
+```typescript
+import { createAgent, createMiddleware } from "langchain";
+import { StateSchema, MemorySaver } from "@langchain/langgraph";
+import * as z from "zod";
+
+const CustomState = new StateSchema({  // [!code highlight]
+    userId: z.string(),  // [!code highlight]
+    preferences: z.record(z.string(), z.any()),  // [!code highlight]
+});  // [!code highlight]
+
+const stateExtensionMiddleware = createMiddleware({
+    name: "StateExtension",
+    stateSchema: CustomState,  // [!code highlight]
+});
+
+const checkpointer = new MemorySaver();
+const agent = createAgent({
+    model: "gpt-5.5",
+    tools: [],
+    middleware: [stateExtensionMiddleware],  // [!code highlight]
+    checkpointer,
+});
+
+// Custom state can be passed in invoke
+const result = await agent.invoke({
+    messages: [{ role: "user", content: "Hello" }],
+    userId: "user_123",  // [!code highlight]
+    preferences: { theme: "dark" },  // [!code highlight]
+});
+```
+:::
+
+## 常见模式
+
+当启用[短期记忆](#使用方法)时，长对话可以超过LLM的上下文窗口。常见解决方案如下：
+
+<CardGroup cols={2}>
+    <Card title="Trim messages" icon="scissors" href="#trim-messages" arrow>
+        在调用LLM之前移除第一个或最后一个N条消息
+    </Card>
+    <Card title="Delete messages" icon="trash" href="#delete-messages" arrow>
+        永久删除LangGraph状态中的消息
+    </Card>
+    <Card title="Summarize messages" icon="stack-2" href="#summarize-messages" arrow>
+        将历史中的早期消息摘要化并替换为摘要
+    </Card>
+    <Card title="Custom strategies" icon="adjustments">
+        自定义策略（例如消息过滤等）
+    </Card>
+</CardGroup>
+
+这允许智能体在不超出LLM上下文窗口的情况下跟踪对话。
+
+### 裁剪消息
+
+大多数LLM有最大支持的上下文窗口（以Token为单位）。
+
+:::python
+一种裁剪消息的方法是计算消息历史中的Token数量并在接近限制时截断。若使用LangChain，可通过裁剪消息工具指定保留列表中的Token数量，以及@[`strategy`]（例如保留最后@[`max_tokens`]）用于处理边界。
+:::
+:::js
+一种裁剪消息的方法是计算消息历史中的Token数量并在接近限制时截断。若使用LangChain，可通过裁剪消息工具指定保留列表中的Token数量，以及@[`strategy`]（例如保留最后@[`maxTokens`]）用于处理边界。
+:::
+
+:::python
+在智能体中裁剪消息历史，请使用@[`@before_model`]中间件装饰器：
+
+```python
+from langchain.messages import RemoveMessage
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import before_model
+from langgraph.runtime import Runtime
+from langchain_core.runnables import RunnableConfig
+from typing import Any
+
+
+@before_model
+def trim_messages(state: AgentState, runtime: Runtime) -> dict[str, Any] | None:
+    """Keep only the last few messages to fit context window."""
+    messages = state["messages"]
+
+    if len(messages) <= 3:
+        return None  # No changes needed
+
+    first_msg = messages[0]
+    recent_messages = messages[-3:] if len(messages) % 2 == 0 else messages[-4:]
+    new_messages = [first_msg] + recent_messages
+
+    return {
+        "messages": [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            *new_messages
+        ]
+    }
+
+agent = create_agent(
+    "gpt-5.5",
+    tools=[...],
+    middleware=[trim_messages],
+    checkpointer=InMemorySaver(),
+)
+
+config: RunnableConfig = {"configurable": {"thread_id": "1"}}
+
+agent.invoke({"messages": "hi, my name is bob"}, config)
+agent.invoke({"messages": "write a short poem about cats"}, config)
+agent.invoke({"messages": "now do the same but for dogs"}, config)
+final_response = agent.invoke({"messages": "what's my name?"}, config)
+
+final_response["messages"][-1].pretty_print()
+"""
+================================== Ai Message ==================================
+
+Your name is Bob. You told me that earlier.
+If you'd like me to call you a nickname or use a different name, just say the word.
+"""
+```
+:::
+
+:::js
+在智能体中裁剪消息历史，请使用@[`createMiddleware`]与@[`beforeModel`]钩子结合：
+
+```typescript
+import { RemoveMessage } from "@langchain/core/messages";
+import { createAgent, createMiddleware } from "langchain";
+import { MemorySaver, REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
+
+const trimMessages = createMiddleware({
+  name: "TrimMessages",
+  beforeModel: (state) => {
+    const messages = state.messages;
+
+    if (messages.length <= 3) {
+      return; // No changes needed
+    }
+
+    const firstMsg = messages[0];
+    const recentMessages =
+      messages.length % 2 === 0 ? messages.slice(-3) : messages.slice(-4);
+    const newMessages = [firstMsg, ...recentMessages];
+
+    return {
+      messages: [
+        new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
+        ...newMessages,
+      ],
+    };
+  },
+});
+
+const checkpointer = new MemorySaver();
+const agent = createAgent({
+  model: "gpt-5.5",
+  tools: [...],
+  middleware: [trimMessages],
+  checkpointer,
+});
+```
+:::
+
+### 删除消息
+
+可以从图状态中删除消息以管理消息历史。
+
+这适用于需要移除特定消息或清空整个消息历史的情况。
+
+:::python
+从图状态中删除消息，请使用@[`RemoveMessage`]。要使@[`RemoveMessage`]生效，需使用带有@[`add_messages`] [reducer](/langchain/oss/langgraph/graph-api#归约器)的状态键。默认@[`AgentState`]已提供此功能。
+
+删除特定消息：
+
+```python
+from langchain.messages import RemoveMessage  # [!code highlight]
+
+def delete_messages(state):
+    messages = state["messages"]
+    if len(messages) > 2:
+        # remove the earliest two messages
+        return {"messages": [RemoveMessage(id=m.id) for m in messages[:2]]}  # [!code highlight]
+```
+
+删除所有消息：
+
+```python
+from langgraph.graph.message import REMOVE_ALL_MESSAGES  # [!code highlight]
+
+def delete_messages(state):
+    return {"messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES)]}  # [!code highlight]
+```
+:::
+
+:::js
+从图状态中删除消息，请使用@[`RemoveMessage`]。要使@[`RemoveMessage`]生效，需使用带有@[`messagesStateReducer`][messagesStateReducer] [reducer](/langchain/oss/langgraph/graph-api#归约器)的状态键，例如`MessagesValue`。
+
+删除特定消息：
+
+```typescript
+import { RemoveMessage } from "@langchain/core/messages";
+
+const deleteMessages = (state) => {
+    const messages = state.messages;
+    if (messages.length > 2) {
+        // remove the earliest two messages
+        return {
+        messages: messages
+            .slice(0, 2)
+            .map((m) => new RemoveMessage({ id: m.id })),
+        };
+    }
+};
+```
+:::
+
+<Warning>
+    删除消息时，**务必**确保最终消息历史有效。需检查所使用LLM服务提供商的限制。例如：
+
+* 部分服务提供商要求消息历史以 `user` 消息开始  
+* 多数服务提供商要求包含工具调用的 `assistant` 消息后必须跟对应的 `tool` 结果消息。  
+</Warning>  
+
+:::python  
+```python
+from langchain.messages import RemoveMessage
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import after_model
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.runtime import Runtime
+from langchain_core.runnables import RunnableConfig
+
+
+@after_model
+def delete_old_messages(state: AgentState, runtime: Runtime) -> dict | None:
+    """Remove old messages to keep conversation manageable."""
+    messages = state["messages"]
+    if len(messages) > 2:
+        # remove the earliest two messages
+        return {"messages": [RemoveMessage(id=m.id) for m in messages[:2]]}
+    return None
+
+
+agent = create_agent(
+    "gpt-5-nano",
+    tools=[...],
+    system_prompt="Please be concise and to the point.",
+    middleware=[delete_old_messages],
+    checkpointer=InMemorySaver(),
+)
+
+config: RunnableConfig = {"configurable": {"thread_id": "1"}}
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "hi! I'm bob"}]},
+    config,
+    version="v3",
+)
+for snapshot in stream.values:
+    print([(message.type, message.content) for message in snapshot["messages"]])
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "write a short poem about cats"}]},
+    config,
+    version="v3",
+)
+for snapshot in stream.values:
+    print([(message.type, message.content) for message in snapshot["messages"]])
+
+stream = agent.stream_events(
+    {"messages": [{"role": "user", "content": "what's my name?"}]},
+    config,
+    version="v3",
+)
+for snapshot in stream.values:
+    print([(message.type, message.content) for message in snapshot["messages"]])
+```
+  
+```
+[('human', "hi! I'm bob")]
+[('human', "hi! I'm bob"), ('ai', 'Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code.')]
+[('human', "hi! I'm bob"), ('ai', 'Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code.'), ('human', "write a short poem about cats")]
+[('human', "hi! I'm bob"), ('ai', 'Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code.'), ('human', "write a short poem about cats"), ('ai', 'There once was a cat on a wall, Who barely moved at all...')]
+[('human', 'write a short poem about cats'), ('ai', 'There once was a cat on a wall, Who barely moved at all...')]
+[('human', 'write a short poem about cats'), ('ai', 'There once was a cat on a wall, Who barely moved at all...'), ('human', "what's my name?")]
+[('human', 'write a short poem about cats'), ('ai', 'There once was a cat on a wall, Who barely moved at all...'), ('human', "what's my name?"), ('ai', "I don't know your name - you haven't told me!")]
+[('human', "what's my name?"), ('ai', "I don't know your name - you haven't told me!")]
+```
+:::  
+
+:::js  
+```typescript
+import { RemoveMessage } from "@langchain/core/messages";
+import { createAgent, createMiddleware } from "langchain";
+import { MemorySaver } from "@langchain/langgraph";
+
+const deleteOldMessages = createMiddleware({
+  name: "DeleteOldMessages",
+  afterModel: (state) => {
+    const messages = state.messages;
+    if (messages.length > 2) {
+      // remove the earliest two messages
+      return {
+        messages: messages
+          .slice(0, 2)
+          .map((m) => new RemoveMessage({ id: m.id! })),
+      };
+    }
+    return;
+  },
+});
+
+const agent = createAgent({
+  model: "gpt-5.5",
+  tools: [],
+  systemPrompt: "Please be concise and to the point.",
+  middleware: [deleteOldMessages],
+  checkpointer: new MemorySaver(),
+});
+
+const config = { configurable: { thread_id: "1" } };
+
+const streamA = await agent.streamEvents(
+  { messages: [{ role: "user", content: "hi! I'm bob" }] },
+  { ...config, version: "v3" }
+);
+for await (const snapshot of streamA.values) {
+  const messageDetails = snapshot.messages.map((message) => [
+    message.getType(),
+    message.content,
+  ]);
+  console.log(messageDetails);
+}
+
+const streamB = await agent.streamEvents(
+  { messages: [{ role: "user", content: "write a short poem about cats" }] },
+  { ...config, version: "v3" }
+);
+for await (const snapshot of streamB.values) {
+  const messageDetails = snapshot.messages.map((message) => [
+    message.getType(),
+    message.content,
+  ]);
+  console.log(messageDetails);
+}
+
+const streamC = await agent.streamEvents(
+  { messages: [{ role: "user", content: "what's my name?" }] },
+  { ...config, version: "v3" }
+);
+for await (const snapshot of streamC.values) {
+  const messageDetails = snapshot.messages.map((message) => [
+    message.getType(),
+    message.content,
+  ]);
+  console.log(messageDetails);
+}
+```
+  
+```
+[["human", "hi! I'm bob"]]
+[["human", "hi! I'm bob"], ["ai", "Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code."]]
+[["human", "hi! I'm bob"], ["ai", "Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code."], ["human", "write a short poem about cats"]]
+[["human", "hi! I'm bob"], ["ai", "Hi Bob! Nice to meet you. How can I help you today? I can answer questions, brainstorm ideas, draft text, explain things, or help with code."], ["human", "write a short poem about cats"], ["ai", "There once was a cat on a wall, Who barely moved at all..."]]
+[["human", "write a short poem about cats"], ["ai", "There once was a cat on a wall, Who barely moved at all..."]]
+[["human", "write a short poem about cats"], ["ai", "There once was a cat on a wall, Who barely moved at all..."], ["human", "what's my name?"]]
+[["human", "write a short poem about cats"], ["ai", "There once was a cat on a wall, Who barely moved at all..."], ["human", "what's my name?"], ["ai", "I don't know your name - you haven't told me!"]]
+[["human", "what's my name?"], ["ai", "I don't know your name - you haven't told me!"]]
+```
+:::  
+
+### 汇总消息  
+
+修剪或删除消息（如上所示）的问题在于可能会丢失消息队列筛选过程中丢失的信息。  
+因此，一些应用更倾向于使用对话模型对消息历史进行更复杂的摘要处理。  
+
+![Summary](/langchain/oss/images/summary.png)  
+
+:::python  
+要在智能体中汇总消息历史，使用内置的 [``SummarizationMiddleware``](/langchain/oss/langchain/middleware/built-in#摘要)：  
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.runnables import RunnableConfig
+
+
+checkpointer = InMemorySaver()
+
+agent = create_agent(
+    model="gpt-5.5",
+    tools=[...],
+    middleware=[
+        SummarizationMiddleware(
+            model="gpt-5.4-mini",
+            trigger=("tokens", 4000),
+            keep=("messages", 20)
+        )
+    ],
+    checkpointer=checkpointer,
+)
+
+config: RunnableConfig = {"configurable": {"thread_id": "1"}}
+agent.invoke({"messages": "hi, my name is bob"}, config)
+agent.invoke({"messages": "write a short poem about cats"}, config)
+agent.invoke({"messages": "now do the same but for dogs"}, config)
+final_response = agent.invoke({"messages": "what's my name?"}, config)
+
+final_response["messages"][-1].pretty_print()
+"""
+================================== Ai Message ==================================
+
+Your name is Bob!
+"""
+```
+  
+查看 [`SummarizationMiddleware`](/langchain/oss/langchain/middleware/built-in#摘要) 获取更多配置选项。  
+:::  
+:::js  
+要在智能体中汇总消息历史，使用内置的 [`summarizationMiddleware`](/langchain/oss/langchain/middleware/built-in#摘要)：  
+
+```typescript
+import { createAgent, summarizationMiddleware } from "langchain";
+import { MemorySaver } from "@langchain/langgraph";
+
+const checkpointer = new MemorySaver();
+
+const agent = createAgent({
+  model: "gpt-5.5",
+  tools: [],
+  middleware: [
+    summarizationMiddleware({
+      model: "gpt-5.4-mini",
+      trigger: { tokens: 4000 },
+      keep: { messages: 20 },
+    }),
+  ],
+  checkpointer,
+});
+
+const config = { configurable: { thread_id: "1" } };
+await agent.invoke({ messages: "hi, my name is bob" }, config);
+await agent.invoke({ messages: "write a short poem about cats" }, config);
+await agent.invoke({ messages: "now do the same but for dogs" }, config);
+const finalResponse = await agent.invoke({ messages: "what's my name?" }, config);
+
+console.log(finalResponse.messages.at(-1)?.content);
+// Your name is Bob!
+```
+  
+查看 [`summarizationMiddleware`](/langchain/oss/langchain/middleware/built-in#摘要) 获取更多配置选项。  
+:::  
+
+## 访问记忆  
+
+您可以通过多种方式访问和修改智能体的短期记忆（状态）：  
+
+### 工具  
+
+#### 在工具中读取短期记忆  
+通过 `runtime` 参数（类型为 `ToolRuntime`）在工具中访问短期记忆（状态）。  
+
+ `runtime` 参数会隐藏在工具签名中（模型不会看到它），但工具仍可通过该参数访问状态。  
+
+:::python  
+```python
+from langchain.agents import create_agent, AgentState
+from langchain.tools import tool, ToolRuntime
+
+
+class CustomState(AgentState):
+    user_id: str
+
+@tool
+def get_user_info(
+    runtime: ToolRuntime
+) -> str:
+    """Look up user info."""
+    user_id = runtime.state["user_id"]
+    return "User is John Smith" if user_id == "user_123" else "Unknown user"
+
+agent = create_agent(
+    model="gpt-5-nano",
+    tools=[get_user_info],
+    state_schema=CustomState,
+)
+
+result = agent.invoke({
+    "messages": "look up user information",
+    "user_id": "user_123"
+})
+print(result["messages"][-1].content)
+# > User is John Smith.
+```
+:::  
+:::js  
+```typescript
+import { createAgent, tool, type ToolRuntime } from "langchain";
+import { StateSchema } from "@langchain/langgraph";
+import * as z from "zod";
+
+const CustomState = new StateSchema({
+  userId: z.string(),
+});
+
+const getUserInfo = tool(
+  async (_, config: ToolRuntime<typeof CustomState.State>) => {
+    const userId = config.state.userId;
+    return userId === "user_123" ? "John Doe" : "Unknown User";
+  },
+  {
+    name: "get_user_info",
+    description: "Get user info",
+    schema: z.object({}),
+  }
+);
+
+const agent = createAgent({
+  model: "gpt-5-nano",
+  tools: [getUserInfo],
+  stateSchema: CustomState,
+});
+
+const result = await agent.invoke(
+  {
+    messages: [{ role: "user", content: "what's my name?" }],
+    userId: "user_123",
+  },
+  {
+    context: {},
+  }
+);
+
+console.log(result.messages.at(-1)?.content);
+// Outputs: "Your name is John Doe."
+```
+:::  
+
+#### 从工具中写入短期记忆  
+在执行过程中通过工具直接返回状态更新以修改智能体的短期记忆（状态）。  
+
+这有助于持久化中间结果或使信息对后续工具或提示词可见。  
+
+:::python  
+```python
+from langchain.tools import tool, ToolRuntime
+from langchain_core.runnables import RunnableConfig
+from langchain.messages import ToolMessage
+from langchain.agents import create_agent, AgentState
+from langgraph.types import Command
+from pydantic import BaseModel
+
+
+class CustomState(AgentState):  # [!code highlight]
+    user_name: str
+
+class CustomContext(BaseModel):
+    user_id: str
+
+@tool
+def update_user_info(
+    runtime: ToolRuntime[CustomContext, CustomState],
+) -> Command:
+    """Look up and update user info."""
+    user_id = runtime.context.user_id
+    name = "John Smith" if user_id == "user_123" else "Unknown user"
+    return Command(update={  # [!code highlight]
+        "user_name": name,
+        # update the message history
+        "messages": [
+            ToolMessage(
+                "Successfully looked up user information",
+                tool_call_id=runtime.tool_call_id
+            )
+        ]
+    })
+
+@tool
+def greet(
+    runtime: ToolRuntime[CustomContext, CustomState]
+) -> str | Command:
+    """Use this to greet the user once you found their info."""
+    user_name = runtime.state.get("user_name", None)
+    if user_name is None:
+       return Command(update={
+            "messages": [
+                ToolMessage(
+                    "Please call the 'update_user_info' tool it will get and update the user's name.",
+                    tool_call_id=runtime.tool_call_id
+                )
+            ]
+        })
+    return f"Hello {user_name}!"
+
+agent = create_agent(
+    model="gpt-5-nano",
+    tools=[update_user_info, greet],
+    state_schema=CustomState, # [!code highlight]
+    context_schema=CustomContext,
+)
+
+agent.invoke(
+    {"messages": [{"role": "user", "content": "greet the user"}]},
+    context=CustomContext(user_id="user_123"),
+)
+```
+:::  
+
+:::js  
+```typescript
+import { tool, createAgent, ToolMessage, type ToolRuntime } from "langchain";
+import { Command, StateSchema } from "@langchain/langgraph";
+import * as z from "zod";
+
+const CustomState = new StateSchema({
+  userId: z.string().optional(),
+  userName: z.string().optional(),
+});
+
+const updateUserInfo = tool(
+  async (_, config: ToolRuntime<typeof CustomState.State>) => {
+    const userId = config.state.userId;
+    const name = userId === "user_123" ? "John Smith" : "Unknown user";
+    return new Command({
+      update: {
+        userName: name,
+        // update the message history
+        messages: [
+          new ToolMessage({
+            content: "Successfully looked up user information",
+            tool_call_id: config.toolCall?.id ?? "",
+          }),
+        ],
+      },
+    });
+  },
+  {
+    name: "update_user_info",
+    description: "Look up and update user info.",
+    schema: z.object({}),
+  }
+);
+
+const greet = tool(
+  async (_, config: ToolRuntime<typeof CustomState.State>) => {
+    const userName = config.state.userName;
+    return `Hello ${userName}!`;
+  },
+  {
+    name: "greet",
+    description: "Use this to greet the user once you found their info.",
+    schema: z.object({}),
+  }
+);
+
+const agent = createAgent({
+  model: "openai:gpt-5-mini",
+  tools: [updateUserInfo, greet],
+  stateSchema: CustomState,
+});
+
+const result = await agent.invoke({
+  messages: [{ role: "user", content: "greet the user" }],
+  userId: "user_123",
+});
+
+console.log(result.messages.at(-1)?.content);
+// Output: "Hello John Smith! It's great to meet you. How can I help you today?"
+```
+:::  
+
+### 提示词  
+
+在中间件中通过对话历史或自定义状态字段访问短期记忆（状态），以创建动态提示词。  
+
+:::python  
+```python
+from langchain.agents import create_agent
+from typing import TypedDict
+from langchain.agents.middleware import dynamic_prompt, ModelRequest
+
+
+class CustomContext(TypedDict):
+    user_name: str
+
+
+def get_weather(city: str) -> str:
+    """Get the weather in a city."""
+    return f"The weather in {city} is always sunny!"
+
+
+@dynamic_prompt
+def dynamic_system_prompt(request: ModelRequest) -> str:
+    user_name = request.runtime.context["user_name"]
+    system_prompt = f"You are a helpful assistant. Address the user as {user_name}."
+    return system_prompt
+
+
+agent = create_agent(
+    model="gpt-5-nano",
+    tools=[get_weather],
+    middleware=[dynamic_system_prompt],
+    context_schema=CustomContext,
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "What is the weather in SF?"}]},
+    context=CustomContext(user_name="John Smith"),
+)
+for msg in result["messages"]:
+    msg.pretty_print()
+
+```
+  
+```shell title="Output"
+================================ Human Message =================================
+
+What is the weather in SF?
+================================== Ai Message ==================================
+Tool Calls:
+  get_weather (call_WFQlOGn4b2yoJrv7cih342FG)
+ Call ID: call_WFQlOGn4b2yoJrv7cih342FG
+  Args:
+    city: San Francisco
+================================= Tool Message =================================
+Name: get_weather
+
+The weather in San Francisco is always sunny!
+================================== Ai Message ==================================
+
+Hi John Smith, the weather in San Francisco is always sunny!
+```
+:::  
+:::js  
+```typescript
+import * as z from "zod";
+import { createAgent, tool, dynamicSystemPromptMiddleware } from "langchain";
+
+const contextSchema = z.object({
+  userName: z.string(),
+});
+type ContextSchema = z.infer<typeof contextSchema>;
+
+const getWeather = tool(
+  async ({ city }) => {
+    return `The weather in ${city} is always sunny!`;
+  },
+  {
+    name: "get_weather",
+    description: "Get user info",
+    schema: z.object({
+      city: z.string(),
+    }),
+  }
+);
+
+const agent = createAgent({
+  model: "gpt-5-nano",
+  tools: [getWeather],
+  contextSchema,
+  middleware: [
+    dynamicSystemPromptMiddleware<ContextSchema>((_, config) => {
+      return `You are a helpful assistant. Address the user as ${config.context?.userName}.`;
+    }),
+  ],
+});
+
+const result = await agent.invoke(
+  {
+    messages: [{ role: "user", content: "What is the weather in SF?" }],
+  },
+  {
+    context: {
+      userName: "John Smith",
+    },
+  }
+);
+
+for (const message of result.messages) {
+  console.log(message);
+}
+/**
+ * HumanMessage {
+ *   "content": "What is the weather in SF?",
+ *   // ...
+ * }
+ * AIMessage {
+ *   // ...
+ *   "tool_calls": [
+ *     {
+ *       "name": "get_weather",
+ *       "args": {
+ *         "city": "San Francisco"
+ *       },
+ *       "type": "tool_call",
+ *       "id": "call_tCidbv0apTpQpEWb3O2zQ4Yx"
+ *     }
+ *   ],
+ *   // ...
+ * }
+ * ToolMessage {
+ *   "content": "The weather in San Francisco is always sunny!",
+ *   "tool_call_id": "call_tCidbv0apTpQpEWb3O2zQ4Yx"
+ *   // ...
+ * }
+ * AIMessage {
+ *   "content": "John Smith, here's the latest: The weather in San Francisco is always sunny!\n\nIf you'd like more details (temperature, wind, humidity) or a forecast for the next few days, I can pull that up. What would you like?",
+ *   // ...
+ * }
+ */
+```
+:::  
+
+### 模型前  
+
+:::python  
+在 @[`@before_model`] 中间件中处理消息（在模型调用前）。  
+:::  
+
+```mermaid
+%%{
+    init: {
+        "fontFamily": "monospace",
+        "flowchart": {
+        "curve": "basis"
+        }
+    }
+}%%
+graph TD
+    S(["`\_\_start\_\_`"])
+    PRE(before_model)
+    MODEL(model)
+    TOOLS(tools)
+    END(["`\_\_end\_\_`"])
+    S --> PRE
+    PRE --> MODEL
+    MODEL -.-> TOOLS
+    MODEL -.-> END
+    TOOLS --> PRE
+    classDef blueHighlight fill:#E5F4FF,stroke:#006DDD,color:#030710;
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68;
+    class S blueHighlight;
+    class END blueHighlight;
+    class PRE,MODEL,TOOLS neutral;
+```
+  
+:::python  
+```python
+from langchain.messages import RemoveMessage
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import before_model
+from langchain_core.runnables import RunnableConfig
+from langgraph.runtime import Runtime
+from typing import Any
+
+
+@before_model
+def trim_messages(state: AgentState, runtime: Runtime) -> dict[str, Any] | None:
+    """Keep only the last few messages to fit context window."""
+    messages = state["messages"]
+
+    if len(messages) <= 3:
+        return None  # No changes needed
+
+    first_msg = messages[0]
+    recent_messages = messages[-3:] if len(messages) % 2 == 0 else messages[-4:]
+    new_messages = [first_msg] + recent_messages
+
+    return {
+        "messages": [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            *new_messages
+        ]
+    }
+
+
+agent = create_agent(
+    "gpt-5-nano",
+    tools=[],
+    middleware=[trim_messages],
+    checkpointer=InMemorySaver()
+)
+
+config: RunnableConfig = {"configurable": {"thread_id": "1"}}
+
+agent.invoke({"messages": "hi, my name is bob"}, config)
+agent.invoke({"messages": "write a short poem about cats"}, config)
+agent.invoke({"messages": "now do the same but for dogs"}, config)
+final_response = agent.invoke({"messages": "what's my name?"}, config)
+
+final_response["messages"][-1].pretty_print()
+"""
+================================== Ai Message ==================================
+
+Your name is Bob. You told me that earlier.
+If you'd like me to call you a nickname or use a different name, just say the word.
+"""
+```
+:::  
+:::js  
+```typescript
+import { RemoveMessage } from "@langchain/core/messages";
+import { createAgent, createMiddleware, trimMessages } from "langchain";
+import { MemorySaver } from "@langchain/langgraph";
+import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
+
+const trimMessageHistory = createMiddleware({
+  name: "TrimMessages",
+  beforeModel: async (state) => {
+    const trimmed = await trimMessages(state.messages, {
+      maxTokens: 384,
+      strategy: "last",
+      startOn: "human",
+      endOn: ["human", "tool"],
+      tokenCounter: (msgs) => msgs.length,
+    });
+    return {
+      messages: [new RemoveMessage({ id: REMOVE_ALL_MESSAGES }), ...trimmed],
+    };
+  },
+});
+
+const checkpointer = new MemorySaver();
+const agent = createAgent({
+  model: "gpt-5-nano",
+  tools: [],
+  middleware: [trimMessageHistory],
+  checkpointer,
+});
+```
+:::  
+
+### 模型后  
+
+:::python  
+在 @[`@after_model`] 中间件中处理消息（在模型调用后）。  
+:::  
+
+```mermaid
+%%{
+    init: {
+        "fontFamily": "monospace",
+        "flowchart": {
+        "curve": "basis"
+        }
+    }
+}%%
+graph TD
+    S(["\_\_start\_\_"])
+    MODEL(model)
+    POST(after_model)
+    TOOLS(tools)
+    END(["\_\_end\_\_"])
+    S --> MODEL
+    MODEL --> POST
+    POST -.-> END
+    POST -.-> TOOLS
+    TOOLS --> MODEL
+    classDef blueHighlight fill:#E5F4FF,stroke:#006DDD,color:#030710;
+    classDef greenHighlight fill:#F6FFDB,stroke:#6E8900,color:#2E3900;
+    classDef neutral fill:#F2FAFF,stroke:#40668D,stroke-width:2px,color:#2F4B68;
+    class S blueHighlight;
+    class END blueHighlight;
+    class POST greenHighlight;
+    class MODEL,TOOLS neutral;
+```
+  
+:::python  
+```python
+from langchain.messages import RemoveMessage
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import after_model
+from langgraph.runtime import Runtime
+
+
+@after_model
+def validate_response(state: AgentState, runtime: Runtime) -> dict | None:
+    """Remove messages containing sensitive words."""
+    STOP_WORDS = ["password", "secret"]
+    last_message = state["messages"][-1]
+    if any(word in last_message.content for word in STOP_WORDS):
+        return {"messages": [RemoveMessage(id=last_message.id)]}
+    return None
+
+agent = create_agent(
+    model="gpt-5-nano",
+    tools=[],
+    middleware=[validate_response],
+    checkpointer=InMemorySaver(),
+)
+```
+:::  
+:::js  
+```typescript
+import { RemoveMessage } from "@langchain/core/messages";
+import { createAgent, createMiddleware } from "langchain";
+import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
+
+const validateResponse = createMiddleware({
+  name: "ValidateResponse",
+  afterModel: (state) => {
+    const lastMessage = state.messages.at(-1)?.content;
+    if (
+      typeof lastMessage === "string" &&
+      lastMessage.toLowerCase().includes("confidential")
+    ) {
+      return {
+        messages: [
+          new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
+        ],
+      };
+    }
+    return;
+  },
+});
+
+const agent = createAgent({
+  model: "gpt-5-nano",
+  tools: [],
+  middleware: [validateResponse],
+});
+```
+:::
+
+---
+
+> 官方原文：[src/oss/langchain/short-term-memory.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/short-term-memory.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,128 @@
+---
+title: "Document loader 集成"
+sidebar_position: 0
+sidebarTitle: "文档加载器"
+description: "使用 LangChain Python 与文档加载器集成"
+keywords: ["document loader", "document loaders", "loader", "BaseLoader", "PDF", "PDF loader", "PyPDFLoader"]
+boost: 2
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/python-document_loaders-downloads.mdx';
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+文档加载器提供了一种**标准接口**，用于从不同来源（如Slack、Notion或Google Drive）将数据转换为LangChain的@[Document]格式。
+这确保了数据无论来源如何，都能被一致处理。
+
+所有文档加载器均实现@[`BaseLoader`]接口。
+
+<PythonIntegrationComponentMap active="document-loaders" />
+
+<Warning>
+社区文档加载器由用户贡献且未经验证。LangChain不审查或推荐这些集成，请自行评估风险。
+</Warning>
+
+## 接口
+
+每个文档加载器可能定义其 own参数，但共享统一API：
+
+* `load()`：一次性加载所有文档。
+* `lazy_load()`：惰性流式加载，适用于大数据集。
+
+```python
+from langchain_docling.loader import DoclingLoader
+
+FILE_PATH = "https://arxiv.org/pdf/2408.09869"
+
+loader = DoclingLoader(file_path=FILE_PATH)
+
+# Load all documents
+documents = loader.load()
+
+# For large datasets, lazily load documents
+for document in loader.lazy_load():
+    print(document)
+```
+
+## 按类别
+
+### 办公工具
+
+以下文档加载器支持从常用办公工具加载数据。
+
+| 文档加载器 | API参考 |
+|------------|---------|
+| [AgentMail](https://github.com/agentmail-to/langchain-agentmail) | [`AgentMailLoader`](https://github.com/agentmail-to/langchain-agentmail) |
+| [Google Classroom](/langchain/oss/python/integrations/document_loaders/google_classroom) | [`GoogleClassroomLoader`](https://pypi.org/project/langchain-google-classroom/) |
+
+### 网页
+
+以下文档加载器支持网页加载。
+
+| 文档加载器 | 描述 | 包装/API |
+|------------|------|---------|
+| [Unstructured](/langchain/oss/python/integrations/document_loaders/unstructured_file) | 使用Unstructured加载数据并解析网页 | 包装 |
+| [Apify Dataset](https://docs.apify.com/integrations/langchain) | 从Apify数据集加载数据 | API |
+| [Apify Crawl](https://docs.apify.com/integrations/langchain) | 按需爬取网站并将每页作为Document加载 | API |
+| [Diffbot Crawl Loader](https://github.com/diffbot/langchain-diffbot) | 使用Diffbot爬取API将网站每页解析为结构化JSON | API |
+| [Diffbot Extract Loader](https://github.com/diffbot/langchain-diffbot) | 使用Diffbot提取API将网页解析为结构化JSON | API |
+| [Docling](/langchain/oss/python/integrations/document_loaders/docling) | 使用Docling加载数据并解析网页 | 包装 |
+| [DomPruner](https://github.com/dong7812/dompruner-py) | DOM AST剪枝：加载为97%+ Token减少的紧凑Markdown，无需API密钥 | 包装 |
+| [Firecrawl](https://docs.firecrawl.dev) | 通过爬取/爬取/映射/提取/搜索将网站转换为清洁的LLM数据 | API |
+| [Hyperbrowser](https://docs.hyperbrowser.ai) | 头less浏览器平台，支持爬取/爬取任意网站 | API |
+| [OpeddFeedLoader](https://opedd.com/for-ai-agents) | 加载带版权溯源的Opedd内容目录作为Document | API |
+| [ProxyHatLoader](https://docs.proxyhat.com) | 通过ProxyHat住宅代理加载数据 | API |
+| [AgentQL](https://docs.agentql.com/) | 使用AgentQL查询或自然语言提示进行网页交互及结构化数据提取 | API |
+| [CRW](https://fastcrw.com) | 兼容Firecrawl的开源爬虫，支持本地二进制或fastcrw.com云服务 | 包装 |
+| [Plasmate](https://docs.plasmate.app/integration-langchain) | Agent原生头less浏览器，支持Set of Mark（SOM）结构化UI提取 | 包装 |
+| [Spidra](https://docs.spidra.io) | 带实时浏览器、CAPTCHA破解和结构化数据提取的AI爬虫 | API |
+
+### PDFs
+
+合作伙伴及社区PDF加载器。托管合作伙伴指南列于前。经典加载器来自[`langchain-community`](https://pypi.org/project/langchain-community/)及其他社区包。完整按下载量排序的目录见[所有文档加载器](#所有文档加载器)。
+
+| 文档加载器 | 描述 | 包装/API |
+|------------|------|---------|
+| [Unstructured](/langchain/oss/python/integrations/document_loaders/unstructured_file) | 使用Unstructured开源库加载数据 | 包装 |
+| [Upstage Document Parse Loader](/langchain/oss/python/integrations/document_loaders/upstage) | 使用UpstageDocumentParseLoader | 包装 |
+| [Docling](/langchain/oss/python/integrations/document_loaders/docling) | 使用Docling | 包装 |
+| `PyPDFLoader` | 使用`pypdf`（`langchain-community`） | 社区 |
+| `PyMuPDFLoader` | 使用PyMuPDF（`langchain-community`） | 社区 |
+| `PDFMinerLoader` | 使用PDFMiner（`langchain-community`） | 社区 |
+| `PDFPlumberLoader` | 使用pdfplumber（`langchain-community`） | 社区 |
+| [MinerU](https://mineru.net) | 使用MinerU加载数据 | 包装 |
+| [UnDatasIO](https://undatas.io) | 使用UnDatasIO | 包装 |
+| [OpenDataLoader PDF](https://github.com/opendataloader-project/langchain-opendataloader-pdf) | 使用OpenDataLoader PDF | 包装 |
+| [CVFileLoader](https://cvfile.org) | 加载CV PDF/A-3u文件，包含嵌入Markdown/HTML/JSON简历 | 包装 |
+| [pdfmuse](https://github.com/casperkwok/pdfmuse) | 确定性加载PDF/DOCX，保留坐标、表格及块级元数据 | 包装 |
+| [oxidize-pdf](https://github.com/bzsanti/oxidize-pdf-integrations/tree/main/langchain) | 使用Rust引擎进行元素不重叠的RAG分块 | 包装 |
+| [pdf-inspector](https://github.com/undacmic/langchain-pdf-inspector) | 使用pdf-inspector | 包装 |
+
+### 云服务提供商
+
+以下文档加载器支持从云服务加载数据。
+
+| 文档加载器 | 描述 | 合作伙伴包装 | API参考/来源 |
+|------------|------|--------------|----------------|
+| [Azure Blob Storage](/langchain/oss/python/integrations/document_loaders/azure_blob_storage) | 加载Azure Blob Storage容器或单个数据块 | ✅ | [`langchain-ai/langchain-azure`](https://github.com/langchain-ai/langchain-azure/tree/main/libs/azure-storage) |
+| [Google Cloud Storage Directory](/langchain/oss/python/integrations/document_loaders/google_cloud_storage_directory) | 加载数据存储桶 | ✅ | [`GCSDirectoryLoader`](https://reference.langchain.com/python/langchain-google-community/gcs_directory/GCSDirectoryLoader) |
+| [Google Cloud Storage File](/langchain/oss/python/integrations/document_loaders/google_cloud_storage_file) | 加载数据存储文件对象 | ✅ | [`GCSFileLoader`](https://reference.langchain.com/python/langchain-google-community/gcs_file/GCSFileLoader) |
+| [Google Drive](/langchain/oss/python/integrations/document_loaders/google_drive) | 加载Google Drive（仅Google Docs） | ✅ | [`GoogleDriveLoader`](https://reference.langchain.com/python/langchain-google-community/drive/GoogleDriveLoader) |
+
+### 常见文件类型
+
+以下文档加载器支持常见数据格式。
+
+| 文档加载器 | 数据类型 |
+|------------|----------|
+| [`Unstructured`](/langchain/oss/python/integrations/document_loaders/unstructured_file) | 多种文件类型（见https://docs.unstructured.io/platform/supported-file-types） |
+| [`HwpHwpxLoader`](https://github.com/jaypakdevkr/HWP-Loader) | HWP/HWPX文件 |
+| [`DoclingLoader`](/langchain/oss/python/integrations/document_loaders/docling) | 多种文件类型（见https://docling-project.github.io/docling/) |
+| [`PolarisAIDataInsightLoader`](https://datainsight.polarisoffice.com/playground) | 多种文件类型（见https://datainsight.polarisoffice.com/documentation?docType=doc_extract） |
+
+## 所有文档加载器
+
+<IntegrationDownloads />
+
+---
+
+> 官方原文：[src/oss/python/integrations/document_loaders/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/document_loaders/index.mdx) · 译文由 AI 生成，以英文原文为准。

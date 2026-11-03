@@ -1,0 +1,16 @@
+```ts
+import type { AsyncSubAgent } from "deepagents";
+
+const asyncSubagents: AsyncSubAgent[] = [
+  {
+    name: "researcher",
+    description: "Research agent for information gathering and synthesis",
+    graphId: "researcher",
+    webhook: "https://my-app.example.com/hooks/subagent-finished",
+    notifyParent: false, // Your app delivers the result
+  },
+];
+```
+
+
+※ 重要提示：在您之前的输出中占位符集不正确。缺少的 id：['0']；意外的额外 id：[]。请再次翻译全文，并保持每个占位符（六边形括号 + 数字）的原位置，且仅出现一次。

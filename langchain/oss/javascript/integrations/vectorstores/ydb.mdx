@@ -1,0 +1,177 @@
+---
+title: "YDB 集成"
+description: "使用 LangChain JavaScript 集成 YDBVectorStore 向量存储。"
+integration:
+  name: YDB
+  npm: '@ydbjs/langchain'
+---
+
+> [YDB](https://ydb.tech/) 是一款通用的开源分布式 SQL 数据库，它结合了高可用性和可扩展性，同时具备强一致性和 ACID 事务。它能够同时支持事务型（OLTP）、分析型（OLAP）和流式工作负载。
+
+本指南提供了快速入门 `YDBVectorStore` [向量存储](/langchain/oss/python/integrations/vectorstores) 的概述。有关所有功能和配置的详细文档，请参阅 [YDB LangChain.js 指南](https://ydb.js.org/guide/langchain/)。
+
+## 设置
+
+使用 Docker 设置本地 YDB 实例：
+
+```bash
+docker run -d -p 2136:2136 --name ydb-langchain -e YDB_USE_IN_MEMORY_PDISKS=true -h localhost ydbplatform/local-ydb:trunk
+```
+
+安装 `@ydbjs/langchain` 和 `@langchain/core` 以使用此集成。
+
+本指南以 [OpenAI 嵌入](/langchain/oss/python/integrations/embeddings/openai) 为例。您也可以使用 [其他支持的嵌入模型](/langchain/oss/python/integrations/embeddings)。
+
+<CodeGroup>
+```bash npm
+npm install @ydbjs/langchain @langchain/openai @langchain/core
+```
+```bash yarn
+yarn add @ydbjs/langchain @langchain/openai @langchain/core
+```
+```bash pnpm
+pnpm add @ydbjs/langchain @langchain/openai @langchain/core
+```
+</CodeGroup>
+
+### 凭证
+
+对于本地 YDB 实例不需要凭证。确保您已安装上述包。
+
+如果您在本指南中使用 OpenAI 嵌入，请设置您的 OpenAI 密钥：
+
+```typescript
+process.env.OPENAI_API_KEY = "YOUR_API_KEY";
+```
+
+如果您希望自动跟踪您的模型调用，您也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```typescript
+// process.env.LANGSMITH_TRACING="true"
+// process.env.LANGSMITH_API_KEY="your-api-key"
+```
+
+## 实例化
+
+要实例化向量存储，请传递一个嵌入模型和一个连接字符串。当存储创建驱动程序时，它还会管理其生命周期：
+
+```typescript
+import { YDBVectorStore } from "@ydbjs/langchain";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const embeddings = new OpenAIEmbeddings({
+  model: "text-embedding-3-small",
+});
+
+await using vectorStore = new YDBVectorStore(embeddings, {
+  connectionString: "grpc://localhost:2136/local",
+});
+```
+
+`await using` 语法会在变量超出作用域时自动释放存储并关闭其驱动程序。如果您不使用 `await using`，请在完成时手动调用 `close()`：
+
+```typescript
+const vectorStore = new YDBVectorStore(embeddings, {
+  connectionString: "grpc://localhost:2136/local",
+});
+// ...
+vectorStore.close();
+```
+
+## 管理向量存储
+
+### 向向量存储添加项
+
+使用 `addDocuments` 方法添加文档。没有 ID 的文档将接收自动生成的 UUID，重新插入具有现有 ID 的文档将替换它。
+
+```typescript
+import { Document } from "@langchain/core/documents";
+
+const document1 = new Document({
+  pageContent: "The powerhouse of the cell is the mitochondria",
+  metadata: { source: "https://example.com" },
+});
+
+const document2 = new Document({
+  pageContent: "Buildings are made out of brick",
+  metadata: { source: "https://example.com" },
+});
+
+const document3 = new Document({
+  pageContent: "Mitochondria are made out of lipids",
+  metadata: { source: "https://example.com" },
+});
+
+const documents = [document1, document2, document3];
+
+const ids = await vectorStore.addDocuments(documents);
+```
+
+### 从向量存储删除项
+
+通过 ID 删除特定文档：
+
+```typescript
+await vectorStore.delete({ ids: [ids[ids.length - 1]] });
+```
+
+## 查询向量存储
+
+一旦您的向量存储创建完成，并且相关文档已添加，您很可能希望在链或智能体运行期间查询它。
+
+### 直接查询
+
+执行简单相似度搜索，如下所示：
+
+```typescript
+const results = await vectorStore.similaritySearch("biology", 2);
+
+for (const doc of results) {
+  console.log(`* ${doc.pageContent} [${JSON.stringify(doc.metadata)}]`);
+}
+```
+
+要执行相似度搜索并接收相应的分数，请运行：
+
+```typescript
+const resultsWithScore = await vectorStore.similaritySearchWithScore("biology", 2);
+
+for (const [doc, score] of resultsWithScore) {
+  console.log(`* [SIM=${score.toFixed(3)}] ${doc.pageContent} [${JSON.stringify(doc.metadata)}]`);
+}
+```
+
+您还可以通过元数据过滤结果。过滤器作为键值对传递，并使用 `AND` 逻辑组合：
+
+```typescript
+const filteredResults = await vectorStore.similaritySearch("biology", 2, {
+  source: "https://example.com",
+});
+```
+
+### 将其转换为检索器进行查询
+
+您还可以将向量存储转换为 [检索器](/langchain/oss/deepagents/retrieval)，以便在您的链中更轻松地使用：
+
+```typescript
+const retriever = vectorStore.asRetriever({
+  k: 2,
+});
+await retriever.invoke("biology");
+```
+
+## 用于检索增强生成的使用
+
+有关如何使用此向量存储进行检索增强生成（RAG）的指南，请参阅以下部分：
+
+- [使用 LangChain 构建 RAG 应用](/langchain/oss/deepagents/rag)
+- [Agentic RAG](/langchain/oss/langgraph/agentic-rag)
+- [检索文档](/langchain/oss/deepagents/retrieval)
+
+## API 参考
+
+有关所有 `YDBVectorStore` 功能和配置的详细文档，包括搜索策略、近似最近邻索引和列自定义，请参阅 [YDB LangChain.js 指南](https://ydb.js.org/guide/langchain/)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/vectorstores/ydb.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/vectorstores/ydb.mdx) · 译文由 AI 生成，以英文原文为准。

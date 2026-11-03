@@ -1,0 +1,284 @@
+---
+title: "OpenAI Decisions 集成"
+sidebarTitle: "OpenAI 决策模型"
+description: "与OpenAIDecisions决策模型通过LangChain Python集成"
+---
+
+[OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions)读取自然语言和图像，并返回类型化的答案和校准概率，而不是生成文本。
+
+`OpenAIDecisions`将这些决策作为LangChain `Runnable`暴露出来，因此您可以调用、批量处理或与其他可运行项组合它们。它接受字符串、结构化JSON和[LangChain消息对象](/langchain/oss/langchain/messages)，并在LangSmith中记录跟踪和Token使用情况。用于执行专注的决策，例如路由请求、选择模型或检查工具调用是否安全运行。
+
+在LangChain中间件中使用OpenAI决策来控制`create_agent`行为，包括使用自定义中间件对智能体状态进行分类。参见[智能体中间件](#智能体中间件)了解示例。
+
+<Note>
+`OpenAIDecisions`及其中间件处于Beta阶段，并需要`langchain-openai>=1.7.0`。它们的API可能会未经通知而更改。
+</Note>
+
+## 安装
+
+<CodeGroup>
+```bash uv
+uv add "langchain-openai>=1.7.0"
+```
+
+```bash pip
+pip install "langchain-openai>=1.7.0"
+```
+</CodeGroup>
+
+在[OpenAI控制面板](https://platform.openai.com/api-keys)中创建API密钥并导出它：
+
+```bash
+export OPENAI_API_KEY=...
+```
+
+<Note>
+可选：设置`OPENAI_BASE_URL`以使用兼容的网关或测试服务器。默认是OpenAI API端点。
+
+```bash
+export OPENAI_BASE_URL=https://gateway.example.com/v1
+```
+
+要通过[LangSmith LLM网关](https://docs.langchain.com/langsmith/llm-gateway-decision-models#use-openai-decision-models)路由请求，设置`LANGSMITH_GATEWAY=true`。网关请求使用`LANGSMITH_GATEWAY_API_KEY`或`LANGSMITH_API_KEY`进行身份验证：
+
+```bash
+export LANGSMITH_GATEWAY=true
+export LANGSMITH_API_KEY=...
+```
+</Note>
+
+## 快速入门
+
+创建一个带有决策模型的`OpenAIDecisions`实例，然后在每次调用时一起传递输入和命名问题。共享输入的问题在一个请求中回答：
+
+```python
+from langchain_openai.decisions import (
+    Choice,
+    Level,
+    OpenAIDecisions,
+    Predicate,
+    Score,
+)
+
+decisions = OpenAIDecisions(model="gpt-6-luna")
+
+response = decisions.invoke(
+    {
+        "input": (
+            "The deploy failed twice and customers are seeing 500s. "
+            "Can someone look now?"
+        ),
+        "questions": {
+            "urgent": Predicate(instructions="Does this need attention right now?"),
+            "team": Choice(
+                instructions="Which team should pick this up?",
+                choices={
+                    "infra": "Deploys, availability, and on-call incidents.",
+                    "billing": "Payments, invoices, and subscriptions.",
+                },
+            ),
+            "severity": Score(
+                instructions="How severe is the impact?",
+                levels=[
+                    "Cosmetic",
+                    Level(label="Degraded", description="Degraded for some users."),
+                    Level(label="Outage", description="Full outage."),
+                ],
+            ),
+        },
+    }
+)
+
+print(response.predicates["urgent"].probability)
+print(response.choices["team"].choice, response.choices["team"].confidence)
+print(response.scores["severity"].score)
+```
+
+答案按您提供的问句名称进行键控，并在`predicates`、`choices`、`scores`和`refusals`按类型分组。响应还包含回答的`model`、Token`usage`和OpenAI`request_id`。
+
+请求`input`可以是字符串、JSON对象或数组，或LangChain消息。字符串和`HumanMessage`对象（包括文本和base64图像内容）原生发送。其他输入，如与系统、AI或工具消息的对话，或JSON对象，作为单个用户消息的JSON文本发送，base64图像保留为图像部分。
+
+## 决策类型
+
+每个问题都是三种类型中的一种：
+
+| 类型 | 询问 | 返回 | 在以下情况下使用 |
+|---|---|---|---|
+| `Predicate` | 这是真的吗？ | `probability`，是的概率 | 您的代码根据`if`分支 |
+| `Choice` | 这些选项中哪个？ | `choice`，以及`probabilities`和`confidence` | 选项映射到不同的代码路径 |
+| `Score` | 哪个级别？ | `score`，以及`legend`、`probabilities`和`confidence` | 答案是一个您要与之比较阈值的范围 |
+
+`Predicate`是唯一没有`confidence`的类型，因为概率就是答案。对于范围，使用`Score`而不是`Predicate`：概率为`0.5`意味着在“是”和“否”之间均等，而不是“中等”。
+
+`Score`级别按从低到高的顺序排列，并从`0`开始索引。传递一个纯字符串表示仅标签的级别，或传递一个`Level`，其中包含`label`和`description`。返回的`score`是级别索引的概率加权平均值，因此它可能落在级别之间，并且`legend`将每个索引映射到其标签。
+
+当模型拒绝回答问题时，答案在`refusals`上是一个`RefusalAnswer`，而不是类型化的答案。当可能拒绝时，在读取类型化答案之前检查缺失的键。
+
+## 智能体中间件
+
+该包包含两个Beta阶段的[中间件](/langchain/oss/langchain/middleware/overview)，它们将OpenAI决策放在智能体的决策点。从`langchain_openai.middleware`导入它们。在使用它们之前，与OpenAI集成一起安装`langchain`：
+
+<CodeGroup>
+```bash uv
+uv add langchain "langchain-openai>=1.7.0"
+```
+
+```bash pip
+pip install langchain "langchain-openai>=1.7.0"
+```
+</CodeGroup>
+
+| 中间件 | 钩子 | 决策 |
+|---|---|---|
+| [`OpenAIModelRouterMiddleware`](#模型路由) | `before_agent`、`wrap_model_call` | 哪个模型处理运行 |
+| [`OpenAIAutoModeMiddleware`](#工具风险网关) | `wrap_tool_call` | 工具调用是否风险过高 |
+
+这两个中间件都需要一个`model`：决策模型名称，或配置的`OpenAIDecisions`实例。
+
+### 模型路由
+
+对您所有命名模型中的最新人类消息进行分类，并使用选定的模型处理运行中的每个模型调用。每个`ModelChoice`将模型与其选择它的标准配对：
+
+```python
+from langchain.agents import create_agent
+from langchain_openai.middleware import ModelChoice, OpenAIModelRouterMiddleware
+
+router = OpenAIModelRouterMiddleware(
+    choices={
+        "fast": ModelChoice(
+            model="openai:gpt-6-luna",
+            criteria="Direct lookups, extraction, and localized changes with explicit targets.",
+        ),
+        "powerful": ModelChoice(
+            model="openai:gpt-6-sol",
+            criteria="Architecture, novel root-cause reasoning, and high-stakes decisions.",
+        ),
+    },
+    instructions="Choose the least costly model that can complete the task safely.",
+    model="gpt-6-luna",
+)
+
+agent = create_agent("openai:gpt-6-luna", middleware=[router])
+
+result = agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "Design a Byzantine fault tolerant consensus protocol and "
+                    "prove its safety and liveness properties."
+                ),
+            }
+        ]
+    }
+)
+print(result["model_route"]["choice"])
+```
+
+答案存储在智能体状态下的`model_route`中，作为`choice`、`probabilities`和`confidence`的映射。当模型拒绝，或状态中没有人类消息时，`model_route`是`None`，并且模型调用使用智能体自己的模型。
+
+### 工具风险网关
+
+询问工具调用具有风险或授权不足的概率。概率为`0.5`或更高的调用返回错误`ToolMessage`，而不是运行工具。仅对您列出的工具进行分类。传递它们的名称或工具对象：
+
+```python
+from langchain.agents import create_agent
+from langchain.tools import tool
+from langchain_openai.middleware import OpenAIAutoModeMiddleware
+
+
+@tool
+def delete_all_backups() -> str:
+    """Delete every backup. This action cannot be undone."""
+    return "Backups deleted."
+
+
+agent = create_agent(
+    "openai:gpt-6-sol",
+    tools=[delete_all_backups],
+    middleware=[
+        OpenAIAutoModeMiddleware(tools=[delete_all_backups], model="gpt-6-luna")
+    ],
+)
+
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "Delete all backups."}]}
+)
+print(result["messages"][-1].text)
+```
+
+覆盖`instructions`以描述您自己的工具的风险。该中间件严格拒绝：拒绝会阻止调用，API错误会传播而不会运行工具。
+
+<Warning>
+除非发送给OpenAI是可接受的，否则不要在工具参数或对话状态中放置秘密。此中间件拒绝风险调用。它不会请求批准。当您希望有人批准它们时，请将其与[人工参与中间件](/langchain/oss/langchain/middleware/built-in)配对。
+</Warning>
+
+### 自定义中间件
+
+`OpenAIDecisions`直接接受LangChain消息对象，因此自定义中间件钩子可以在将其转换之前对智能体的对话状态进行分类。此示例在每次运行的开始时对对话进行一次分类，并将完整的`ChoiceAnswer`存储在智能体状态中：
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware, AgentState, Runtime
+from langchain_openai.decisions import Choice, ChoiceAnswer, OpenAIDecisions
+from typing_extensions import NotRequired
+
+
+class TriageState(AgentState):
+    triage: NotRequired[ChoiceAnswer]
+
+
+class TriageMiddleware(AgentMiddleware[TriageState]):
+    state_schema = TriageState
+
+    def __init__(self) -> None:
+        self.decisions = OpenAIDecisions(model="gpt-6-luna")
+
+    def before_agent(
+        self, state: TriageState, runtime: Runtime
+    ) -> dict[str, ChoiceAnswer]:
+        response = self.decisions.invoke(
+            {
+                "input": state["messages"],
+                "questions": {
+                    "triage": Choice(
+                        instructions="Which team should handle this conversation?",
+                        choices={
+                            "billing": "Payments, invoices, and subscriptions.",
+                            "infra": "Deploys, availability, and incidents.",
+                            "other": "Requests that belong to another team.",
+                        },
+                    )
+                },
+            }
+        )
+        return {"triage": response.choices["triage"]}
+
+
+agent = create_agent(
+    "openai:gpt-6-luna",
+    middleware=[TriageMiddleware()],
+)
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "Customers are seeing 500 errors."}]}
+)
+print(result["triage"].choice, result["triage"].confidence)
+```
+
+使用与您的决策点匹配的任何生命周期钩子。例如，使用`before_model`在每次工具结果后重新分类，或使用`wrap_tool_call`对拟议的操作进行分类。参见[自定义中间件](/langchain/oss/langchain/middleware/custom)了解所有钩子和状态模式。
+
+## 跟踪
+
+OpenAI决策在[LangSmith](https://docs.langchain.com/langsmith/home)中跟踪，因此您可以在智能体的其余部分旁边检查决策和Token使用情况。
+
+## 参见
+
+- [OpenAI决策指南](https://developers.openai.com/api/docs/guides/decisions)
+- [OpenAI中间件](/langchain/oss/python/integrations/middleware/openai)
+- [OpenAI提供者概述](/langchain/oss/python/integrations/providers/openai)
+- [LangChain OpenAI API参考](https://reference.langchain.com/python/langchain-openai)
+
+---
+
+> 官方原文：[src/oss/python/integrations/decision_models/openai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/decision_models/openai.mdx) · 译文由 AI 生成，以英文原文为准。

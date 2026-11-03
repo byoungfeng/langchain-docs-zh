@@ -1,0 +1,31 @@
+---
+title: "商店集成"
+sidebarTitle: "商店"
+description: "集成 LangGraph 长期记忆的存储后端。"
+---
+
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+存储使智能体能通过 LangGraph 保存和检索信息，实现跨线程的 [长期记忆](/langchain/oss/langgraph/stores)。
+
+要为自定义存储后端实现自己的存储，请参考 [构建自定义存储](/langchain/oss/langgraph/stores#构建自定义存储)。
+
+<PythonIntegrationComponentMap active="long-term-memory" />
+
+| 后端类型 | 包名 | 来源 |
+|---------|---------|--------|
+| [内存](https://reference.langchain.com/python/langgraph.store/memory/InMemoryStore) | [`langgraph-checkpoint`](https://pypi.org/project/langgraph-checkpoint/) | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph/tree/main/libs/checkpoint) |
+| [PostgreSQL](https://reference.langchain.com/python/langgraph.store.postgres/PostgresStore) | [`langgraph-checkpoint-postgres`](https://pypi.org/project/langgraph-checkpoint-postgres/) | [langchain-ai/langgraph](https://github.com/langchain-ai/langgraph/tree/main/libs/checkpoint-postgres) |
+| Redis | [`langgraph-checkpoint-redis`](https://pypi.org/project/langgraph-checkpoint-redis/) | [redis-developer/langgraph-redis](https://github.com/redis-developer/langgraph-redis) |
+| [MongoDB](/langchain/oss/python/integrations/memory/mongodb-long-term-memory) | [`langgraph-store-mongodb`](https://pypi.org/project/langgraph-store-mongodb/) | [langchain-ai/langchain-mongodb](https://github.com/langchain-ai/langchain-mongodb/tree/main/libs/langgraph-store-mongodb) |
+| Upstash Redis | [`langgraph-store-upstash`](https://pypi.org/project/langgraph-store-upstash/) | [Tghez/langgraph-store-upstash](https://github.com/Tghez/langgraph-store-upstash) |
+| OMEM | [`omem-infrastructure`](https://pypi.org/project/omem-infrastructure/) | [OMEM docs](https://infrastructure.omem-cloud.com/docs) |
+| [SingleStore](https://www.singlestore.com/docs/) | [`langgraph-singlestore`](https://pypi.org/project/langgraph-singlestore/) | [singlestore-labs/langchain-singlestore](https://github.com/singlestore-labs/langchain-singlestore) |
+| [Amazon DynamoDB (agentstate)](https://skamalj.github.io/agentstate-reducer/langgraph/stores/) | [`langgraph-store-dynamodb`](https://pypi.org/project/langgraph-store-dynamodb/) | [skamalj/langgraph-store](https://github.com/skamalj/langgraph-store/tree/main/providers/dynamodb) |
+| [PostgreSQL / pgvector (agentstate)](https://skamalj.github.io/agentstate-reducer/langgraph/stores/) | [`langgraph-store-postgres`](https://pypi.org/project/langgraph-store-postgres/) | [skamalj/langgraph-store](https://github.com/skamalj/langgraph-store/tree/main/providers/postgres) |
+| [Azure Cosmos DB NoSQL (agentstate)](https://skamalj.github.io/agentstate-reducer/langgraph/stores/) | [`langgraph-store-cosmosdb`](https://pypi.org/project/langgraph-store-cosmosdb/) | [skamalj/langgraph-store](https://github.com/skamalj/langgraph-store/tree/main/providers/cosmosdb) |
+| [Google Firestore (agentstate)](https://skamalj.github.io/agentstate-reducer/langgraph/stores/) | [`langgraph-store-firestore`](https://pypi.org/project/langgraph-store-firestore/) | [skamalj/langgraph-store](https://github.com/skamalj/langgraph-store/tree/main/providers/firestore) |
+
+---
+
+> 官方原文：[src/oss/python/integrations/long-term-memory/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/long-term-memory/index.mdx) · 译文由 AI 生成，以英文原文为准。

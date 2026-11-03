@@ -1,0 +1,33 @@
+---
+title: "Milvus 集成"
+description: "使用 LangChain Python 集成 Milvus。"
+---
+
+> [Milvus](https://milvus.io/docs/overview.md) 是一个数据库，用于存储、索引和管理深度神经网络及其他机器学习（ML）模型生成的海量嵌入向量。
+
+## 安装与配置
+
+安装Python SDK：
+
+<CodeGroup>
+```bash pip
+pip install langchain-milvus
+```
+
+```bash uv
+uv add langchain-milvus
+```
+</CodeGroup>
+
+## 向量存储
+
+请参考 [使用示例](/langchain/oss/python/integrations/vectorstores/milvus)。
+
+导入此向量存储：
+```python
+from langchain_milvus import Milvus
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/milvus.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/milvus.mdx) · 译文由 AI 生成，以英文原文为准。

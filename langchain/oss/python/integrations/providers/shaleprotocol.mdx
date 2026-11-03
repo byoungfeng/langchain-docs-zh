@@ -1,0 +1,52 @@
+---
+title: "Shale 协议集成"
+description: "使用 LangChain Python 集成 Shale 协议。"
+---
+
+[Shale Protocol](https://shaleprotocol.com) 提供面向开源大语言模型的工业级推理API。它基于高度可扩展的GPU云基础设施，是一款即插即用API。
+
+我们的免费套餐支持每个API密钥每日最多1K次请求，旨在消除用户使用大语言模型构建生成式AI应用的技术门槛。
+
+通过Shale Protocol，开发者/研究人员可以零成本创建应用并探索开源大语言模型的能力。
+
+本页面介绍如何将Shale-Serve API集成到LangChain中。
+
+截至2023年6月，API默认支持Vicuna-13B。未来版本将逐步支持更多大模型如Falcon-40B。
+
+## 如何
+
+### 1. 获取链接：访问https://shaleprotocol.com，在Discord上通过"Shale bot"生成API密钥（无需信用卡，无免费试用，为永久免费套餐，每日每API密钥上限1K次请求）
+
+### 2. 使用https://shale.live/v1作为OpenAI API的即插即用替代方案
+
+示例：
+
+```python
+from langchain_openai import OpenAI
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+import os
+os.environ['OPENAI_API_BASE'] = "https://shale.live/v1"
+os.environ['OPENAI_API_KEY'] = "ENTER YOUR API KEY"
+
+llm = OpenAI()
+
+template = """Question: {question}
+
+# Answer: Let's think step by step."""
+
+prompt = PromptTemplate.from_template(template)
+
+
+llm_chain = prompt | llm | StrOutputParser()
+
+question = "What NFL team won the Super Bowl in the year Justin Beiber was born?"
+
+llm_chain.invoke(question)
+
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/shaleprotocol.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/shaleprotocol.mdx) · 译文由 AI 生成，以英文原文为准。

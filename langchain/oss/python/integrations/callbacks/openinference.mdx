@@ -1,0 +1,87 @@
+---
+title: OpenInference
+description: "使用 OpenInference 仪器化跟踪 LangChain 和 LangGraph 应用程序"
+integration:
+  name: OpenInference
+  pypi: openinference-instrumentation-langchain
+---
+
+## 概述
+
+OpenInference 代理用于 LangChain，将 LangChain 和 LangGraph 操作记录为使用 OpenInference 语义约定的 OpenTelemetry 跨度。使用它将跟踪发送到 OpenTelemetry 兼容的收集器或可观察性后端，包括 Arize AX 和 Arize Phoenix。
+
+该软件包钩入 `langchain-core`，这是 LangChain 软件包共享的。它支持 LangChain 1.x、LangChain Classic 以及 `langchain-openai`、`langchain-anthropic` 和 `langchain-google-vertexai` 等合作伙伴软件包。
+
+## 安装
+
+使用 LangChain 安装 OpenInference 代理软件包：
+
+```shell
+pip install openinference-instrumentation-langchain langchain langchain-openai
+```
+
+对于 LangChain Classic 应用程序，请安装 `langchain-classic`：
+
+```shell
+pip install openinference-instrumentation-langchain langchain-classic langchain-openai
+```
+
+## 与 OpenTelemetry 收集器一起使用
+
+安装 OpenTelemetry SDK 和 OTLP 导出器（它们不会单独由代理软件包引入），然后配置一个跟踪器提供程序，并在运行应用程序之前对 LangChain 进行代理：
+
+```shell
+pip install opentelemetry-sdk opentelemetry-exporter-otlp
+```
+
+```python
+from openinference.instrumentation.langchain import LangChainInstrumentor
+from opentelemetry import trace as trace_api
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk import trace as trace_sdk
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+endpoint = "http://127.0.0.1:6006/v1/traces"
+tracer_provider = trace_sdk.TracerProvider()
+trace_api.set_tracer_provider(tracer_provider)
+tracer_provider.add_span_processor(SimpleSpanProcessor(OTLPSpanExporter(endpoint)))
+
+LangChainInstrumentor().instrument()
+```
+
+代理记录 LangChain 运行的跨度，并通过配置的跟踪器提供程序导出它们。
+
+## 与 Arize AX 一起使用
+
+Arize AX 可以通过 OpenTelemetry 接收 OpenInference 代理的跟踪。与代理软件包一起安装 `arize-otel`：
+
+```shell
+pip install arize-otel openinference-instrumentation-langchain langchain langchain-openai
+```
+
+注册一个 Arize AX 跟踪器提供程序，然后将它传递给 LangChain 代理器：
+
+```python
+import os
+
+from arize.otel import register
+from openinference.instrumentation.langchain import LangChainInstrumentor
+
+tracer_provider = register(
+    space_id=os.environ["ARIZE_SPACE_ID"],
+    api_key=os.environ["ARIZE_API_KEY"],
+    project_name=os.environ["ARIZE_PROJECT_NAME"],
+)
+
+LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+```
+
+## 资源
+
+- [OpenInference LangChain 代理仓库](https://github.com/Arize-ai/openinference/tree/main/python/instrumentation/openinference-instrumentation-langchain)
+- [Arize AX LangChain 跟踪指南](https://arize.com/docs/ax/integrations/python-agent-frameworks/langchain/langchain-tracing)
+- [OpenInference 跨度自定义](https://github.com/Arize-ai/openinference/tree/main/python/openinference-instrumentation#customizing-spans)
+
+---
+
+> 官方原文：[src/oss/python/integrations/callbacks/openinference.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/callbacks/openinference.mdx) · 译文由 AI 生成，以英文原文为准。

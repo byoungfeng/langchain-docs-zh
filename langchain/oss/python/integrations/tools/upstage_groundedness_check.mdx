@@ -1,0 +1,54 @@
+---
+title: "Upstage 稳固性检查集成"
+description: "集成 Upstage 地基性检查工具，使用 LangChain Python。"
+integration:
+  name: Upstage groundedness check
+  pypi: langchain-upstage
+---
+  
+本笔记本介绍了如何使用 Upstage 的接地性检查模型进行入门。  
+
+## 安装  
+安装 `langchain-upstage` 包。  
+
+```bash
+pip install -U langchain-upstage
+```
+  
+## 环境配置  
+
+确保设置以下环境变量：  
+
+- `UPSTAGE_API_KEY`: 从 [Upstage 开发者文档](https://developers.upstage.ai/docs/getting-started/quick-start) 获取您的 Upstage API 密钥。  
+
+```python
+import os
+
+os.environ["UPSTAGE_API_KEY"] = "YOUR_API_KEY"
+```
+  
+## 使用方法  
+
+初始化 `UpstageGroundednessCheck` 类。  
+
+```python
+from langchain_upstage import UpstageGroundednessCheck
+
+groundedness_check = UpstageGroundednessCheck()
+```
+  
+使用 `run` 方法来检查输入文本的接地性。  
+
+```python
+request_input = {
+    "context": "Mauna Kea is an inactive volcano on the island of Hawai'i. Its peak is 4,207.3 m above sea level, making it the highest point in Hawaii and second-highest peak of an island on Earth.",
+    "answer": "Mauna Kea is 5,207.3 meters tall.",
+}
+
+response = groundedness_check.invoke(request_input)
+print(response)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/upstage_groundedness_check.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/upstage_groundedness_check.mdx) · 译文由 AI 生成，以英文原文为准。

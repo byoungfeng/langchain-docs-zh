@@ -1,0 +1,43 @@
+---
+title: "中间件集成"
+sidebarTitle: "中间件"
+description: "使用 LangChain JavaScript 集成中间件"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/javascript-middleware-downloads.mdx';
+
+浏览不同提供商的可用中间件或为生态系统贡献您自己的中间件。了解更多关于中间件如何在 [中间件概述](/langchain/oss/langchain/middleware/overview) 中工作以及如何与 Deep Agents 一起使用中间件的信息，请参阅 [Deep Agents 文档](/langchain/oss/deepagents/customization#中间件)。
+
+## 分享您的中间件
+
+中间件支持上下文工程、链定制和运行时安全控制。它是 LangChain 中一个有用的扩展点，我们很乐意展示社区使用它所构建的内容：
+
+<CardGroup cols={2}>
+    <Card title="Add an official integration" icon="package" href="/langchain/oss/contributing/implement-langchain#middleware">
+        按照贡献指南构建和发布中间件包。
+    </Card>
+    <Card title="Share a community middleware" icon="users" href="https://github.com/langchain-ai/docs">
+        向文档仓库打开一个 PR，将您的中间件添加到下表。
+    </Card>
+</CardGroup>
+
+## 官方集成
+
+<IntegrationDownloads />
+
+## 社区集成
+
+<Note>
+社区维护这些中间件集成。它们以开源方式贡献，并由 LangChain 管理或维护。
+</Note>
+
+| 中间件 | 描述 | 来源 |
+|-----------|-------------|--------|
+| [langchain-task-steering](https://github.com/edvinhallvaxhiu/langchain-task-steering) | 隐式状态机中间件，用于有序任务管道，具有按任务工具作用域、动态提示注入和可组合完成验证。 | [`edvinhallvaxhiu/langchain-task-steering`](https://github.com/edvinhallvaxhiu/langchain-task-steering) |
+| [Nuggets Authority](https://nuggets.life) | 工具调用的预执行授权执行。在每次工具运行之前验证作用域、签名的委托，拒绝时关闭失败，并发出可独立验证的每个决策的加密证明。 | [`NuggetsLtd/langchain-nuggets`](https://github.com/NuggetsLtd/langchain-nuggets) |
+
+要分享中间件？[打开一个 PR](https://github.com/langchain-ai/docs) 将其添加到此处。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/middleware/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/middleware/index.mdx) · 译文由 AI 生成，以英文原文为准。

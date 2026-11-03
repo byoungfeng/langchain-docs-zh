@@ -1,0 +1,52 @@
+---
+title: "可控生成式 UI"
+sidebarTitle: "可控"
+description: "使用以组件为工具、工具调用渲染、状态渲染和推理等方式，用你编写的组件渲染智能体输出"
+---
+
+## 概述
+
+[受控生成式UI位于生成式UI谱系的作者控制端](/langchain/oss/langchain/frontend/generative-ui-overview)。您编写组件，智能体决定渲染哪个组件及其传递的数据。智能体不会生成标记代码：它从您构建并测试的固定接口集中选择。
+
+这种模式提供了所有生成式UI方案中最高的可预测性。因为每个组件都来自您的代码库，您完全掌控品牌、布局、无障碍性和行为，并能确保智能体展示的内容已通过您的审核。代价是工程成本：每个新能力都需要预先编写组件。您的组件库是边界：智能体只能渲染您已发布的内容。
+
+## 何时使用此方法
+
+在最高流量、品牌关键界面选择受控生成式UI，这些界面的事先输出范围已知且正确性比创新性更重要：表单、确认流程，以及有严格品牌或无障碍性要求的界面。当需要智能体组合未预见的布局时（在长尾次要交互中），请向生成式UI谱系的下一阶段——[声明式生成式UI](/langchain/oss/langchain/frontend/declarative-generative-ui)迈进。
+
+受控生成式UI涵盖四种技术，从智能体选择完整界面开始，到前端响应智能体内部状态结束。
+
+## 组件作为工具
+
+您向智能体暴露UI组件的方式与暴露工具相同。每个组件有名称、描述和类型化的属性集，智能体在响应中选择组件并传递数据。前端将智能体的选择映射到您的真实实现。这使智能体的任务简化为选择预审批的接口，而您的代码负责所有外观和行为。
+
+CopilotKit将此模式文档化为 [组件作为工具](https://docs.copilotkit.ai/generative-ui/tool-based)。
+
+## 工具调用渲染
+
+当智能体调用工具时，调用会经过以下生命周期：挂起，随后完成或失败。工具调用渲染将每个阶段转化为专用UI（例如搜索进行时显示加载卡片，返回结果时显示结果卡片，失败时显示错误状态），而非直接展示原始JSON。这使智能体的操作更清晰可见，并增强用户对操作进展的信任。
+
+See the [工具调用](/langchain/oss/langchain/frontend/tool-calling) 模式。
+
+## 状态渲染
+
+智能体在消息列表之外暴露持久化、类型化的状态：待办事项、管道输出、引用标注、沙盒文件、指标和自定义业务对象。状态渲染将组件与该状态绑定，使界面成为智能体工作的实时视图而非对话记录。当智能体更新状态时，界面会同步更新。
+
+See [类型化智能体状态](/langchain/oss/langchain/frontend/overview) 在前端概述中。
+对于将单个类型化响应数据映射到定制UI的案例，请参考 [结构化输出](/langchain/oss/langchain/frontend/structured-output)。
+
+## 推理过程
+
+具备扩展思考能力的模型会生成与最终答案分离的推理内容。渲染推理过程可向用户展示智能体得出结果的思考路径，这有助于建立信任、辅助调试和满足审计需求。您可控制推理内容的展示方式和时机，例如在独立折叠区块中展示，与响应内容区分。
+
+See the [推理标记](/langchain/oss/langchain/frontend/reasoning-tokens) 模式。
+
+## 参考文档
+
+- [生成式UI概览](/langchain/oss/langchain/frontend/generative-ui-overview)
+- [声明式生成式UI](/langchain/oss/langchain/frontend/declarative-generative-ui)
+- [开放式生成式UI](/langchain/oss/langchain/frontend/open-ended-generative-ui)
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/controlled-generative-ui.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/controlled-generative-ui.mdx) · 译文由 AI 生成，以英文原文为准。

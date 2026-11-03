@@ -1,0 +1,66 @@
+---
+title: "搜索与链接维基"
+sidebarTitle: "搜索与链接"
+description: "在 MCP 上搜索 OpenWiki 页面，并将相关的存储库维基分组到工作区"
+---
+
+OpenWiki 提供本地只读检索工具，使编码智能体能够从现有维基中回答具体问题，而无需启动生成运行。使用 `openwiki link` 将相关的仓库维基分组到命名工作区中，然后在该工作区中搜索和阅读。
+
+## 搜索和阅读
+
+让您的编码智能体在维基中查找问题：
+
+```txt
+Search this repository's OpenWiki for how retry handling works, then read the
+relevant sections.
+```
+
+- **`openwiki_search`**: 返回针对具体问题的紧凑、排序结果
+- **`openwiki_read`**: 从这些结果中检索智能体选择的完整章节
+
+智能体被引导使用检索来回答具体的架构或依赖问题，阅读相关章节，并在找到依据后停止。检索是可选的上下文，不是每个任务开始时的常规步骤。这些工具是无模型的：它们不会启动生成运行或进行自己的模型调用。
+
+当仓库链接到工作区时，`openwiki_list_workspaces` 和 `openwiki_list_wikis` 提供发现功能。工作区搜索结果会标识其提供的 `wiki`；将此 ID 与结果页面和章节锚点一起传递给 `openwiki_read`。
+
+这些工具随 [编码智能体集成](/langchain/oss/openwiki/integrations) 提供。安装集成后，重启主机并让它搜索维基。
+
+## 创建维基工作区
+
+一个服务通常跨越多个仓库。使用 `openwiki link` 将它们的现有维基分组到命名工作区中，以便您的智能体可以跨整个服务搜索并阅读任何成员维基的章节。
+
+从包含仓库的目录启动工作区管理器，例如 `~/dev`：
+
+```bash
+cd ~/dev
+openwiki link
+```
+
+创建工作区，例如 `Payments`，然后选择要包含的仓库。成员仓库保留自己的维基，可以属于多个工作区，并且不需要共享父目录。查找器会流式传输从可编辑路径开始的 Git 仓库。没有 OpenWiki 文档的仓库会变暗。注册表存储在 `~/.openwiki`（或 `OPENWIKI_CONFIG_DIR`）下。
+
+### 搜索范围
+
+搜索按以下方式选择范围：
+
+1. 不在工作区中的维基会搜索自身。
+2. 在一个工作区中的维基会自动搜索该工作区。
+3. 在多个工作区中的维基使用其活动工作区。
+4. 如果它属于多个工作区但没有活动选择，搜索会返回 `workspace_required`，智能体会询问要使用哪个工作区。
+
+从任何仓库内部设置、检查或清除仓库的持久活动工作区：
+
+```bash
+openwiki workspace use payments
+openwiki workspace current
+openwiki workspace clear
+```
+
+## 参考文档
+
+- [编码智能体集成](/langchain/oss/openwiki/integrations)
+- [代码模式](/langchain/oss/openwiki/code-mode)
+- [CLI 参考](/langchain/oss/openwiki/cli-reference)
+- [可视化您的维基](/langchain/oss/openwiki/visualize)
+
+---
+
+> 官方原文：[src/oss/openwiki/search-and-link.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/openwiki/search-and-link.mdx) · 译文由 AI 生成，以英文原文为准。

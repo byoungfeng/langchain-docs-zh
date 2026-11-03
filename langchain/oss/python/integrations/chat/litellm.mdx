@@ -1,0 +1,315 @@
+---
+title: "ChatLiteLLM 和 ChatLiteLLMRouter 集成"
+description: "使用 LangChain Python 集成 ChatLiteLLM 和 ChatLiteLLMRouter 对话模型。"
+integration:
+  name: ChatLiteLLM
+  pypi: langchain-litellm
+  featured: true
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: true
+---
+
+[LiteLLM](https://github.com/BerriAI/litellm) 是一个库，用于简化调用 Anthropic、Azure、HuggingFace、Replicate 等服务。
+
+本页面介绍如何使用 LangChain 与 LiteLLM I/O 库进行集成。
+
+该集成提供了两个聊天模型类：
+
+- @[ChatLiteLLM]: 主要的 LangChain 聊天模型封装，用于 LiteLLM
+- @[ChatLiteLLMRouter]: 一个 `ChatLiteLLM` 封装，利用 LiteLLM 的路由功能实现负载均衡和回退
+
+该包还包含 @[LiteLLMEmbeddings]、@[LiteLLMEmbeddingsRouter] 和 @[LiteLLMOCRLoader]。更多细节请参考 [提供方页面](/langchain/oss/python/integrations/providers/litellm)。
+
+## 概览
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | JS 支持 | 下载量 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| @[ChatLiteLLM] | [`langchain-litellm`](https://pypi.org/project/langchain-litellm/)| ❌ | ❌ | ![PyPI - Downloads](https://img.shields.io/pypi/dm/langchain-litellm?style=flat-square&label=%20) | ![PyPI - Version](https://img.shields.io/pypi/v/langchain-litellm?style=flat-square&label=%20) |
+| @[ChatLiteLLMRouter] | [`langchain-litellm`](https://pypi.org/project/langchain-litellm/)| ❌ | ❌ | ![PyPI - Downloads](https://img.shields.io/pypi/dm/langchain-litellm?style=flat-square&label=%20) | ![PyPI - Version](https://img.shields.io/pypi/v/langchain-litellm?style=flat-square&label=%20) |
+
+### 模型特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | 图像输入 | 音频输入 | 视频输入 | [Token 级流式输出](/langchain/oss/python/integrations/chat/litellm#异步和流式输出功能) | [原生异步](/langchain/oss/python/integrations/chat/litellm#异步和流式输出功能) | [Token 使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+
+### 安装配置
+
+要访问 `ChatLiteLLM` 和 `ChatLiteLLMRouter` 模型，需要安装 `langchain-litellm` 包，并创建 OpenAI、Anthropic、Azure、Replicate、OpenRouter、Hugging Face、Together AI 或 Cohere 账户。然后获取 API 密钥并导出为环境变量。
+
+## 凭据
+您需要选择想要的大语言模型（LLM）供应商并注册以获取其API密钥。
+
+### 示例 - Anthropic
+前往 [Claude控制台](https://console.anthropic.com) 进行注册并生成Claude API密钥。完成此操作后设置 `ANTHROPIC_API_KEY` 环境变量：
+
+### 示例 - OpenAI
+访问 [platform.openai.com/api-keys](https://platform.openai.com/api-keys) 注册OpenAI并生成API密钥。完成此操作后设置 OPENAI_API_KEY 环境变量。
+
+```python
+## Set ENV variables
+import os
+
+os.environ["OPENAI_API_KEY"] = "your-openai-key"
+os.environ["ANTHROPIC_API_KEY"] = "your-anthropic-key"
+```
+
+### 安装
+
+LangChain LiteLLM集成可在 `langchain-litellm` 包中找到：
+
+```python
+pip install -qU langchain-litellm
+```
+
+## 实例化
+
+### ChatLiteLLM
+
+您可以通过提供 [由 LiteLLM 支持的](https://docs.litellm.ai/docs/providers) `model` 名称来实例化 `ChatLiteLLM` 模型。
+
+```python
+from langchain_litellm import ChatLiteLLM
+
+llm = ChatLiteLLM(model="gpt-5.4-nano", temperature=0.1)
+```
+
+### ChatLiteLLM路由
+
+您还可以利用LiteLLM的路由功能，通过在 [LiteLLM路由文档](https://docs.litellm.ai/docs/routing) 中定义模型列表来实现路由配置。
+
+```python
+from langchain_litellm import ChatLiteLLMRouter
+from litellm import Router
+
+model_list = [
+    {
+        "model_name": "gpt-5.5",
+        "litellm_params": {
+            "model": "azure/gpt-5.5",
+            "api_key": "<your-api-key>",
+            "api_version": "2024-10-21",
+            "api_base": "https://<your-endpoint>.openai.azure.com/",
+        },
+    },
+    {
+        "model_name": "gpt-5.5",
+        "litellm_params": {
+            "model": "azure/gpt-5.5",
+            "api_key": "<your-api-key>",
+            "api_version": "2024-10-21",
+            "api_base": "https://<your-endpoint>.openai.azure.com/",
+        },
+    },
+]
+litellm_router = Router(model_list=model_list)
+llm = ChatLiteLLMRouter(router=litellm_router, model_name="gpt-5.5", temperature=0.1)
+```
+
+## 调用
+
+无论您实例化了`ChatLiteLLM`还是`ChatLiteLLMRouter`，现在都可以通过LangChain的API使用ChatModel。
+
+```python
+response = await llm.ainvoke(
+    "Classify the text into neutral, negative or positive. Text: I think the food was okay. Sentiment:"
+)
+print(response)
+```
+
+```text
+content='Neutral' additional_kwargs={} response_metadata={'token_usage': Usage(completion_tokens=2, prompt_tokens=30, total_tokens=32, completion_tokens_details=CompletionTokensDetailsWrapper(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=0, rejected_prediction_tokens=0, text_tokens=None), prompt_tokens_details=PromptTokensDetailsWrapper(audio_tokens=0, cached_tokens=0, text_tokens=None, image_tokens=None)), 'model': 'gpt-3.5-turbo', 'finish_reason': 'stop', 'model_name': 'gpt-3.5-turbo'} id='run-ab6a3b21-eae8-4c27-acb2-add65a38221a-0' usage_metadata={'input_tokens': 30, 'output_tokens': 2, 'total_tokens': 32}
+```
+
+## 异步和流式输出功能
+
+`ChatLiteLLM` 和 `ChatLiteLLMRouter` 也支持异步和流式输出功能：
+
+```python
+stream = await llm.astream_events("Hello, please explain how antibiotics work", version="v3")
+async for token in stream.text:
+    print(token, end="")
+```
+
+```text
+Antibiotics are medications that fight bacterial infections in the body. They work by targeting specific bacteria and either killing them or preventing their growth and reproduction.
+
+There are several different mechanisms by which antibiotics work. Some antibiotics work by disrupting the cell walls of bacteria, causing them to burst and die. Others interfere with the protein synthesis of bacteria, preventing them from growing and reproducing. Some antibiotics target the DNA or RNA of bacteria, disrupting their ability to replicate.
+
+It is important to note that antibiotics only work against bacterial infections and not viral infections. It is also crucial to take antibiotics as prescribed by a healthcare professional and to complete the full course of treatment, even if symptoms improve before the medication is finished. This helps to prevent antibiotic resistance, where bacteria become resistant to the effects of antibiotics.
+```
+
+## 高级功能
+
+### Gemini企业智能体平台基础（Google搜索）
+
+使用Google搜索基础与Gemini企业智能体平台模型（例如`gemini-3.6-flash`）结合。接地元数据会在`response_metadata`中返回，适用于批量和流式调用。
+
+<Note>
+从`response_metadata`读取流式接地元数据需要`langchain-litellm>=0.11.0`。在调用`ChatLiteLLM`之前，它会将元数据返回到`additional_kwargs`，而`ChatLiteLLMRouter`在流式调用时不会返回元数据。
+</Note>
+
+**配置**
+
+```python
+import os
+from langchain_litellm import ChatLiteLLM
+
+os.environ["VERTEXAI_PROJECT"] = "your-project-id"
+os.environ["VERTEXAI_LOCATION"] = "us-central1"
+
+llm = ChatLiteLLM(model="vertex_ai/gemini-2.5-flash", temperature=0)
+```
+
+**批量使用**
+
+```python
+# Invoke with Google Search tool enabled
+response = llm.invoke(
+    "What is the current stock price of Google?",
+    tools=[{"googleSearch": {}}]
+)
+
+# Access citations & metadata
+provider_fields = response.response_metadata.get("provider_specific_fields")
+if provider_fields:
+    # Vertex returns a list; the first item contains the grounding info
+    print(provider_fields[0])
+```
+
+**流式使用**
+
+```python
+stream = llm.stream_events(
+    "What is the current stock price of Google?",
+    version="v3",
+    tools=[{"googleSearch": {}}],
+)
+for token in stream.text:
+    print(token, end="", flush=True)
+# Metadata is available on the full output message
+output = stream.output
+if "provider_specific_fields" in output.response_metadata:
+    print("\n[Metadata Found]:", output.response_metadata["provider_specific_fields"])
+```
+
+### 响应API
+
+<Note>  
+`use_responses_api` 需要 `langchain-litellm>=0.10.0`。  
+</Note>  
+
+将 `use_responses_api=True` 设置为向服务提供商的 [响应API](https://docs.litellm.ai/docs/response_api) 发送 `ChatLiteLLM` 调用，而不是 Chat Completions。LiteLLM 会将每个请求和响应进行翻译，因此消息、工具、流式输出和结构化输出均可正常工作。OpenAI 的内置工具（如网页搜索）需要此路径：
+
+```python
+from langchain_litellm import ChatLiteLLM
+
+llm = ChatLiteLLM(model="openai/gpt-6-astra", use_responses_api=True)
+llm_with_tools = llm.bind_tools([{"type": "web_search"}])
+
+response = llm_with_tools.invoke("What was a positive news story from today?")
+print(response.text)
+```
+  
+- LiteLLM 无法发送到响应API 的模型会在发出任何请求前抛出 `ValueError`。  
+- 此路径下 LiteLLM 会丢弃仅支持 Chat Completions 的参数，例如 `stop`、`n` 和 `seed`。  
+- 当 `use_responses_api` 设置为 `None`（默认值）或 `False` 时，LiteLLM 会选择 API 自身，它已将某些模型（如 `gpt-5-pro`）发送到响应API。  
+
+#### 理性化项目  
+
+<Note>  
+保持理性化项目需要 `langchain-litellm>=0.11.0`。  
+</Note>  
+
+响应API 上的推理模型返回其推理为 [理性化项目](https://developers.openai.com/api/docs/guides/reasoning)。将回合的该项目在下一个请求中返回，可使模型通过工具循环继续推理，而非在每次工具调用后重新开始。项目仅返回加密内容，OpenAI 默认在无状态请求中通过 `"store": False` 返回该内容。OpenAI 也接受对内容显式指定 `include`：
+
+```python
+from langchain.messages import HumanMessage
+from langchain.tools import tool
+from langchain_litellm import ChatLiteLLM
+
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the weather for a city."""
+    return f"It is sunny in {city}."
+
+
+llm = ChatLiteLLM(
+    model="openai/gpt-6-astra",
+    use_responses_api=True,
+    model_kwargs={
+        "extra_body": {"store": False, "include": ["reasoning.encrypted_content"]}
+    },
+)
+llm_with_tools = llm.bind_tools([get_weather])
+
+messages = [
+    HumanMessage(
+        "Get the weather for the city that hosted the Summer Olympics four years "
+        "before London did."
+    )
+]
+ai_message = llm_with_tools.invoke(messages)
+reasoning_items = ai_message.additional_kwargs.get("reasoning_items", [])
+print([item["id"] for item in reasoning_items])
+
+messages.append(ai_message)
+messages.extend(get_weather.invoke(call) for call in ai_message.tool_calls)
+response = llm_with_tools.invoke(messages)
+print(response.text)
+```
+  
+回复会将其理性化项目保存在 `additional_kwargs["reasoning_items"]` 中，仅保留携带加密内容的那些。模型未进行推理的回合不会包含项目。每个保存的项目携带一个 `origin` 键，用于标识该请求，因此在存储对话时需保留此键。  
+
+后续请求在满足以下条件时会发送回合的项目：  
+- 该回合仅包含一个项目  
+- 请求配置与生成该项目的请求具有相同的模型、基础URL 和凭据  
+- 请求不匹配（例如通过回退、LiteLLM 响应缓存或 `litellm.use_litellm_proxy`）时，既不发送也不保留项目  
+
+OpenAI 无法解密项目时会返回 400 `invalid_encrypted_content` 错误。匹配仅覆盖 `ChatLiteLLM` 能读取的设置，因此项目仍可能通过 LiteLLM 代理等路由到其他账户，或通过 LiteLLM 自动获取的凭据（如 OpenAI 工作负载身份）传递给其他账户。  
+
+以下回合不会返回项目：  
+
+- LiteLLM 自动向响应API 发送的调用（未使用 `use_responses_api` 或 `responses/` 模型名称，例如 `gpt-5-pro`），其回复不会保留项目。  
+- 流式回合包含多个项目。当 LiteLLM 不流式回复时，仅保留回合文本前的最后一个项目，以及工具调用前的最后一个项目，因此使用 `invoke` 读取相同回合时可发送项目。  
+
+在 `ChatLiteLLMRouter` 下，项目仅当未设置回退且部署组中所有实例共享同一模型、基础URL、凭据、工具和理性化设置时才会返回。将部署命名为 `<provider>/responses/<model>`（参考 [路由部署](#路由部署)）。LiteLLM 自动向响应API 发送的调用（例如 `openai/gpt-5-pro`）无论是否使用 `use_responses_api`，都不会保留项目。  
+
+#### 路由部署
+
+Router 在每次调用时选择一个部署，因此不存在可供 `use_responses_api` 统一改写的单一模型名称。将每个部署的模型命名为 `<provider>/responses/<model>`，即可将其发送到 Responses API：
+
+```python
+from langchain_litellm import ChatLiteLLMRouter
+from litellm import Router
+
+model_list = [
+    {
+        "model_name": "gpt-6-astra",
+        "litellm_params": {"model": "openai/responses/gpt-6-astra"},
+    },
+]
+litellm_router = Router(model_list=model_list)
+llm = ChatLiteLLMRouter(router=litellm_router, model_name="gpt-6-astra")
+llm_with_tools = llm.bind_tools([{"type": "web_search"}])
+
+response = llm_with_tools.invoke("What was a positive news story from today?")
+print(response.text)
+```
+
+从 `langchain-litellm` 0.11.0 开始，`ChatLiteLLMRouter` 上的 `use_responses_api=True` 会检查各部署，而不是对它们进行改写。当 LiteLLM 将被调用组中的每个部署都发送到 Responses API 时，调用会原样发出；否则会在发出请求之前抛出 `ValueError`，并列出每个未走该路径的部署。若调用可能触达该组之外的部署（例如通过回退或 `model_group_alias`），同样会抛出错误。早期版本对 `ChatLiteLLMRouter` 上的该标志直接抛出 `ValueError`。
+
+---
+
+## API 参考
+
+有关 `ChatLiteLLM` 和 `ChatLiteLLMRouter` 所有功能与配置的详细文档，请参阅 @[langchain-litellm] API 参考。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/litellm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/litellm.mdx) · 译文由 AI 生成，以英文原文为准。

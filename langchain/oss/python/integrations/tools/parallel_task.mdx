@@ -1,0 +1,260 @@
+---
+title: "并行任务 API 集成"
+description: "使用 LangChain Python 与 ParallelTaskRunTool 工具集成。"
+integration:
+  name: Parallel Task API
+  pypi: langchain-parallel
+---
+
+>
+> **[Parallel](https://platform.parallel.ai/)** 是专为大型语言模型（LLMs）和AI应用设计的实时网页搜索与内容提取平台。
+
+> **[Task API](https://docs.parallel.ai/task-api/task-quickstart)** 在多级处理器菜单（`lite` → `ultra`，包含`-fast`变体）上运行研究级任务。`langchain-parallel`将其暴露为四个LangChain接口，所有接口均位于本页，您可根据负载类型选择合适的形态。
+
+## 应该使用哪个接口？
+
+- **单次即兴查询，支持智能体调用**：`ParallelTaskRunTool`（`BaseTool`）。
+- **长会话多源报告**：`ParallelDeepResearch`（`Runnable`）。
+- **列表批量增强，支持类型化输入输出**：`ParallelEnrichment`（`Runnable`）。
+- **低级批处理，需完全控制运行边界**：`ParallelTaskGroup`（普通类）。
+
+所有接口默认使用`-fast`处理器变体（相比非快速层级在同等精度下快2-5倍）。当延迟不是关键时，移除`-fast`后缀以获得更高质量。详见[选择处理器](https://docs.parallel.ai/task-api/guides/choose-a-processor)获取完整菜单。
+
+## 概述
+
+### 集成细节
+
+| 类 | 形态 | 默认处理器 | 包含的包 |
+| :--- | :--- | :--- | :--- |
+| @[`ParallelTaskRunTool`] | `BaseTool` | `lite-fast` | @[`langchain-parallel`] |
+| @[`ParallelDeepResearch`] | `Runnable` | `pro-fast` | @[`langchain-parallel`] |
+| @[`ParallelTaskGroup`] | 普通类 | `lite-fast` | @[`langchain-parallel`] |
+| @[`ParallelEnrichment`] | `Runnable` | `core-fast` | @[`langchain-parallel`] |
+
+## 集成
+
+集成代码位于`langchain-parallel`包中。
+
+<CodeGroup>
+    ```bash pip
+    pip install -U langchain-parallel
+    ```
+    ```bash uv
+    uv add langchain-parallel
+    ```
+</CodeGroup>
+
+### 凭据
+前往[Parallel](https://platform.parallel.ai)注册并生成API密钥。将`PARALLEL_API_KEY`设置为环境变量：
+
+```python
+import getpass
+import os
+
+if not os.environ.get("PARALLEL_API_KEY"):
+    os.environ["PARALLEL_API_KEY"] = getpass.getpass("Parallel API key:\n")
+```
+
+## ParallelTaskRunTool
+
+`ParallelTaskRunTool`是一个可被智能体调用的`BaseTool`。它同步执行单个任务并返回结构化`output`、按字段`basis`引用及`run_id`。
+
+```python
+from langchain_parallel import ParallelTaskRunTool
+
+tool = ParallelTaskRunTool()
+result = tool.invoke({"input": "Who founded SpaceX, in one sentence?"})
+
+print(result["output"]["content"])
+print("run_id:", result["run"]["run_id"])
+```
+
+`result["output"]`始终为字典；答案文本位于`result["output"]["content"]`，字段引用位于`result["output"]["basis"]`。传入`task_output_schema`可将`content`解析为符合pydantic结构的字典而非自由文本字符串：
+
+```python
+from pydantic import BaseModel, Field
+
+class FounderFact(BaseModel):
+    founder: str = Field(description="Full name of the founder")
+    year: int = Field(description="Year the company was founded")
+
+structured = ParallelTaskRunTool(task_output_schema=FounderFact)
+res = structured.invoke({"input": "Who founded SpaceX and in what year?"})
+
+print(res["output"]["content"])
+print(res["output"]["basis"])  # citations + reasoning + confidence per field
+```
+
+```text
+{'founder': 'Elon Musk', 'year': 2002}
+[{'field': 'founder', 'citations': [...], 'reasoning': '...', 'confidence': 'high'}, ...]
+```
+
+### parse_basis: 引用+低置信度字段
+
+所有关注置信度的消费者都需要自行编写相同样板代码来遍历结果以提取引用、低置信度字段和`interaction_id`。`parse_basis()`为此提供封装：
+
+```python
+from langchain_parallel import parse_basis
+
+parsed = parse_basis(res)
+print("citations per field:", {f: len(c) for f, c in parsed["citations_by_field"].items()})
+print("low-confidence fields:", parsed["low_confidence_fields"])
+print("interaction_id:", parsed["interaction_id"])
+```
+
+### 多轮链式调用
+
+结果字典在顶层暴露`interaction_id`。将其作为`previous_interaction_id`传递给下一轮调用以实现上下文跨轮传递：
+
+```python
+first = tool.invoke({"input": "Who founded SpaceX?"})
+followup = tool.invoke({
+    "input": "And what year was it founded?",
+    "previous_interaction_id": first["interaction_id"],
+})
+```
+
+## ParallelDeepResearch
+
+`ParallelDeepResearch`是一个`Runnable`。默认使用`pro-fast`（"探索式网页研究"的`-fast`变体）。对于最全面的多源报告，传入`processor="ultra"`。
+
+```python
+from langchain_parallel import ParallelDeepResearch
+
+research = ParallelDeepResearch()
+result = research.invoke("Summarize the state of net-energy-gain fusion research as of 2026.")
+print(result["output"]["content"])
+```
+
+<Note>
+    深度研究通常非即时。`pro-fast`通常需几分钟；`pro`和`ultra`可能更久。生产环境应通过[Webhook签名验证](#webhook签名验证)配置回调而非阻塞于`invoke`。
+</Note>
+
+对于类型化深度研究，传入`output_schema`：
+
+```python
+class CityFact(BaseModel):
+    capital: str
+    population_millions: float
+
+typed = ParallelDeepResearch(output_schema=CityFact)
+out = typed.invoke("Capital and population (in millions) of France?")
+print(out["output"]["content"])
+```
+
+## ParallelTaskGroup
+
+`ParallelTaskGroup`创建任务组，分发执行并聚合结果。当需要精细控制批处理边界时直接使用，否则优先选择`ParallelEnrichment`处理类型化批量任务。
+
+```python
+from langchain_parallel import ParallelTaskGroup
+
+group = ParallelTaskGroup()
+results = group.run([
+    "Founder of Anthropic? One sentence.",
+    "Founder of OpenAI? One sentence.",
+])
+
+for r in results:
+    print(r["output"]["content"])
+```
+
+`ParallelTaskGroup`暴露`run`（同步）和`arun`（异步）。延迟由最慢任务和所选处理器决定——`lite-fast`通常秒级，高阶层级可能分钟级。
+
+## ParallelEnrichment
+
+`ParallelEnrichment`将`ParallelTaskGroup`与基于输入/输出pydantic模式的`default_task_spec`结合。将pydantic实例转换为字典，分发批处理并按输入顺序返回结果。
+
+```python
+from langchain_parallel import ParallelEnrichment
+
+class CompanyInput(BaseModel):
+    company: str = Field(description="Company name")
+
+class CompanyOutput(BaseModel):
+    headquarters: str
+    founding_year: int
+
+enricher = ParallelEnrichment(
+    input_schema=CompanyInput,
+    output_schema=CompanyOutput,
+)
+results = enricher.invoke([
+    CompanyInput(company="Anthropic"),
+    {"company": "OpenAI"},
+])
+
+for r in results:
+    print(r["output"]["content"])
+```
+
+`ParallelEnrichment`阻塞直至所有输入完成。默认`core-fast`处理器处理非平凡批处理需几分钟，使用快速处理器处理短文本字段或后台线程处理大批次。
+
+## build_task_spec
+
+`build_task_spec`接受pydantic类、JSON Schema字典或文本描述，生成`TaskSpec`格式的字典供`client.task_run.create`或`add_runs(default_task_spec=...)`调用。当需完全控制运行边界时使用，适用于`ParallelTaskRunTool`或`ParallelTaskGroup`场景。
+
+```python
+from langchain_parallel import build_task_spec
+
+spec = build_task_spec(input_schema=CompanyInput, output_schema=CompanyOutput)
+print(list(spec.keys()))  # ['output_schema', 'input_schema']
+```
+
+## BYOMCP: 自定义MCP服务器
+
+`ParallelTaskRunTool`和`ParallelDeepResearch`接受`mcp_servers=[McpServer(...)]`以暴露流式HTTP MCP端点。
+
+```python
+from langchain_parallel import McpServer
+
+mcp = McpServer(
+    name="my_internal_mcp",
+    url="https://example.com/mcp",
+    headers={"Authorization": "Bearer ..."},
+)
+
+tool_with_mcp = ParallelTaskRunTool(mcp_servers=[mcp])
+result = tool_with_mcp.invoke({"input": "What's our latest internal release?"})
+```
+
+## Webhook签名验证
+
+长会话任务可通过回调返回结果。使用`verify_webhook`验证签名（标准Webhook方案：HMAC-SHA256加密的base64编码数据，包含`<webhook-id>.<webhook-timestamp>.<body>`和`v1,<sig>`的防重放保护）。详见[webhook协议](https://docs.parallel.ai/resources/webhook-setup)获取数据交付规范。
+
+```python
+from langchain_parallel import verify_webhook
+
+ok = verify_webhook(
+    body,
+    webhook_id=request.headers["webhook-id"],
+    webhook_timestamp=request.headers["webhook-timestamp"],
+    webhook_signature=request.headers["webhook-signature"],
+    secret=os.environ["PARALLEL_WEBHOOK_SECRET"],
+)
+if not ok:
+    raise PermissionError("invalid webhook signature")
+```
+
+## 智能体链式调用
+
+将`ParallelTaskRunTool`绑定到任意工具调用对话模型，通过[`create_agent`](/langchain/oss/langchain/agents)驱动智能体：
+
+```python
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+
+llm = init_chat_model(model="claude-opus-4-8")
+agent = create_agent(model=llm, tools=[tool])
+
+agent.invoke({"messages": [("human", "Look up Anthropic's founding year.")]})
+```
+
+## API参考
+
+详细文档位于@[`ParallelTaskRunTool`]、@[`ParallelDeepResearch`]、@[`ParallelTaskGroup`]或@[`ParallelEnrichment`] API参考，或[Parallel任务API指南](https://docs.parallel.ai/task-api/task-quickstart)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/parallel_task.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/parallel_task.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,114 @@
+---
+title: "ChatDeepSeek 集成"
+description: "使用 LangChain Python 集成 ChatDeepSeek 对话模型。"
+integration:
+  name: ChatDeepSeek
+  pypi: langchain-deepseek
+  featured: true
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: false
+---
+
+这将帮助您快速上手 DeepSeek 的托管 [对话模型](/langchain/oss/langchain/models)。
+
+<Tip>
+    **API 参考**
+
+    关于所有功能和使用配置的详细文档，请访问 @[`ChatDeepSeek`] API 参考页面。
+</Tip>
+
+<Tip>
+    **DeepSeek 的模型是开源的，既可本地部署（例如在 [Ollama](/langchain/oss/python/integrations/chat/ollama) 中运行），也可在其他推理服务上运行（例如 [Together](/langchain/oss/python/integrations/chat/together)）。**
+</Tip>
+
+## 概述
+
+### 集成细节
+
+| 类别 | 包 | 可序列化 | [JS 支持](/langchain/oss/javascript/integrations/chat/deepseek) | 下载量 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| @[`ChatDeepSeek`] | @[`langchain-deepseek`] | beta | ✅ | ![PyPI - 下载量](https://img.shields.io/pypi/dm/langchain-deepseek?style=flat-square&label=%20) | ![PyPI - 版本](https://img.shields.io/pypi/v/langchain-deepseek?style=flat-square&label=%20) |
+
+### 模型特性
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token 级流式输出](/langchain/oss/langchain/streaming/) | 原生异步 | [Token 使用量](/langchain/oss/langchain/models#token-使用) | [对数概率](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ |
+
+<Note>
+**DeepSeek-R1（通过 `model="deepseek-reasoner"` 指定）不支持工具调用或结构化输出。这些功能 [由](https://api-docs.deepseek.com/guides/function_calling) DeepSeek-V3（通过 `model="deepseek-chat"` 指定）支持。**
+
+</Note>
+
+## 配置
+
+要访问 DeepSeek 模型，您需要创建 DeepSeek 账号、获取 API 密钥，并安装 `langchain-deepseek` 集成包。
+
+### 凭据
+前往 [DeepSeek 的 API 密钥页面](https://platform.deepseek.com/api_keys) 注册 DeepSeek 并生成 API 密钥。完成此操作后设置 `DEEPSEEK_API_KEY` 环境变量：
+
+```python
+import getpass
+import os
+
+if not os.getenv("DEEPSEEK_API_KEY"):
+    os.environ["DEEPSEEK_API_KEY"] = getpass.getpass("Enter your DeepSeek API key: ")
+```
+
+要启用模型调用自动追踪，设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```python
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+```
+
+### 安装
+
+LangChain 的 DeepSeek 集成位于 `langchain-deepseek` 包中：
+
+```python
+pip install -qU langchain-deepseek
+```
+
+## 实例化
+
+现在我们可以实例化模型对象并生成对话补全：
+
+```python
+from langchain_deepseek import ChatDeepSeek
+
+llm = ChatDeepSeek(
+    model="deepseek-chat",
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    # other params...
+)
+```
+
+## 调用
+
+```python
+messages = [
+    (
+        "system",
+        "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ),
+    ("human", "I love programming."),
+]
+ai_msg = llm.invoke(messages)
+ai_msg.content
+```
+
+---
+
+## API 参考
+
+关于所有 `ChatDeepSeek` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/python/langchain-deepseek/chat_models/ChatDeepSeek)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/deepseek.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/deepseek.mdx) · 译文由 AI 生成，以英文原文为准。

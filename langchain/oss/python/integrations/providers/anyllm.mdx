@@ -1,0 +1,36 @@
+---
+title: "any-llm 集成"
+description: "使用 LangChain Python 集成 any-llm。"
+---
+
+> [any-llm](https://github.com/mozilla-ai/any-llm) 是一个统一的接口，用于调用 OpenAI、Anthropic、Google、本地模型（通过 Ollama/LocalAI）以及 [更多](https://mozilla-ai.github.io/any-llm/providers/)。只需更改一个字符串，即可在提供商之间切换。
+
+## 安装和设置
+
+<CodeGroup>
+```bash pip
+pip install langchain-anyllm
+```
+
+```bash uv
+uv add langchain-anyllm
+```
+</CodeGroup>
+
+您需要为所选提供商准备相应的 API 密钥。API 密钥可以通过 `api_key` 参数传递，或设置为环境变量（例如，`OPENAI_API_KEY`、`ANTHROPIC_API_KEY`）。有关提供商特定要求的详细信息，请参阅 [any-llm 文档](https://mozilla-ai.github.io/any-llm/providers/)。
+
+## 对话模型
+
+```python
+from langchain_anyllm import ChatAnyLLM
+```
+
+---
+
+## API 参考
+
+有关所有 `ChatAnyLLM` 功能和配置的详细文档，请访问 API 参考：https://github.com/mozilla-ai/langchain-any-llm
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/anyllm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/anyllm.mdx) · 译文由 AI 生成，以英文原文为准。

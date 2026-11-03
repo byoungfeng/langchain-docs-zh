@@ -1,0 +1,83 @@
+---
+title: "Deep Agents 代码"
+sidebarTitle: "概述"
+description: "基于 Deep Agents SDK 构建的终端编码智能体"
+keywords: ["CLI", "dcode", "terminal coding agent", "coding agent", "Deep Agents Code"]
+mode: wide
+---
+
+深度智能体代码（`dcode`）是一个基于 [深度智能体 SDK](/langchain/oss/deepagents/quickstart) 开发的开源编码智能体。
+它可与任何大型语言模型配合使用，并支持切换提供商或模型。
+持久化记忆在对话中传递上下文，可定制的技能塑造行为，而审批控制则管理代码执行。
+
+## 入门指南
+
+运行以下命令以安装深度智能体代码并启动交互式会话：
+
+```bash
+curl -LsSf https://langch.in/dcode | bash
+dcode
+```
+
+查看 [快速入门](/langchain/oss/deepagents/code/quickstart) 以添加提供商凭证、运行第一个任务并学习交互模式。
+
+<Frame>
+    <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="w-full aspect-video rounded-xl"
+        src="/langchain/oss/images/deepagents/dcode-small.mp4"
+        aria-label="深度智能体代码终端演示"
+    >
+        您的浏览器不支持视频标签。
+    </video>
+</Frame>
+
+## 功能特性
+
+<CardGroup cols={3}>
+    <Card title="Remote sandboxes" icon="cloud" href="/langchain/oss/deepagents/code/remote-sandboxes">
+        将智能体工具远程运行，而不是在本地机器上执行。
+    </Card>
+    <Card title="Goals and rubrics" icon="target-arrow" href="/langchain/oss/deepagents/code/goals-and-rubrics">
+        定义可衡量的目标或评分标准，以便智能体检查工作是否完成。
+    </Card>
+    <Card title="Subagents" icon="users" href="/langchain/oss/deepagents/code/subagents">
+        将任务委托给特定任务的子智能体以并行执行。
+    </Card>
+    <Card title="Memory" icon="brain" href="/langchain/oss/deepagents/code/memory-and-skills#记忆">
+        跨会话存储和检索信息，包括项目规范和已学习的模式。
+    </Card>
+    <Card title="Context compaction" icon="arrows-minimize" href="/langchain/oss/deepagents/code/quickstart#交互模式">
+        摘要旧消息并将原始内容卸载到存储中。
+    </Card>
+    <Card title="Human-in-the-loop" icon="user" href="/langchain/oss/deepagents/code/quickstart#交互模式">
+        对敏感工具操作要求人工审批。
+    </Card>
+    <Card title="Skills" icon="puzzle" href="/langchain/oss/deepagents/code/memory-and-skills#技能">
+        通过自定义专业知识和指令扩展智能体功能。
+    </Card>
+    <Card title="MCP tools" icon="plug" href="/langchain/oss/deepagents/code/mcp-tools">
+        从模型上下文协议服务器加载外部工具。
+    </Card>
+    <Card title="Tracing" icon="chart-dots" href="/langchain/oss/deepagents/code/quickstart#使用-langsmith-进行跟踪">
+        在 LangSmith 中跟踪智能体操作，以实现可观察性和调试。
+    </Card>
+</CardGroup>
+
+## 下一步
+
+<CardGroup cols={2}>
+    <Card title="Quickstart" icon="player-play" href="/langchain/oss/deepagents/code/quickstart">
+        安装深度智能体代码，运行第一个任务，并使用交互式或非交互式模式。
+    </Card>
+    <Card title="Configuration" icon="settings" href="/langchain/oss/deepagents/code/configuration">
+        设置凭证、`config.toml`、环境变量、钩子和 CLI 标志。
+    </Card>
+</CardGroup>
+
+---
+
+> 官方原文：[src/oss/deepagents/code/overview.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/code/overview.mdx) · 译文由 AI 生成，以英文原文为准。

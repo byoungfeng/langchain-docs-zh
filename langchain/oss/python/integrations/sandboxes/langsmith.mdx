@@ -1,0 +1,100 @@
+---
+title: "LangSmith 沙箱集成"
+description: "使用 LangChain Python 集成 LangSmithSandbox 类型。"
+integration:
+  name: LangSmith sandbox
+---
+
+
+LangSmith 实验沙盒是由 LangChain 管理的沙盒环境，您无需单独设置供应商账户、账单或基础设施。它们是运行智能体代码的零配置默认选项，而第三方供应商（如 AgentCore、Daytona、E2B、Modal、Runloop 和 Vercel）则在需要自建时可供选择。由于 LangSmith 实验沙盒属于 LangChain 平台的一部分，您可与其他 LangSmith 资源一并管理它们。关于设置、快照、服务 URL 和认证代理的详细信息，请参考 [LangSmith Sandboxes 文档](https://docs.langchain.com/langsmith/sandboxes)。
+
+## 安装
+
+<CodeGroup>
+```bash pip
+pip install langsmith deepagents
+```
+
+```bash uv
+uv add langsmith deepagents
+```
+</CodeGroup>
+
+## 设置 API 密钥
+
+```bash
+export LANGSMITH_API_KEY="<your-api-key>"
+```
+
+`SandboxClient()` 会从环境变量中读取此密钥，因此无需额外配置。
+
+## 创建沙盒后端
+
+使用 `SandboxClient` 创建 LangSmith 实验沙盒，并通过 @[LangSmithSandbox] 包裹它以作为 [Deep Agents 后端](/langchain/oss/deepagents/backends) 运行。
+
+```python
+from deepagents.backends.langsmith import LangSmithSandbox
+from langsmith.sandbox import SandboxClient
+
+client = SandboxClient()
+ls_sandbox = client.create_sandbox()
+backend = LangSmithSandbox(sandbox=ls_sandbox)
+
+result = backend.execute("echo hello")
+print(result.output)
+
+# Delete the sandbox when you are done (see Clean up)
+client.delete_sandbox(ls_sandbox.name)
+```
+
+## 与 Deep Agents 配合使用
+
+将后端传递给 @[create_deep_agent] 并搭配类似 @[ChatAnthropic] 的对话模型，然后调用智能体。`try`/`finally` 块会在 try 块结束或发生错误时删除沙盒。
+
+```python
+from deepagents import create_deep_agent
+from deepagents.backends.langsmith import LangSmithSandbox
+from langchain_anthropic import ChatAnthropic
+from langsmith.sandbox import SandboxClient
+
+client = SandboxClient()
+ls_sandbox = client.create_sandbox()
+backend = LangSmithSandbox(sandbox=ls_sandbox)
+
+agent = create_deep_agent(
+    model=ChatAnthropic(model="claude-sonnet-4-6"),
+    system_prompt="You are a coding assistant with sandbox access.",
+    backend=backend,
+)
+
+try:
+    result = agent.invoke(
+        {
+            "messages": [
+                {"role": "user", "content": "Create a hello world Python script and run it"}
+            ]
+        }
+    )
+    print(result["messages"][-1].content_blocks)
+finally:
+    client.delete_sandbox(ls_sandbox.name)
+```
+
+## 清理
+
+完成时删除沙盒，因为未删除的沙盒会持续占用资源。
+
+```python
+client.delete_sandbox(ls_sandbox.name)
+```
+
+您还可以通过 [LangSmith 控制台](https://smith.langchain.com) 下的 **沙盒** 页面管理沙盒资源。
+
+更多细节请参考：
+
+- [Deep Agents 中的沙盒](/langchain/oss/deepagents/sandboxes)：生命周期、作用域及沙盒供应商对比
+- [LangSmith 沙盒](https://docs.langchain.com/langsmith/sandboxes)：快照、服务 URL、认证代理和 SDK 参考文档
+
+---
+
+> 官方原文：[src/oss/python/integrations/sandboxes/langsmith.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/sandboxes/langsmith.mdx) · 译文由 AI 生成，以英文原文为准。

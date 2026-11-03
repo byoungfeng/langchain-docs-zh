@@ -1,0 +1,137 @@
+---
+title: "MLflow 集成"
+description: "使用 LangChain Python 与 MLflow 集成。"
+---
+
+>[MLflow](https://mlflow.org/) 是一个通用、开源的平台，用于管理机器学习和生成式 AI 生命周期中的工作流和工件。它与许多流行的 AI 和 ML 库具有内置集成，但可以与任何库、算法或部署工具一起使用。
+
+MLflow 的 [LangChain 集成](https://mlflow.org/docs/latest/llms/langchain/autologging.html) 提供以下功能：
+
+- **[跟踪](https://mlflow.org/docs/latest/llms/langchain/autologging.html)**：使用一行代码可视化 LangChain 组件中的数据流（`mlflow.langchain.autolog()`）
+- **[实验跟踪](https://mlflow.org/docs/latest/llms/langchain/index.html#experiment-tracking)**：记录 LangChain 运行中的工件、代码和指标
+- **[模型管理](https://mlflow.org/docs/latest/model-registry.html)**：版本化和部署 LangChain 应用程序，并跟踪依赖关系
+- **[评估](https://mlflow.org/docs/latest/llms/langchain/index.html#mlflow-evaluate)**：衡量 LangChain 应用程序的性能
+
+**注意**：MLflow 跟踪功能适用于 MLflow 版本 2.14.0 及更高版本。
+
+本简短指南专注于 MLflow 对 LangChain 和 LangGraph 应用程序的跟踪功能。您将看到如何使用一行代码启用跟踪以及查看应用程序的执行流程。有关 MLflow 其他功能的信息以及探索其他教程，请参阅 [MLflow LangChain 文档](https://mlflow.org/docs/latest/llms/langchain/index.html)。如果您是 MLflow 新手，请查看 [MLflow 入门指南](https://mlflow.org/docs/latest/getting-started/index.html)。
+
+## 设置
+
+要开始使用 MLflow 对 LangChain 的跟踪，请安装 MLflow Python 包。我们还将使用 `langchain-openai` 包。
+
+```python
+pip install mlflow langchain-openai langgraph -qU
+```
+
+接下来，设置 MLflow 跟踪 URI 和 OpenAI API 密钥。
+
+```python
+import os
+
+# Set MLflow tracking URI if you have MLflow Tracking Server running
+os.environ["MLFLOW_TRACKING_URI"] = ""
+os.environ["OPENAI_API_KEY"] = ""
+```
+
+## MLflow 跟踪
+
+MLflow 的跟踪功能帮助您可视化 LangChain 应用程序的执行流程。以下是启用它的方法。
+
+```python
+import mlflow
+
+# Optional: Set an experiment to organize your traces
+mlflow.set_experiment("LangChain MLflow Integration")
+
+# Enable tracing
+mlflow.langchain.autolog()
+```
+
+## 示例：跟踪一个 LangChain 应用程序
+
+以下是一个完整的示例，展示使用 LangChain 进行 MLflow 跟踪：
+
+```python
+import mlflow
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+# Enable MLflow tracing
+mlflow.langchain.autolog()
+
+# Create a simple chain
+llm = ChatOpenAI(model_name="gpt-5.5")
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a helpful assistant that translates {input_language} to {output_language}.",
+        ),
+        ("human", "{input}"),
+    ]
+)
+
+chain = prompt | llm | StrOutputParser()
+
+# Run the chain
+result = chain.invoke(
+    {
+        "input_language": "English",
+        "output_language": "German",
+        "input": "I love programming.",
+    }
+)
+```
+
+要在终端中运行 `mlflow ui` 并导航到 MLflow UI 中的跟踪选项卡以查看跟踪。
+
+## 示例：跟踪一个 LangGraph 应用程序
+
+MLflow 也支持跟踪 LangGraph 应用程序：
+
+```python
+import mlflow
+from langchain.tools import tool
+from langchain.agents import create_agent
+
+
+# Enable MLflow tracing
+mlflow.langchain.autolog()
+
+
+# Define a tool
+@tool
+def count_words(text: str) -> str:
+    """Counts the number of words in a text."""
+    word_count = len(text.split())
+    return f"This text contains {word_count} words."
+
+
+# Create a LangGraph agent
+llm = ChatOpenAI(model="gpt-5.5")
+tools = [count_words]
+graph = create_agent(llm, tools)
+
+# Run the agent
+result = graph.invoke(
+    {"messages": [{"role": "user", "content": "Write me a 71-word story about a cat."}]}
+)
+```
+
+要在终端中运行 `mlflow ui` 并导航到 MLflow UI 中的跟踪选项卡以查看跟踪。
+
+## 资源
+
+有关使用 MLflow 与 LangChain 的更多信息，请访问：
+
+- [MLflow LangChain 集成文档](https://mlflow.org/docs/latest/llms/langchain/index.html)
+- [MLflow 跟踪文档](https://mlflow.org/docs/latest/llms/tracing/index.html)
+- [记录 LangChain 和 LangGraph 模型](https://mlflow.org/docs/latest/llms/langchain/index.html#logging-models-from-code)
+- [评估 LangChain 和 LangGraph 模型](https://mlflow.org/docs/latest/llms/langchain/index.html#how-can-i-evaluate-a-langgraph-agent)
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/mlflow_tracking.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/mlflow_tracking.mdx) · 译文由 AI 生成，以英文原文为准。

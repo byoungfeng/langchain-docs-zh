@@ -1,0 +1,88 @@
+---
+title: "TextLoader 集成"
+description: "使用 LangChain JavaScript 集成 TextLoader 文档加载器。"
+integration:
+  name: TextLoader
+---
+
+
+<Tip>
+**兼容性**：仅在 Node.js 上可用。
+</Tip>
+
+此笔记本提供了快速入门 `TextLoader` [文档加载器](/langchain/oss/python/integrations/document_loaders) 的概述。有关所有 `TextLoader` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-core/document_loaders/base/BaseDocumentLoader)。
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 兼容性 | 本地 | PY 支持 |
+| :--- | :--- | :---: | :---: |  :---: |
+| [`TextLoader`](https://reference.langchain.com/javascript/langchain-core/document_loaders/base/BaseDocumentLoader) | [langchain](https://www.npmjs.com/package/langchain) | 仅 Node.js | ✅ | ❌ |
+
+## 设置
+
+要访问 `TextLoader` 文档加载器，您需要安装 `langchain` 包。
+
+### 安装
+
+LangChain TextLoader 集成位于 `langchain` 包中：
+
+<CodeGroup>
+```bash npm
+npm install langchain
+```
+```bash yarn
+yarn add langchain
+```
+```bash pnpm
+pnpm add langchain
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并加载文档：
+
+```typescript
+import { TextLoader } from "@langchain/classic/document_loaders/fs/text"
+
+const loader = new TextLoader("../../../../../../examples/src/document_loaders/example_data/example.txt")
+```
+
+## 加载
+
+```typescript
+const docs = await loader.load()
+docs[0]
+```
+
+```javascript
+Document {
+  pageContent: 'Foo\nBar\nBaz\n\n',
+  metadata: {
+    source: '../../../../../../examples/src/document_loaders/example_data/example.txt'
+  },
+  id: undefined
+}
+```
+
+```typescript
+console.log(docs[0].metadata)
+```
+
+```javascript
+{
+  source: '../../../../../../examples/src/document_loaders/example_data/example.txt'
+}
+```
+
+---
+
+## API 参考
+
+有关所有 `TextLoader` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-core/document_loaders/base/BaseDocumentLoader)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/document_loaders/file_loaders/text.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/document_loaders/file_loaders/text.mdx) · 译文由 AI 生成，以英文原文为准。

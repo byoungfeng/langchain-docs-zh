@@ -1,0 +1,36 @@
+管理员可以通过每个用户家目录中 `~/.langsmith-plugins/managed.json` 位置的管理文件锁定追踪设置。Claude Code、Cursor 和 Codex 插件都会读取此文件，其设置会覆盖用户的配置文件和环境变量。
+
+```json
+{
+  "api_url": "https://langsmith.example.com",
+  "project": "engineering",
+  "strict_auth": true
+}
+```
+
+管理文件适用于 macOS 和 Linux。插件仅在其满足以下条件时信任该文件：
+
+- 文件及其目录的所有者是 Root。
+- 没有其他用户可以写入。
+- 两者都不是符号链接。
+
+如果文件存在但未通过这些检查，追踪将停止，用户会看到联系管理员的提示信息。锁定某个设置也会锁定与之关联的设置，因此用户无法绕过锁定来路由追踪。例如，锁定 `project` 也会阻止用户添加自己的 [replicas](https://docs.langchain.com/langsmith/trace-replicas) 或通过 `agent_id` 向智能体发送追踪。
+
+管理员通常使用移动设备管理 (MDM) 工具（如 Jamf 或 Microsoft Intune）在每个设备上安装该文件。有关可锁定设置的详细信息，请参阅 [插件设置指南](https://github.com/langchain-ai/langsmith-plugin-binary/blob/main/docs/settings.md)。
+
+<Accordion title="Example setup script">
+
+为每个用户以 root 身份运行此命令，并将 `USER_HOME` 设置为该用户的家目录：
+
+```bash
+USER_HOME=/Users/developer
+mkdir -p "$USER_HOME/.langsmith-plugins"
+cp managed.json "$USER_HOME/.langsmith-plugins/managed.json"
+chown root:wheel "$USER_HOME/.langsmith-plugins" "$USER_HOME/.langsmith-plugins/managed.json"
+chmod 755 "$USER_HOME/.langsmith-plugins"
+chmod 644 "$USER_HOME/.langsmith-plugins/managed.json"
+```
+
+在 Linux 上，使用 `root:root` 而不是 `root:wheel`。完整脚本请参阅 [在 macOS 上设置](https://github.com/langchain-ai/langsmith-plugin-binary/blob/main/docs/settings.md#set-it-up-on-macos)。
+
+</Accordion>

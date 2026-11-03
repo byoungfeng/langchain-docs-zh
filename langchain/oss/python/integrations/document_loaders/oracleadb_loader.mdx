@@ -1,0 +1,90 @@
+---
+title: "Oracle autonomous database 集成"
+description: "使用 LangChain Python 集成 Oracle Autonomous Database 文档加载器。"
+integration:
+  name: Oracle autonomous database
+  pypi: langchain-oracledb
+---
+
+甲骨文自主数据库是一个使用机器学习自动执行数据库调优、安全、备份、更新和其他传统上由 DBA 执行的日常管理任务的云数据库。
+
+本笔记本介绍了如何从甲骨文自主数据库加载文档。
+
+## 前置条件
+
+一个可以连接到 `python-oracledb` 默认 `'Thin'` 模式的数据库。这适用于甲骨文自主数据库，参见 [`python-oracledb` 架构](https://python-oracledb.readthedocs.io/en/latest/user_guide/introduction.html#architecture)。
+
+您需要安装 `langchain-oracledb` 才能使用此集成。
+
+`python-oracledb` 驱动程序作为 langchain-oracledb 的依赖项自动安装。
+
+```python
+# python -m pip install -U langchain-oracledb
+```
+
+## 说明
+
+```python
+from langchain_oracledb.document_loaders import OracleAutonomousDatabaseLoader
+from settings import s
+```
+
+使用相互 TLS 认证（mTLS），需要 wallet_location 和 wallet_password 参数来创建连接。参见 python-oracledb 文档 [连接到 Oracle 云自主数据库](https://python-oracledb.readthedocs.io/en/latest/user_guide/connection_handling.html#connecting-to-oracle-cloud-autonomous-databases)。
+
+```python
+SQL_QUERY = "select prod_id, time_id from sh.costs fetch first 5 rows only"
+
+doc_loader_1 = OracleAutonomousDatabaseLoader(
+    query=SQL_QUERY,
+    user=s.USERNAME,
+    password=s.PASSWORD,
+    schema=s.SCHEMA,
+    config_dir=s.CONFIG_DIR,
+    wallet_location=s.WALLET_LOCATION,
+    wallet_password=s.PASSWORD,
+    dsn=s.DSN,
+)
+doc_1 = doc_loader_1.load()
+
+doc_loader_2 = OracleAutonomousDatabaseLoader(
+    query=SQL_QUERY,
+    user=s.USERNAME,
+    password=s.PASSWORD,
+    schema=s.SCHEMA,
+    dsn=s.DSN,
+    wallet_location=s.WALLET_LOCATION,
+    wallet_password=s.PASSWORD,
+)
+doc_2 = doc_loader_2.load()
+```
+
+使用单向 TLS 认证，只需要数据库凭证和连接字符串即可建立连接。下面的示例还展示了如何使用 `parameters` 参数传递绑定变量值。
+
+```python
+SQL_QUERY = "select channel_id, channel_desc from sh.channels where channel_desc = :1 fetch first 5 rows only"
+
+doc_loader_3 = OracleAutonomousDatabaseLoader(
+    query=SQL_QUERY,
+    user=s.USERNAME,
+    password=s.PASSWORD,
+    schema=s.SCHEMA,
+    config_dir=s.CONFIG_DIR,
+    dsn=s.DSN,
+    parameters=["Direct Sales"],
+)
+doc_3 = doc_loader_3.load()
+
+doc_loader_4 = OracleAutonomousDatabaseLoader(
+    query=SQL_QUERY,
+    user=s.USERNAME,
+    password=s.PASSWORD,
+    schema=s.SCHEMA,
+    dsn=s.DSN,
+    parameters=["Direct Sales"],
+)
+doc_4 = doc_loader_4.load()
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/document_loaders/oracleadb_loader.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/document_loaders/oracleadb_loader.mdx) · 译文由 AI 生成，以英文原文为准。

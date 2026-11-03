@@ -1,0 +1,149 @@
+---
+title: "LiteLLM 集成"
+description: "使用 LangChain Python 集成 LiteLLM。"
+---
+
+> [LiteLLM](https://github.com/BerriAI/litellm) 是一个库，通过单一统一接口简化了对Anthropic、Azure、Huggingface、Replicate等众多LLM服务提供商的调用。
+
+## 安装与配置
+
+<CodeGroup>
+```bash pip
+pip install langchain-litellm
+```
+
+```bash uv
+uv add langchain-litellm
+```
+</CodeGroup>
+
+## 对话模型
+
+```python
+from langchain_litellm import ChatLiteLLM
+```
+```python
+from langchain_litellm import ChatLiteLLMRouter
+```
+
+请参考 [LiteLLM 对话模型指南](/langchain/oss/python/integrations/chat/litellm) 获取完整使用细节，包括流式输出、工具调用、结构化输出以及基于Gemini企业智能体平台的锚定功能。
+
+## 嵌入
+
+```python
+from langchain_litellm import LiteLLMEmbeddings
+```
+
+```python
+from langchain_litellm import LiteLLMEmbeddingsRouter
+```
+
+`LiteLLMEmbeddings` 支持通过单一统一接口在100+提供商间嵌入文本。所有配置均显式声明，无需环境变量。
+
+```python
+from langchain_litellm import LiteLLMEmbeddings
+
+embeddings = LiteLLMEmbeddings(
+    model="openai/text-embedding-3-small",
+    api_key="sk-...",
+)
+
+vectors = embeddings.embed_documents(["hello", "world"])
+query_vector = embeddings.embed_query("hello")
+```
+
+通过修改 `model` 可切换提供商。接口保持一致：
+
+```python
+# Cohere
+embeddings = LiteLLMEmbeddings(
+    model="cohere/embed-english-v3.0",
+    api_key="...",
+    document_input_type="search_document",
+    query_input_type="search_query",
+)
+
+# Azure OpenAI
+embeddings = LiteLLMEmbeddings(
+    model="azure/my-embedding-deployment",
+    api_key="...",
+    api_base="https://my-resource.openai.azure.com",
+    api_version="2024-02-01",
+)
+
+# Bedrock
+embeddings = LiteLLMEmbeddings(
+    model="bedrock/amazon.titan-embed-text-v1",
+)
+```
+
+跨多个相同模型部署进行负载均衡时，使用 `LiteLLMEmbeddingsRouter`：
+
+```python
+from litellm import Router
+from langchain_litellm import LiteLLMEmbeddingsRouter
+
+router = Router(model_list=[
+    {
+        "model_name": "text-embedding-3-small",
+        "litellm_params": {
+            "model": "openai/text-embedding-3-small",
+            "api_key": "sk-key1",
+        },
+    },
+    {
+        "model_name": "text-embedding-3-small",
+        "litellm_params": {
+            "model": "openai/text-embedding-3-small",
+            "api_key": "sk-key2",
+        },
+    },
+])
+
+embeddings = LiteLLMEmbeddingsRouter(router=router)
+```
+
+## 文档加载器
+
+```python
+from langchain_litellm import LiteLLMOCRLoader
+```
+
+`LiteLLMOCRLoader` 通过LiteLLM代理的OCR端点（如Azure Document Intelligence）加载数据文档。代理会处理所有提供商特定的认证和配置。
+
+```python
+from langchain_litellm import LiteLLMOCRLoader
+
+loader = LiteLLMOCRLoader(
+    proxy_base_url="http://localhost:4000",
+    api_key="my-bearer-token",
+    url_path="https://example.com/document.pdf",
+    model="azure-document",
+    mode="page",  # "page" = one Document per page; "single" = concatenate all pages
+)
+documents = loader.load()
+```
+
+支持异步加载数据：
+
+```python
+documents = await loader.aload()
+```
+
+---
+
+## API参考
+
+所有类和配置的详细文档请参考 @[langchain-litellm] API参考。
+
+| 类 | 描述 |
+| :--- | :--- |
+| @[ChatLiteLLM] | LiteLLM对话模型包装器 |
+| @[ChatLiteLLMRouter] | 基于路由器的负载均衡对话模型 |
+| @[LiteLLMEmbeddings] | 通过单一统一接口在100+提供商间嵌入文本 |
+| @[LiteLLMEmbeddingsRouter] | 跨部署负载均衡的嵌入路由器 |
+| @[LiteLLMOCRLoader] | 通过LiteLLM代理OCR端点的文档加载器 |
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/litellm.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/litellm.mdx) · 译文由 AI 生成，以英文原文为准。

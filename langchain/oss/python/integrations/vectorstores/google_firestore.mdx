@@ -1,0 +1,194 @@
+---
+title: "Google Firestore 集成"
+description: "使用 LangChain Python 与 Google firestore 向量存储集成。"
+integration:
+  name: Google firestore
+  pypi: langchain-google-firestore
+---
+
+> [Firestore](https://cloud.google.com/firestore) 是一个无服务器文档型数据库，可按需扩展以满足任何需求。扩展您的数据库应用以构建基于Firestore LangChain集成的AI驱动体验。
+
+本笔记本将讲解如何使用 [Firestore](https://cloud.google.com/firestore) 存储向量并通过 `FirestoreVectorStore` 类进行查询。
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/googleapis/langchain-google-firestore-python/blob/main/docs/vectorstores.ipynb)
+
+## 开始前
+
+运行本笔记本前需完成以下步骤：
+
+* [创建Google Cloud项目](https://developers.google.com/workspace/guides/create-project)
+* [启用Firestore API](https://console.cloud.google.com/flows/enableapi?apiid=firestore.googleapis.com)
+* [创建Firestore数据库](https://cloud.google.com/firestore/docs/manage-databases)
+
+确认本笔记本运行环境已接入数据库后，填写以下值并运行单元格，再执行示例脚本。
+
+```python
+# @markdown Please specify a source for demo purpose.
+COLLECTION_NAME = "test"  # @param {type:"CollectionReference"|"string"}
+```
+
+### 🦜🔗 库安装
+
+集成模块独立存在于 `langchain-google-firestore` 包中，需先安装。本笔记本还需安装 `langchain-google-genai` 以使用Google Generative AI嵌入功能。
+
+```python
+pip install -upgrade --quiet langchain-google-firestore langchain-google-vertexai
+```
+
+**Colab专用**：取消注释下方单元格以重启内核或使用重启按钮。对于Gemini企业智能体平台工作台，可通过顶部按钮重启终端。
+
+```python
+# # Automatically restart kernel after installs so that your environment can access the new packages
+# import IPython
+
+# app = IPython.Application.instance()
+# app.kernel.do_shutdown(True)
+```
+
+### ☁ 设置Google云项目
+
+在笔记本中配置Google云项目以访问云资源。
+
+若不知项目ID，请按以下步骤操作：
+
+* 运行 `gcloud config list`
+* 运行 `gcloud projects list`
+* 查看支持页面：[定位项目ID](https://support.google.com/googleapi/answer/7014113)
+
+```python
+# @markdown Please fill in the value below with your Google Cloud project ID and then run the cell.
+
+PROJECT_ID = "extensions-testing"  # @param {type:"string"}
+
+# Set the project id
+!gcloud config set project {PROJECT_ID}
+```
+
+### 🔐 认证
+
+以笔记本内登录的IAM用户身份对Google Cloud进行认证，以便访问云项目。
+
+若使用Colab运行笔记本：
+* 使用下方单元格进行认证
+若使用Gemini企业智能体平台工作台：
+* 查阅 [Gemini企业智能体平台工作台配置指南](https://github.com/GoogleCloudPlatform/generative-ai/tree/main/setup-env)
+
+```python
+from google.colab import auth
+
+auth.authenticate_user()
+```
+
+# 基础用法
+
+### 初始化FirestoreVectorStore
+
+`FirestoreVectorStore` 允许您在Firestore数据库中存储新向量。可存储来自任何模型的嵌入，包括Google Generative AI模型。
+
+```python
+from langchain_google_firestore import FirestoreVectorStore
+from langchain_google_vertexai import VertexAIEmbeddings
+
+embedding = VertexAIEmbeddings(
+    model_name="textembedding-gecko@latest",
+    project=PROJECT_ID,
+)
+
+# Sample data
+ids = ["apple", "banana", "orange"]
+fruits_texts = ['{"name": "apple"}', '{"name": "banana"}', '{"name": "orange"}']
+
+# Create a vector store
+vector_store = FirestoreVectorStore(
+    collection="fruits",
+    embedding=embedding,
+)
+
+# Add the fruits to the vector store
+vector_store.add_texts(fruits_texts, ids=ids)
+```
+
+通过 `from_texts` 和 `from_documents` 方法可一步完成初始化与向量添加。
+
+```python
+vector_store = FirestoreVectorStore.from_texts(
+    collection="fruits",
+    texts=fruits_texts,
+    embedding=embedding,
+)
+```
+
+```python
+from langchain_core.documents import Document
+
+fruits_docs = [Document(page_content=fruit) for fruit in fruits_texts]
+
+vector_store = FirestoreVectorStore.from_documents(
+    collection="fruits",
+    documents=fruits_docs,
+    embedding=embedding,
+)
+```
+
+### 删除向量
+
+使用 `delete` 方法可删除数据库中的向量文档。需提供要删除的文档ID，这将从数据库中永久删除该文档及其所有字段。
+
+```python
+vector_store.delete(ids)
+```
+
+### 更新向量
+
+更新向量与添加类似，使用 `add` 方法并通过文档ID和新的向量值进行更新。
+
+```python
+fruit_to_update = ['{"name": "apple","price": 12}']
+apple_id = "apple"
+
+vector_store.add_texts(fruit_to_update, ids=[apple_id])
+```
+
+## 相似度搜索
+
+使用 `FirestoreVectorStore` 可对存储的向量执行相似度搜索，适用于查找相似文档或文本。
+
+```python
+vector_store.similarity_search("I like fuji apples", k=3)
+```
+
+```python
+vector_store.max_marginal_relevance_search("fuji", 5)
+```
+
+通过 `filters` 参数可为搜索添加预过滤。此功能可用于按特定字段或值进行过滤。
+
+```python
+from google.cloud.firestore_v1.base_query import FieldFilter
+
+vector_store.max_marginal_relevance_search(
+    "fuji", 5, filters=FieldFilter("content", "==", "apple")
+)
+```
+
+### 自定义连接与认证
+
+```python
+from google.api_core.client_options import ClientOptions
+from google.cloud import firestore
+from langchain_google_firestore import FirestoreVectorStore
+
+client_options = ClientOptions()
+client = firestore.Client(client_options=client_options)
+
+# Create a vector store
+vector_store = FirestoreVectorStore(
+    collection="fruits",
+    embedding=embedding,
+    client=client,
+)
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/vectorstores/google_firestore.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/vectorstores/google_firestore.mdx) · 译文由 AI 生成，以英文原文为准。

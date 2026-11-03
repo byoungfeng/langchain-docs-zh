@@ -1,0 +1,143 @@
+---
+title: "Ollama 集成"
+description: "使用 LangChain Python 集成 Ollama LLM。"
+integration:
+  name: Ollama
+  pypi: langchain-ollama
+---
+
+<Warning>
+**您当前位于文档中关于使用Ollama模型作为文本生成模型的页面。许多流行的Ollama模型是[对话生成模型](/langchain/oss/langchain/models)。**
+
+您可能需要查看[此页面](/langchain/oss/python/integrations/chat/ollama/)。
+</Warning>
+
+本页面介绍如何使用LangChain与`Ollama`模型交互。
+
+## 安装
+
+```python
+# install package
+pip install -U langchain-ollama
+```
+
+## 配置
+
+首先按照[这些说明](https://github.com/ollama/ollama?tab=readme-ov-file#ollama)设置并运行本地Ollama实例：
+
+* [下载](https://ollama.ai/download)并安装Ollama到支持的操作系统平台（包括Windows Subsystem for Linux即WSL、macOS和Linux）
+  * macOS用户可通过Homebrew使用`brew install ollama`并启动`brew services start ollama`
+* 通过`ollama pull <name-of-model>`获取可用LLM模型
+  * 通过[模型库](https://ollama.ai/library)查看可用模型列表
+  * 例如`ollama pull llama3`
+* 此操作会下载模型的默认版本。通常默认指向最新且参数最少的模型
+
+> 在Mac上，模型将下载到`~/.ollama/models`
+>
+> 在Linux（或WSL）上，模型将存储于`/usr/share/ollama/.ollama/models`
+
+* 指定目标模型的精确版本`ollama pull vicuna:13b-v1.5-16k-q4_0`（查看[该实例中`Vicuna`](https://ollama.ai/library/vicuna/tags)模型的各类标签）
+* 使用`ollama list`查看已拉取的模型
+* 通过`ollama run <name-of-model>`在命令行直接与模型对话
+* 查阅[Ollama文档](https://github.com/ollama/ollama/tree/main/docs)获取更多命令。在终端运行`ollama help`可查看可用命令
+
+## 使用
+
+```python
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama.llms import OllamaLLM
+
+template = """Question: {question}
+
+Answer: Let's think step by step."""
+
+prompt = ChatPromptTemplate.from_template(template)
+
+model = OllamaLLM(model="llama3.1")
+
+chain = prompt | model
+
+chain.invoke({"question": "What is LangChain?"})
+```
+
+```text
+'To break down what LangChain is, let\'s analyze it step by step:\n\n1. **Break down the name**: "Lang" likely stands for "Language", suggesting that LangChain has something to do with language processing or AI-related tasks involving human languages.\n\n2. **Understanding the term "chain" in this context**: In technology and computing, particularly in the realm of artificial intelligence (AI) and machine learning (ML), a "chain" often refers to a series of processes linked together. This can imply that LangChain involves executing multiple tasks or functions in sequence.\n\n3. **Connection to AI/ML technologies**: Given its name and context, it\'s reasonable to infer that LangChain is involved in the field of natural language processing (NLP) or more broadly, artificial intelligence. NLP is an area within computer science concerned with the interaction between computers and humans in a human language.\n\n4. **Possible functions or services**: Considering the focus on languages and the potential for multiple linked processes, LangChain might offer various AI-driven functionalities such as:\n    - Text analysis (like sentiment analysis or text classification).\n    - Language translation.\n    - Chatbots or conversational interfaces.\n    - Content generation (e.g., articles, summaries).\n    - Dialogue management systems.\n\n5. **Conclusion**: Based on the name and analysis of its components, LangChain is likely a tool or framework for developing applications that involve complex interactions with human languages through AI and ML technologies. It possibly enables creating custom chatbots, natural language interfaces, text generators, or other applications that require intricate language understanding and processing capabilities.\n\nThis step-by-step breakdown indicates that LangChain is focused on leveraging AI to understand, process, and interact with human languages in a sophisticated manner, likely through multiple linked processes (the "chain" part).'
+```
+
+## 多模态
+
+Ollama支持多模态LLM，例如[baikllava](https://ollama.com/library/bakllava)和[llava](https://ollama.com/library/llava)。
+
+    ollama pull baikllava
+
+请确保更新Ollama至最新版本以支持多模态功能
+```python
+pip install pillow
+```
+
+```python
+import base64
+from io import BytesIO
+
+from IPython.display import HTML, display
+from PIL import Image
+
+
+def convert_to_base64(pil_image):
+    """
+    Convert PIL images to Base64 encoded strings
+
+    :param pil_image: PIL image
+    :return: Re-sized Base64 string
+    """
+
+    buffered = BytesIO()
+    pil_image.save(buffered, format="JPEG")  # You can change the format if needed
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return img_str
+
+
+def plt_img_base64(img_base64):
+    """
+    Display base64 encoded string as image
+
+    :param img_base64:  Base64 string
+    """
+    # Create an HTML img tag with the base64 string as the source
+    image_html = f'<img src="data:image/jpeg;base64,{img_base64}" />'
+    # Display the image by rendering the HTML
+    display(HTML(image_html))
+
+
+file_path = "../../../static/img/ollama_example_img.jpg"
+pil_image = Image.open(file_path)
+image_b64 = convert_to_base64(pil_image)
+plt_img_base64(image_b64)
+```
+
+```html
+<img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ..." />
+```
+
+```python
+from langchain_ollama import OllamaLLM
+
+llm = OllamaLLM(model="bakllava")
+
+llm_with_image_context = llm.bind(images=[image_b64])
+llm_with_image_context.invoke("What is the dollar based gross retention rate:")
+```
+
+```text
+'90%'
+```
+
+---
+
+## API参考
+
+要查看所有`ChatOllama`功能的详细文档和配置，请访问[API参考](https://reference.langchain.com/python/langchain-ollama/llms/OllamaLLM)。
+
+---
+
+> 官方原文：[src/oss/python/integrations/llms/ollama.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/llms/ollama.mdx) · 译文由 AI 生成，以英文原文为准。

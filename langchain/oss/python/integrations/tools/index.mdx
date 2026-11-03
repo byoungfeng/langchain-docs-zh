@@ -1,0 +1,201 @@
+---
+title: "工具集成"
+sidebarTitle: "工具和工具包"
+description: "工具是设计为被模型调用的实用程序：它们的输入设计为模型生成，输出设计为传递回模型。"
+---
+
+import IntegrationDownloads from '/langchain/snippets/oss/python-tools-downloads.mdx';
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+[工具](/langchain/oss/langchain/tools)是设计为被模型调用的实用程序：它们的输入设计为模型生成，输出设计为传递回模型。
+
+工具包是一组旨在一起使用的工具。
+
+<PythonIntegrationComponentMap active="tools" />
+
+## 搜索
+
+下表展示了执行某种形式在线搜索的工具：
+
+| 工具/工具包 | 免费/付费 | 返回数据 |
+|-------------|-----------|-------------|
+| [Amazon Bedrock AgentCore Web Search](/langchain/oss/python/integrations/tools/bedrock_agentcore_web_search) | 按使用付费 (AWS) | 标题, URL, 发布日期, 提取 |
+| [BrightData SERP](https://docs.brightdata.com/scraping-automation/serp-api/introduction) | 按成功请求付费 | URL, 提要, 标题, 搜索排名 |
+| [cloro](https://cloro.dev/docs) | 每月500免费信用额度, 无需信用卡 | URL, 提要, 标题, 答案 |
+| [ContextSearch](https://docs.context.dev) | 提供免费层级 | URL, 标题, 描述, 页面内容 |
+| [Crawleo](https://crawleo.dev/integrations/langchain) | 付费 | URL, 提要, Copilot 答案, 侧边栏, 标题, 发布日期, 网站链接, 页面内容 |
+| [CrustAPI](https://crustapi.com/docs) | 每月3,000免费信用额度, 无需信用卡 | URL, 标题, 提要, 地图, 新闻, 购物, 图片, 视频, 地点, 学术, 专利, LinkedIn |
+| [Diffbot](https://github.com/diffbot/langchain-diffbot) | 免费 | URL, 提要, 标题, 日期, 知识图谱 (组织, 新闻, 人物, 地点, 交易) |
+| [Exa Search](/langchain/oss/python/integrations/tools/exa_search) | 每月1,000次免费搜索 | URL, 作者, 标题, 发布日期 |
+| [Firecrawl Search](https://docs.firecrawl.dev/integrations/langchain) | 每月1,000个免费信用额度 | URL, 标题, 描述, 日期, 新闻, 图片 |
+| [Google Search](/langchain/oss/python/integrations/tools/google_search) | 付费 | URL, 提要, 标题 |
+| [iFlow Search](https://platform.iflow.cn/) | 付费 | URL, 标题, 提要, 日期 |
+| [Keenable](https://docs.keenable.ai/integrations/langchain) | 提供无密钥免费层级 | 标题, URL, 提要 (页面文本), 发布日期, 索引日期; 页面markdown用于抓取 |
+| [Linkup Search](https://github.com/LinkupPlatform/langchain-linkup) | 每月2,000次免费搜索 | URL, 内容, 来源 |
+| [Octen](https://docs.octen.ai) | 付费 | 标题, URL, 高亮, 作者, 发布时间 |
+| [Mixpeek](https://docs.mixpeek.com/agent-integrations/langchain) | 提供免费层级 | 多模态搜索结果 (视频, 图片, 音频, 文档) |
+| [Nia Toolkit](https://github.com/nozomio-labs/nia-langchain) | 提供免费层级 | 代码, 文档, 元数据, 来源 |
+| [Nimble Search](https://docs.nimbleway.com/integrations/connectors/langchain) | 提供免费试用 | URL, 内容, 标题 |
+| [Nimble Web Search Agents](https://docs.nimbleway.com/integrations/connectors/langchain#agent-api-v2-web-search-agents) | 提供免费试用 | 研究答案, 来源 |
+| [Parallel Search](/langchain/oss/python/integrations/tools/parallel_search) | 付费 | URL, 标题, 摘要 |
+| [Perplexity Search](/langchain/oss/python/integrations/tools/perplexity_search) | 付费 (含每月免费层级) | URL, 标题, 提要, 日期, 最后更新 |
+| [Search1API Search](https://www.search1api.com/docs/integrations/langchain#search) | 注册时100个免费信用额度, 无需信用卡 | URL, 标题, 提要, 内容, 图片 |
+| [SearchApi](https://www.searchapi.io/docs/google) | 每月1,000次免费搜索 | URL, 提要, 标题, 答案框, 知识图谱 |
+| [Scavio](https://scavio.dev/docs/langchain) | 开始时50个免费信用额度 | URL, 标题, 提要, 知识图谱, 产品, 视频, 文本记录, 社交帖子和个人资料, 工作职位和薪资, 房地产列表, 旅行和酒店库存, 应用商店列表, 广告库创意, 软件评论, 本地企业数据, 监管文件, 提取的页面内容 |
+| [TalorData SERP](https://docs.talordata.com/serp-api/integration/sdk-integration/how-to-set-up-talordata-with-langchain) | 付费 | 标题, URL, 提要, 位置, 知识图谱, 答案框, AI 概览 |
+| [Tavily Search](/langchain/oss/python/integrations/tools/tavily_search) | 每月1,000次免费搜索 | URL, 内容, 标题, 图片, 答案 |
+| [Webz News Search](https://docs.webz.io/docs/webz/news-search-api-mcp) | $5免费/月 (~1,400次搜索), 然后按需付费 | 标题, URL, 主图像, 发布日期, 内容摘要, 分数, 情感, 主题, 人物, 组织, 地点, 股票代码, 政治偏见, 域排名 |
+| [Apify](https://docs.apify.com/integrations/langchain) | 免费层级, 按使用付费 (因执行者而异) | 执行者输出 (因执行者而异) |
+| [Xpoz](https://www.xpoz.ai/docs) | 提供免费层级 | 帖子, 用户资料, 评论, 参与度指标 (Twitter/X, Instagram, Reddit, TikTok) |
+| [You.com Search](https://you.com/docs/integrations/langchain) | 注册时100美元信用额度 | URL, 标题, 页面内容 |
+| [Querit](https://querit.com/docs) | 注册时每月1,000次免费搜索 | URL, 提要, 标题, 页面年龄, 网站名称, 网站图标 |
+| [SerpApi Search Tools](https://serpapi.github.io/serpapi-search-tools-python/docs/sdk-examples/langchain.html) | 每月250次免费搜索 | URL, 标题, 提要, 答案框, 知识图谱, AI 概览 |
+
+## 代码解释器
+
+下表展示了可用作代码解释器的工具：
+
+| 工具/工具包 | 支持的语言 | 沙盒有效期 | 支持文件上传 | 返回类型 | 支持自托管 |
+|-------------|-------------------|-----------------|---------------------|--------------|-------------------|
+| [Amazon Bedrock AgentCore Code Interpreter](/langchain/oss/python/integrations/tools/bedrock_agentcore_code_interpreter) | Python, JavaScript, TypeScript | 可配置 (最长8小时) | ✅ | 文本, 图片, 文件 | ❌ |
+| [Azure Container Apps dynamic sessions](/langchain/oss/python/integrations/tools/azure_dynamic_sessions) | Python | 1 小时 | ✅ | 文本, 图片 | ❌ |
+| [Capsule Code Interpreter](https://github.com/mavdol/langchain-capsule) | Python, JavaScript | 无状态或基于会话 | ✅ (REPL工具) | 文本 | ✅ |
+
+## 生产力
+
+下表展示了可用于自动化生产力工具任务的工具：
+
+| 工具/工具包 | 定价 |
+|-------------|---------|
+| [Gmail Toolkit](/langchain/oss/python/integrations/tools/google_gmail) | 免费, 每用户每秒最多250信用额度 |
+| [GoodSender Toolkit](https://goodsender.com/docs) | 免费层级 (每月100,000封邮件), 无需信用卡 |
+| [AgentLine Toolkit](https://docs.agentline.cloud) | 一次性每个号码$2, 每分钟通话$0.10, 按需付费 |
+| [AgentMail Toolkit](https://docs.agentmail.to/) | 提供免费层级, 之后为[按需付费定价](https://agentmail.to) |
+| [AgenticEmail Toolkit](https://agenticemail.dev/docs) | 提供免费层级, 之后为[付费计划](https://agenticemail.dev/pricing) |
+| [AgentPhone Toolkit](https://docs.agentphone.to) | 提供免费层级, 之后为[按需付费定价](https://agentphone.to) |
+| [e2a](https://e2a.dev) | 提供免费层级, 之后为[固定费率付费计划](https://e2a.dev) |
+| [Pidgeon Toolkit](https://pidgeon.ai/docs/langchain) | 免费层级 (3个收件箱, 每月3,000封发送邮件), 之后为[付费计划](https://pidgeon.ai/pricing) |
+| [ReplyLayer Toolkit](https://replylayer.ai/docs/guides/langchain) | 公共测试版: 免费沙盒试用, 之后为[付费层级](https://replylayer.ai/pricing) |
+| [Verifly](https://verifly.email/docs) | 提供免费层级 |
+| [Simplepages Toolkit](https://simplepages.ai/mcp) | 提供免费层级 (草稿页面), 之后为[付费计划](https://simplepages.ai/pricing) 以发布 |
+
+## 网页浏览
+
+下表展示了可用于自动化网页浏览器任务的工具：
+
+| 工具/工具包 | 定价 | 支持与浏览器交互 |
+|-------------|---------|---------------------------------------|
+| [AgentQL 工具包](https://docs.agentql.com/) | 免费试用，之后有按量付费和固定费率计划 | ✅ |
+| [Amazon Bedrock AgentCore 浏览器](/langchain/oss/python/integrations/tools/bedrock_agentcore_browser) | 按次付费 (AWS) | ✅ |
+| [AproxPay](https://github.com/aproxpay/langchain-aproxpay) | 通过 x402 按次付费 (Base 上的 USDC)；无需注册 | ❌ (fetch + CONNECT 会话传递) |
+| [Bowmark](https://bowmark.ai/docs/langchain) | 每月 10 美元免费，之后按量付费 | ❌ |
+| [BrightData 浏览器 API](https://docs.brightdata.com/scraping-automation/scraping-browser/introduction) | 按量付费，2 美元试用额度 | ✅ |
+| [BrightData Scraper Studio](https://docs.brightdata.com/datasets/scraper-studio/introduction) | 每月 5,000 免费额度，之后按量付费 | ❌ |
+| [BrightData Unlocker](https://docs.brightdata.com/scraping-automation/web-unlocker/introduction) | 按量付费 | ❌ |
+| [BrightData Web Scraper API](https://docs.brightdata.com/datasets/scrapers/overview) | 按量付费 | ❌ |
+| [Browser Use](/langchain/oss/python/integrations/providers/browser_use) | 按量付费 | ✅ |
+| [Browserless](https://browserless.io) | 免费层级，之后有按量付费计划 | ✅ |
+| [Context.dev](https://docs.context.dev) | 提供免费层级 | ❌ |
+| [Stagehand](/langchain/oss/python/integrations/tools/stagehand) | 开源 / Browserbase 按量付费 | ✅ |
+| [Ceki](https://ceki.me) | 自我模式免费；市场 0.01 美元/分钟 USDC | ✅ |
+| [ClawFetch](https://github.com/clawfetch/integrations#readme) | 通过 x402 按次付费 (Base 上的 USDC，0.001 美元 fetch 到 0.02 美元 research)；无需注册 | ❌ |
+| [Firecrawl](https://docs.firecrawl.dev) | 提供免费层级 | ❌ |
+| [Hyperbrowser 浏览器代理工具](https://docs.hyperbrowser.ai/) | 免费试用，之后有固定费率计划、预付额度 | ✅ |
+| [Hyperbrowser 网页抓取工具](https://docs.hyperbrowser.ai/) | 免费试用，之后有固定费率计划、预付额度 | ❌ |
+| [Manifest](https://omfang.io/manifest-docs) | 提供免费层级 | ❌ |
+| [MrScraper](https://docs.mrscraper.com) | 付费 | ❌ |
+| [W2A](https://w2a-protocol.org/docs) | 免费 (公共端点) | ❌ |
+| [Nimble Extract](https://docs.nimbleway.com/integrations/connectors/langchain) | 提供免费试用 | ❌ |
+| [Nimble Extract Templates](https://docs.nimbleway.com/integrations/connectors/langchain#extract-templates) | 提供免费试用 | ❌ |
+| [Nimble Crawl and Map](https://docs.nimbleway.com/integrations/connectors/langchain#crawl-and-map) | 提供免费试用 | ❌ |
+| [NodeProxy](https://github.com/pgalyen1987/NodeProxy/tree/main/integrations) | ~0.002 美元/解析 (Base 上的 x402) | ❌ |
+| [Oxylabs 网页抓取 API](https://github.com/oxylabs/langchain-oxylabs) | 免费试用，之后有固定费率计划、预付额度 | ❌ |
+| [ProxyClaw](https://proxyclaw.ai/docs) | 提供免费层级 | ❌ |
+| [ProxyHat](https://docs.proxyhat.com) | 付费 | ❌ |
+| [Skim](https://skim402.com/docs) | 按次付费 ($0.002/读取，Base 上的 USDC) | ❌ |
+| [Search1API Crawl](https://www.search1api.com/docs/integrations/langchain#crawl) | 注册时 100 免费额度，无需信用卡 | ❌ |
+| [Spidra](https://docs.spidra.io) | 提供免费试用 | ❌ |
+
+## 数据库
+
+下表展示了可用于自动化数据库任务的工具：
+
+| 工具/工具包 | 允许的操作 |
+|-------------|-------------------|
+| [MCP 工具箱](/langchain/oss/python/integrations/tools/mcp_toolbox) | 任何 SQL 操作 |
+| [Drasi 工具包](https://github.com/drasi-project/langchain-drasi) | 实时数据库变更检测 |
+| [Sail SQL 工具包](https://docs.lakesail.com/sail/latest/guide/integrations/langchain.html) | SQL 查询、模式列表，以及与 Sail (Spark Connect) 对比查询 |
+| [Stardog](https://github.com/stardog-union/stardog-langchain) | SPARQL SELECT 和模式内省 |
+
+## 金融
+
+下表展示了可用于执行支付、购买等金融交易的工具：
+
+| 工具/工具包 | 定价 | 功能 |
+|-------------|---------|--------------|
+| [Ampersend](https://docs.ampersend.ai) | 付费 | 支付并使用远程 AI 智能体服务，自动处理 x402 支付。 |
+| [Ausca](https://github.com/auscahq/ausca/tree/main/python/langchain-ausca) | 0.10 到 1.35 美元/调用 (x402) | 按调用付费，用于文档 OCR、文档分析、媒体转录、浏览器会话和智能体收件箱，有硬性每调用美元上限，无需 API 密钥；工具工厂可对任何 x402 v2 资源工作。 |
+| [FlipCoin](https://github.com/flipcoin-fun/flipcoin-langchain) | 免费 | 通过 LMSR AMM 或 CLOB 订单簿在预测市场交易 YES/NO 股份。 |
+| [LatAm Synth](https://github.com/jmendozapuche/langchain-latam-synth) | Apify 免费层级，之后按量付费 | 为拉丁美洲金融科技应用生成隐私安全的合成金融用户、储蓄目标和交易。 |
+| [Axiora](https://axiora.dev/docs) | 免费API密钥 | 从 EDINET 提交中获取日本上市公司的财务数据、健康评分、筛选和英文文件翻译。 |
+| [Delegare](https://docs.delegare.dev) | 付费 | 通过 AP2 委托授权和执行多轨支付，内置预算保护措施。 |
+| [DexPaprika](https://docs.dexpaprika.com) | 免费 (无密钥) | 搜索代币、池和 DEX；读取代币市场数据、池流动性以及跨链 DEX 的 OHLCV 价格历史。 |
+| [PaySafe](https://paysafe-agent.com) | 前 100 个 API 调用免费 | 基于 x402 的防火墙，自动进行来源标记以检测提示词注入。 |
+| [Privy](/langchain/oss/python/integrations/tools/privy) | 免费 | 创建具有可配置权限的钱包，并快速执行交易。 |
+| [Toolstem](https://toolstem.com) | 0.01 美元/调用 (x402) | 金融情报和 SEC EDGAR 工具，Base 上的按调用 x402 微支付。 |
+| [Uniswap V2](https://github.com/Conrad-sudo/langchain-uniswap-v2) | 免费 | 获取实时 Uniswap V2 交换报价，并为交换、批准和流动性准备未签名交易，在任何 EVM 链上。 |
+| [ERC20](https://github.com/Conrad-sudo/langchain-erc20) | 免费 | 读取 ERC20 平衡、授权和元数据，并准备转账、授权和原生包装/解包装作为 EOA 或智能合约钱包的执行计划，在任何 EVM 链上。 |
+
+## AI 工作流优化
+
+以下工具通过减少 Token 使用和强制执行结构化 SOP 来优化 AI 智能体工作流：
+
+| 工具/工具包 | 定价 | 关键特性 |
+|-------------|---------|---|
+| [HuangtingFlux](https://huangtingflux.com/integrations/langchain) | 免费 (公共 MCP 服务器) | 通过 3 阶段 SOP 减少 40% Token：输入压缩、滚动摘要、输出精炼 |
+| [ZeroGPU](https://docs.zerogpu.ai) | 按量付费 | 将分类、摘要、提取和 PII 红移卸载到专用的微型模型 |
+
+## 集成平台
+
+以下平台通过统一界面提供对多个工具和服务的访问：
+
+| 工具/工具包 | 集成数量 | 定价 | 关键特性 |
+|-------------|----------------------|---------|--------------|
+| [Composio](/langchain/oss/python/integrations/tools/composio) | 500+ | 提供免费层级 | OAuth 处理、事件驱动工作流、多用户支持 |
+| [Scalekit](https://docs.scalekit.com/agentkit/quickstart/) | 500+ | 提供免费层级 | 委托 OAuth、Token 保险库、多用户支持、LangSmith 追踪 |
+
+## 安全
+
+下表展示了可用于安全相关任务的工具：
+
+| 工具/工具包 | 定价 | 功能 |
+|-------------|---------|--------------|
+| [URLCheck](https://urlcheck.dev) | 每日100免费请求 | 在智能体导航前验证URL安全性。支持可选的意图感知风险分析。返回可操作的访问指令（允许/拒绝/稍后重试）。 |
+| [Bidda](https://bidda.com/developers) | 免费发现层级 | 基于原始来源引用的、经过来源验证的监管和合规情报查询。 |
+| [AI Identity](https://ai-identity.co/docs) | 提供免费层级 | 每个智能体的加密API密钥、范围策略执行，以及通过工具和LLM调用前端的网关进行防篡改审计日志记录。 |
+| [Aidress](https://aidress.ai) | 提供无密钥免费层级 | 在委派工作或转移价值前验证对方智能体的信任评分、能力和交易历史。按能力发现，并提供凭证密钥发行和轮换。 |
+| [RelayShield](https://api.relayshield.net/developers) | 付费 | 在智能体执行高影响操作前进行MCP服务器注册风险和提示词注入违规检查。 |
+| [SidClaw](https://docs.sidclaw.com/docs/integrations/langchain) | 提供免费托管层级 | LangChain工具调用的策略评估、人工审批工作流和防篡改审计跟踪。 |
+| [Tonic Textual](https://textual.tonic.ai) | 需要账户 | 在文本、JSON、HTML和文件中检测、提取、合成或标记个人身份信息（PII）。 |
+| [ERC-8004](https://github.com/Conrad-sudo/langchain-erc8004) | 免费 | 在委派工作给ERC-8004智能体前进行验证：验证其链上身份与发布的注册文件是否一致，读取归因于命名评审者的声誉反馈，并准备注册写入作为执行计划。 |
+| [Fizzl](https://fizzl.eu/agents/python/) | 免费快速检查；完整检查每调用0.01–0.02美元（x402） | 在智能体签署前检查交易、代币批准或签名（带原因的绿色/橙色/红色， plus 交易模拟），在购买代币前检查代币，检查钱包的开放批准，以及在支付付费x402端点前检查端点。 |
+
+## 媒体生成
+
+下表显示了生成视频、图像或音频资产的工具：
+
+| 工具/工具包 | 定价 | 功能 |
+|-------------|---------|--------------|
+| [Magic Hour](https://docs.magichour.ai) | 免费层级（400信用点 + 每天100） | 文本到视频、图像到视频和图像生成，使用Sora 2、Veo 3.1、Kling 3.0、WAN 2.2、GPT-image、Nano Banana Pro。同步和异步，返回URL或本地下载。 |
+
+## 所有工具和工具包
+
+<IntegrationDownloads />
+
+<Info>
+    如果您想贡献集成，请参阅 [贡献集成](/langchain/oss/contributing/integrations-langchain)。
+</Info>
+
+---
+
+> 官方原文：[src/oss/python/integrations/tools/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/tools/index.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,96 @@
+---
+title: "Perplexity 集成"
+description: "使用 LangChain Python 集成 Perplexity。"
+---
+
+>[困惑度](https://www.perplexity.ai/pro)是最强大的互联网搜索方式
+>拥有无限的 Pro 搜索、升级的 AI 模型、无限的文件上传、图像生成和 API 信用。
+>
+>您可以查看[可用模型列表](https://docs.perplexity.ai/getting-started/models)。
+
+## 安装和设置
+
+安装 Perplexity x LangChain 集成包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-perplexity
+```
+
+```bash uv
+uv add langchain-perplexity
+```
+</CodeGroup>
+
+从 [Perplexity API 密钥控制面板](https://www.perplexity.ai/account/api/keys) 获取您的 API 密钥，并将其设置为 `PERPLEXITY_API_KEY`（或 `PPLX_API_KEY`）环境变量。有关更多详细信息，请参阅 [Perplexity 入门指南](https://docs.perplexity.ai/docs/getting-started)。
+
+## 对话模型
+
+查看各种 [Perplexity 使用示例](/langchain/oss/python/integrations/chat/perplexity)。
+
+```python
+from langchain_perplexity import ChatPerplexity
+```
+
+`ChatPerplexity` 还可以通过传递 `use_responses_api=True`（或通过传递 `tools=[{"type": "web_search"}]`，它会自动启用）来针对 [Perplexity 智能体 API](https://docs.perplexity.ai/api-reference/agent-api)。有关详细信息和示例，请参阅对话页面上的 [智能体 API 支持](/langchain/oss/python/integrations/chat/perplexity#智能体-api-支持（use_responses_api）)。
+
+## 检索器
+
+您可以使用 [`PerplexitySearchRetriever`](/langchain/oss/python/integrations/retrievers/perplexity_search) 从 [Perplexity 搜索 API](https://docs.perplexity.ai/docs/search/quickstart) 获取网络搜索结果，作为 @[`Document`] 对象在标准检索管道中。
+
+查看 [使用示例](/langchain/oss/python/integrations/retrievers/perplexity_search)。
+
+```python
+from langchain_perplexity import PerplexitySearchRetriever
+```
+
+## 工具
+
+您可以将 Perplexity 作为代理工具使用，以使您的智能体能够访问 Perplexity 搜索 API。
+
+查看 [使用示例](/langchain/oss/python/integrations/tools/perplexity_search)。
+
+### PerplexitySearchResults
+
+一个查询 Perplexity 搜索 API 并返回结果 JSON 数组的工具（标题、URL、片段、日期、最后更新）。
+
+```python
+from langchain_perplexity import PerplexitySearchResults
+```
+
+## 嵌入模型
+
+您可以使用 [`PerplexityEmbeddings`](/langchain/oss/python/integrations/embeddings/perplexity) 通过 [Perplexity 嵌入 API](https://docs.perplexity.ai/api-reference/embeddings-post) 生成嵌入。
+
+查看 [使用示例](/langchain/oss/python/integrations/embeddings/perplexity)。
+
+```python
+from langchain_perplexity import PerplexityEmbeddings
+```
+
+## 深度智能体代码
+
+将 Perplexity 作为 [深度智能体代码](/langchain/oss/deepagents/code/providers) 的一流提供者使用。
+
+使用 Perplexity 附加功能安装深度智能体代码：
+
+<CodeGroup>
+```bash uv
+uv tool install 'deepagents-code[perplexity]'
+```
+</CodeGroup>
+
+然后设置 `PERPLEXITY_API_KEY`，并在交互式 `/model` 开关器或您的配置中用 `perplexity:` 前缀引用 Perplexity 模型（例如 `perplexity:sonar-pro`）。
+
+## 组件参考
+
+| 类 | 抽象 | 导入路径 | 描述 |
+|-------|-------------|-------------|-------------|
+| `ChatPerplexity` | 对话模型 | `from langchain_perplexity import ChatPerplexity` | 包装 Perplexity API 以进行有根据的对话补全的对话模型。 |
+| `PerplexitySearchRetriever` | 检索器 | `from langchain_perplexity import PerplexitySearchRetriever` | 从 Perplexity 搜索 API 返回 `Document` 对象的检索器。 |
+| `PerplexitySearchResults` | 工具 | `from langchain_perplexity import PerplexitySearchResults` | 返回 Perplexity 搜索 API 结果作为 JSON 数组的代理工具。 |
+| `PerplexityEmbeddings` | 嵌入 | `from langchain_perplexity import PerplexityEmbeddings` | 包装 Perplexity 嵌入 API 的嵌入模型。 |
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/perplexity.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/perplexity.mdx) · 译文由 AI 生成，以英文原文为准。

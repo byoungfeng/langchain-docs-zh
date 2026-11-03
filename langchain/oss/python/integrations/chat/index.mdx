@@ -1,0 +1,55 @@
+---
+title: "Chat模型集成"
+sidebarTitle: "Chat模型"
+mode: wide
+description: "使用 LangChain Python 集成对话模型。"
+---
+
+import ChatDownloads from '/langchain/snippets/oss/python-chat-downloads.mdx';
+import ChatFeatured from '/langchain/snippets/oss/python-chat-featured.mdx';
+import { PythonIntegrationComponentMap } from '/langchain/snippets/oss/python-integration-component-map.tsx';
+
+[Chat models](/langchain/oss/langchain/models)是使用消息序列[消息](/langchain/oss/langchain/messages)作为输入并返回消息作为输出 <Tooltip tip="Older models that do not follow the chat model interface and instead use an interface that takes a string as input and returns a string as output. These models typically do not include the prefix 'Chat' in their name or include 'LLM' as a suffix.">(与传统纯文本LLM不同)</Tooltip>。
+
+<PythonIntegrationComponentMap active="chat" />
+
+## 精选模型
+
+<Info>
+    **虽然这些 LangChain 类支持所指出的高级功能**，但您可能需要查阅特定提供商的文档，了解哪些托管模型或后端支持该功能。
+</Info>
+
+<ChatFeatured />
+
+See the [full list of chat model integrations](#所有对话模型) below for more options.
+
+## 路由器与代理
+
+路由器和代理让您通过单一 API 和凭据访问多个提供商的模型。它们可以简化计费、让您在不更换集成的情况下切换模型，并提供自动回退等功能。
+
+| Provider | Integration | Description |
+|-|-|-|
+| [OpenRouter](https://openrouter.ai/) | [`ChatOpenRouter`](/langchain/oss/python/integrations/chat/openrouter) | 统一访问OpenAI、Anthropic、Google、Meta等模型的接口 |
+| [LiteLLM](https://www.litellm.ai/) | [`ChatLiteLLMRouter`](/langchain/oss/python/integrations/chat/litellm) | 提供OpenAI、Anthropic、Azure、Hugging Face等模型的统一接口及路由回退 |
+
+## Chat Completions API
+
+某些模型供应商提供与OpenAI [Chat Completions API](https://platform.openai.com/docs/api-reference/chat)兼容的端点。此时，您可以使用[`ChatOpenAI`](/langchain/oss/python/integrations/chat/openai)配合自定义 `base_url` 连接到这些端点实现基础聊天功能。
+
+<Warning>
+    `ChatOpenAI`仅针对[官方OpenAI API规范](https://github.com/openai/openai-openapi)。第三方供应商的非标准响应字段（如 `reasoning_content`、`reasoning`、`reasoning_details`）**不会被提取或保留**。如需访问非标准功能，请使用供应商专用包。
+
+    例如，OpenRouter有专门的LangChain集成。请参考[`ChatOpenRouter`指南](/langchain/oss/python/integrations/chat/openrouter)进行配置和使用。
+</Warning>
+
+## 所有对话模型
+
+<ChatDownloads />
+
+<Info>
+    如需贡献集成，请参考[贡献集成](/langchain/oss/contributing/overview#build-a-new-integration)。
+</Info>
+
+---
+
+> 官方原文：[src/oss/python/integrations/chat/index.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/chat/index.mdx) · 译文由 AI 生成，以英文原文为准。

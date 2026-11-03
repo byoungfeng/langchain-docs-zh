@@ -1,0 +1,250 @@
+---
+title: "连接"
+description: "连接生命周期、多服务器支持、部署扩展、协议时代及MCP缓存功能在LangChain中实现。"
+---
+
+import McpLifecycleShortPy from '/langchain/snippets/code-samples/mcp-lifecycle-short-py.mdx';
+import McpGraphFactoryPy from '/langchain/snippets/code-samples/mcp-graph-factory-py.mdx';
+import McpSharedPoolPy from '/langchain/snippets/code-samples/mcp-shared-pool-py.mdx';
+import McpMultiServerPy from '/langchain/snippets/code-samples/mcp-multi-server-py.mdx';
+import McpClientGroupPy from '/langchain/snippets/code-samples/mcp-client-group-py.mdx';
+import McpProtocolErasPy from '/langchain/snippets/code-samples/mcp-protocol-eras-py.mdx';
+import McpLifecycleShortJs from '/langchain/snippets/code-samples/mcp-lifecycle-short-js.mdx';
+import McpMultiServerJs from '/langchain/snippets/code-samples/mcp-multi-server-js.mdx';
+import McpSharedAdapterJs from '/langchain/snippets/code-samples/mcp-shared-adapter-js.mdx';
+import McpProtocolErasJs from '/langchain/snippets/code-samples/mcp-protocol-eras-js.mdx';
+
+:::python
+<Note>
+`langchain.mcp` 命名空间需要 `langchain[mcp]>=1.4.0` 并处于 Beta 版本。API 可能会变更。
+</Note>
+
+@[`MCPAdapter`] 打开 MCP 连接、发现工具，并返回智能体可以调用的 LangChain 工具。你如何传递服务器以及保持适配器打开的时间取决于你的应用程序的架构。连接本身是 FastMCP 的；本页面涵盖 LangChain 模式，并链接到 FastMCP 以获取传输和客户端详细信息。
+
+除非你连接到多个服务器或部署许多并发运行，否则请优先使用 [默认生命周期](#连接生命周期)。关于单个目标可以是什么（URL、脚本路径、进程内服务器），请参阅 [传输](/langchain/oss/langchain/mcp#传输)。
+:::
+
+:::js
+@[`MCPAdapter`] 发现 MCP 工具并保持它们的连接打开，以便你的智能体可以在调用之间重用它们。使用 `listTools()` 或 `listToolsets()` 发现工具，并在你的应用程序完成使用它们时关闭适配器。
+
+选择保持适配器打开的时间：
+
+| 情况 | 模式 | 前往 |
+| --- | --- | --- |
+| 脚本或智能体调用 | 创建适配器，运行智能体，然后在 `finally` 中关闭 | [连接生命周期](#连接生命周期) |
+| 长寿命工作进程 | 重用一个适配器并在关闭期间关闭它 | [扩展部署](#扩展部署) |
+
+有关每个服务器的连接选项，请参阅 [传输](/langchain/oss/langchain/mcp#传输)。
+:::
+
+:::python
+## 选择模式
+
+从每个表格中选择一行。服务器架构和连接生命周期是独立的；任何架构都可以与任何生命周期配合使用。
+
+**服务器架构**
+
+| 如果你需要… | 使用 | 前往 |
+| --- | --- | --- |
+| 一个服务器 | 一个 URL、`Path` 或进程内目标 | [传输](/langchain/oss/langchain/mcp#传输) |
+| 一个连接后面是多个服务器 | 一个 `MCPConfig` 字典 | [MCPConfig](#使用-mcpconfig-的一个聚合连接) |
+| 具有单独认证、协议时代或池的多个服务器 | 一个 [`ClientGroup`](https://gofastmcp.com/clients/client-groups) | [ClientGroup](#独立连接使用-clientgroup) |
+
+**连接生命周期**
+
+| 情况 | 模式 | 前往 |
+| --- | --- | --- |
+| 脚本、笔记本或大多数智能体 | 在 `async with` 内部发现，然后退出 | [连接生命周期](#连接生命周期) |
+| 在一个运行中的多个工具调用之间保持一个会话 | 在智能体调用周围保持适配器打开 | [每个调用一个会话](#每个调用一个会话) |
+| 部署中的许多并发运行 | 每个运行发现；重用 [共享池](#共享连接池) 和 [缓存](#缓存) | [扩展部署](#扩展部署) |
+:::
+
+## 连接生命周期
+
+:::python
+@[`MCPAdapter`] 是一个异步上下文管理器。进入它连接底层客户端；退出它释放连接。发现发生在上下文中，但返回的工具持有客户端，因此它们在上下文退出后仍然可调用。
+
+要发现工具并构建智能体（默认模式）：
+
+<McpLifecycleShortPy />
+
+你不需要为智能体的整个生命周期保持适配器打开。除非你 [保持会话打开](#每个调用一个会话) 或 [扩展部署](#扩展部署)，否则请优先使用此模式。
+
+### 每个调用一个会话
+
+@[`MCPAdapter`] 返回的工具是可重入的：每次调用工具时，它都会打开客户端、运行 MCP 调用并释放它，无论是否在其他地方持有连接。因此，单个智能体运行为每个工具调用打开一个会话并在调用返回时关闭它，而不是在整个运行中保持会话打开。这可以防止长时间运行的智能体在工具调用之间固定空闲连接，这也是为什么工具在发现上下文退出后仍然可调用的原因。
+
+如果你希望跨多个调用保持会话打开，请在调用智能体时保持适配器的上下文打开。可重入客户端会重用现有连接而不是打开第二个连接。
+:::
+
+:::js
+构建适配器会验证其配置而不会打开连接。`listTools()`、`listToolsets()`、`getClient()` 和资源方法在运行发现时连接。在智能体使用那些工具时保持适配器打开。
+
+要发现工具、运行智能体并释放连接，将你的 MCP 服务器的 HTTP URL 传递给 `runAgent`：
+
+<McpLifecycleShortJs />
+
+`close()` 中止正在进行的适配器工作、关闭其连接并清除其缓存。你可以再次调用 `listTools()` 以打开新的连接，但使用新返回的工具。之前返回的工具保留其关闭的客户端。
+:::
+
+## 多个服务器
+
+:::python
+要给一个智能体来自多个服务器的工具，选择 `MCPConfig` 当单个聚合连接足够时，或选择 `ClientGroup` 当每个服务器需要自己的连接（不同的 [协议时代](#协议时代)、[每服务器认证](/langchain/oss/langchain/mcp/auth#按服务器认证) 或为每个客户端配置的 [共享池](#共享连接池)）时。
+
+### 使用 `MCPConfig` 的一个聚合连接
+
+给适配器一个 `MCPConfig` 字典以连接在单个聚合端点后面的多个服务器。FastMCP 会将每个工具前缀为其配置键，因此两个暴露相同工具名称的服务器在传递给模型的列表中仍然可区分：
+
+<McpMultiServerPy />
+
+每个后端都是独立寻址的，因此一个舰队可以混合传输：一个服务器通过 stdio，另一个通过 HTTP。一个 `MCPConfig` 舰队在所有后端之间共享一个协商好的 [协议时代](#协议时代)，不过：添加一个仅限旧版服务器，整个舰队都会降级到旧版时代。
+
+### 独立连接使用 `ClientGroup`
+
+为了使每个服务器都使用独立的连接，传递一个 [`ClientGroup`](https://gofastmcp.com/clients/client-groups)。每个成员都保持其协商的协议版本、认证和处理器，并且组会将每个调用路由回声明该工具的客户。这就是让一个传统服务器和一个现代服务器可以并排运行的原因，并且它以相同的方式命名工具，因此跨服务器的相同工具名称不会发生冲突：
+
+<McpClientGroupPy />
+:::
+
+:::js
+`servers` 中的每个命名条目都获得自己的连接、认证和 [协议模式](#协议时代)。一个适配器可以连接到 HTTP 服务器和 stdio 服务器。
+
+为了从这两种传输方式中发现工具，将日历服务器的 HTTP URL 和文件服务器的脚本路径传递给 `listServerTools`：
+
+<McpMultiServerJs />
+
+`listToolsets()` 按服务器名称对工具进行分组。`listTools()` 返回一个数组；传递服务器名称或名称数组以选择它返回哪些工具。选择会过滤结果，但发现仍然会联系所有配置的服务器。未选择服务器的失败可能会使调用失败。
+
+默认情况下，适配器会以前缀服务器名称为工具名称，例如 `calendar_search` 和 `files_search`。将 `prefixToolNameWithServerName: false` 设置为保持原始名称。`listTools()` 如果其选择工具包含重复名称，则会抛出异常。
+
+OpenAI 和 Anthropic 在工具名称中只接受字母、数字、`_` 和 `-`（`^[a-zA-Z0-9_-]+$`），OpenAI 最多 64 个字符，Anthropic 最多 128 个字符。适配器不会重命名破坏这些限制的前缀名称，因此请保持服务器名称简短且不包含点和空格。
+
+在顶层设置 `defaultToolTimeout`（以毫秒为单位）以应用于每个服务器的工具；它优先于服务器自己的 `defaultToolTimeout`。
+:::
+
+## 扩展部署
+
+:::python
+一个服务于许多运行的部署应该按运行发现，但重用其底层连接，而不是在每次请求时重新连接。在 [`langgraph dev`](/langchain/oss/langgraph/local-server) 图工厂内部构建智能体，以便每个运行都能获取当前的工具目录，并让一个 [共享连接池](#共享连接池) 和 [响应缓存](#缓存) 吸收成本：
+
+<McpGraphFactoryPy />
+
+<Note>
+在 `langgraph dev` 图工厂中，注解的参数类型和返回类型必须在运行时是可导入的，而不仅限于 `TYPE_CHECKING`。`langgraph-api` 使用 `typing.get_type_hints()` 对工厂进行分类；如果注解无法解析，它会注入一个配置字典而不是运行时。
+</Note>
+
+在 [Agent Server](https://docs.langchain.com/langsmith/agent-server-overview) 中，将工厂注册到 `langgraph.json` 而不是导出一个静态编译的图。来自 `list_tools()` 的工具在适配器上下文退出后仍然可调用，因此对于大多数 MCP 设置，在发现后返回智能体就足够了。当您需要在运行周围进行清理，或者使用 `execution_runtime` 跳过与模式和状态读取相关的昂贵 MCP 工作时，请使用 [上下文管理器工厂](https://docs.langchain.com/langsmith/graph-rebuild#context-manager-factory)。
+
+有关完整的部署示例，包括为每个调用者铸造令牌的按用户身份验证，请参阅 [身份验证](/langchain/oss/langchain/mcp/auth#按用户认证)。
+
+### 共享连接池
+
+默认情况下，每个 FastMCP 客户端管理自己的 HTTP 连接。在服务器集群或许多并发运行中，这意味着许多独立的池。为了共享一个池，传递一个 `httpx_client_factory`，它从单个传输中获取，并且在不允许任何单个客户端关闭它的前提下借出它：
+
+<McpSharedPoolPy />
+
+由于每个客户端都从 `_POOL` 借用，因此部署为整个集群打开了一组 HTTP 连接，而不是每个服务器一组。
+:::
+
+:::js
+在模块作用域外部创建适配器。每次工厂调用都可以发现当前的工具目录并使用共享连接构建智能体：
+
+<McpSharedAdapterJs />
+
+跨运行保持适配器打开。在应用程序关闭期间，在活动运行完成后关闭它。对于具有不同用户凭证的运行，请参阅 [按用户身份验证](/langchain/oss/langchain/mcp/auth#按用户认证)。
+
+默认情况下，发现会在连接失败时抛出异常。设置 `onConnectionError: "ignore"`，或提供一个返回正常的回调，以继续使用剩余的服务器。非身份验证失败会保留该连接在后续发现中被跳过，即使使用 `cacheMode: "refresh"`。在再次发现之前关闭适配器以清除跳过的连接。身份验证失败会在下一次发现时重试。
+
+Stdio 服务器支持 `restart` 设置，而 HTTP 和 SSE 服务器在配置 `mode: "legacy"` 时支持 `reconnect` 设置。重启后，再次调用 `listTools()` 并使用返回的工具；重启前返回的工具会保留关闭的连接。
+
+现代 MCP 服务器不保持会话，因此它们的副本可以在任何负载均衡器后面运行。一个会话式传统服务器仍然需要一个副本的粘性路由。一个运行多个副本的现代服务器必须跨它们共享一个 `requestState` 签名密钥，否则到达不同副本的 elicitation 回答会被拒绝。请参阅 MCP TypeScript SDK 文档中的 [使用编解码器保护 `requestState`](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/servers/input-required.md#protect-requeststate-with-the-codec)。
+:::
+
+## 缓存
+
+:::python
+FastMCP 可以缓存 `list_tools` 的结果，以便重复发现避免网络往返。缓存是可选的，并且会尊重服务器自己的缓存提示，因此它只对宣传这些提示的现代时代服务器有效。
+
+`list_tools()` 接受一个 `cache_mode`，它选择发现如何读取配置的缓存：
+
+- **`use`**（默认）：当存在且仍在服务器 TTL 提示范围内时，提供缓存的工具列表，否则获取并存储。
+- **`refresh`**：从服务器获取最新列表并重新填充缓存。
+- **`bypass`**：完全跳过缓存。
+
+```python
+tools = await adapter.list_tools(cache_mode="refresh")
+```
+
+缓存及其每个主体隔离在客户端本身配置，使用 `Client(cache=...)`。对于跨副本集群的共享存储，或按用户分区缓存的响应，请参阅 FastMCP 文档中的 [响应缓存](https://gofastmcp.com/clients/client#response-caching)。
+:::
+
+:::js
+MCP SDK 为工具列表提供内存缓存。在服务器的 `ttlMs` 提示仍然有效时，重复发现可以避免网络请求。如果没有积极的 `ttlMs`，发现会再次获取列表。
+
+使用 `cacheMode` 控制`listTools()` 和 `listToolsets()` 如何读取响应缓存：
+
+- **`"use"`**（默认）：当可用时，提供有效的缓存工具列表，否则获取并存储它。
+- **`"refresh"`**：获取最新工具列表并更新缓存。
+- **`"bypass"`**：获取最新工具列表而不读取或更新响应缓存。
+
+为了从所有配置的服务器刷新工具，传递一个空的服务器选择数组以及发现选项：
+
+```typescript
+const tools = await adapter.listTools([], { cacheMode: "refresh" });
+```
+
+该适配器在服务器描述符未发生变化时也会重用转换后的 LangChain 工具包装器。Rediscovery 会返回当前工具；它不会更新现有智能体的工具列表。使用返回的工具构建下一个智能体。
+:::
+
+## 协议时代
+
+:::python
+MCP 改变了客户端和服务器如何商定各自支持的内容的方式。**传统**时代（协议版本 `initialize`）的每个连接都以 `initialize` 握手开始；**现代**时代（协议版本 `2026-07-28` 及以后）通过探测服务器的 `server/discover` 端点发现支持。FastMCP 按连接协商时代，因此 LangChain 端无需知道特定服务器支持哪种协议。
+
+要在单个智能体中持有不同时代服务器的工具，为每个服务器分配独立的连接，以便它保留服务器支持的最佳时代，可以通过 [`ClientGroup`](#独立连接使用-clientgroup) 或每个服务器一个适配器实现。预构建的 `fastmcp.Client` 使用其 `mode` 参数选择时代：
+
+<McpProtocolErasPy />
+
+将两个服务器作为单个 `MCPConfig` 队列传递会为队列持有的所有内容协商一个时代，将所有服务器降级到任何成员所需的最早时代。
+
+有关完整的协商规则，请参阅 FastMCP 文档中的 [协议协商](https://gofastmcp.com/clients/client#protocol-negotiation)。
+:::
+
+:::js
+适配器为每个服务器单独协商 MCP 协议。默认的 `mode: "auto"` 支持同一适配器中的现代和传统服务器。
+
+传统时代以 `initialize` 握手开始。现代时代使用 `server/discover` 发现服务器功能。当需要要求特定时代时，请覆盖 `mode`：
+
+<McpProtocolErasJs />
+
+每个服务器的 `mode` 独立控制其协商：
+
+- **`"auto"`**（默认值）：尝试当前协议，并为仅支持传统的服务器回退。
+- **`"modern"`**：要求协议版本 `2026-07-28`，而不是使用传统 MCP。
+- **`"legacy"`**：跳过现代探测，使用传统客户端界面。
+
+在 `"auto"` 模式下，响应 Streamable HTTP 请求返回 404 或 405 的 URL 服务器会通过 SSE 重试，使用相同的 URL，然后将 `/mcp` 替换为 `/sse`。在 `"legacy"` 模式下，除非 `automaticSSEFallback: false`，否则任何 4xx 都会回退。
+
+`setLoggingLevel()` 仅适用于传统时代，当连接的服务器协商了现代协议时会抛出异常；请在每个现代服务器上设置 `logLevel`。
+:::
+
+## 参见
+
+- [认证](/langchain/oss/langchain/mcp/auth)：Bearer、OAuth 和用户级凭证。
+
+:::python
+- [部署 LangGraph 服务器](/langchain/oss/langgraph/local-server)：用于长期部署的图工厂。
+- [运行时重建图](https://docs.langchain.com/langsmith/graph-rebuild)：Agent Server 的工厂形式，包括上下文管理器模式。
+- [FastMCP 连接生命周期](https://gofastmcp.com/clients/client#connection-lifecycle)
+- [MCP 配置格式](https://gofastmcp.com/integrations/mcp-json-configuration)
+:::
+
+:::js
+- [人机交互](/langchain/oss/langchain/human-in-the-loop)：暂停和恢复工具调用。
+- [MCP 规范](https://modelcontextprotocol.io/specification/latest)
+:::
+
+---
+
+> 官方原文：[src/oss/langchain/mcp/connections.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/mcp/connections.mdx) · 译文由 AI 生成，以英文原文为准。

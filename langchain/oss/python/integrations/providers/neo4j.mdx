@@ -1,0 +1,79 @@
+---
+title: "Neo4j 集成"
+description: "使用 LangChain Python 与 Neo4j 集成。"
+---
+
+import LangchainExperimentalUnmaintained from '/langchain/snippets/oss/langchain-experimental-unmaintained.mdx';
+
+>- Neo4j 是一个`open-source database management system`，专注于图数据库技术。
+>- Neo4j 允许你将数据表示和存储在节点和边中，非常适合处理连接数据和关系。
+>- Neo4j 提供了一个`Cypher Query Language`，使得与查询图数据变得容易。
+>- 使用 Neo4j，你可以实现高性能的`graph traversals and queries`，适合生产级系统。
+
+>通过访问 [他们的网站](https://neo4j.com/) 开始使用 Neo4j。
+
+## 安装和设置
+
+- 使用 `pip install neo4j langchain-neo4j` 安装 Python SDK
+
+## 向量存储
+
+Neo4j 向量索引用作向量存储，无论是用于语义搜索还是示例选择。
+
+```python
+from langchain_neo4j import Neo4jVector
+```
+
+查看 [使用示例](/langchain/oss/python/integrations/vectorstores/neo4jvector)。
+
+## GraphCypherQAChain
+
+存在一个围绕 Neo4j 图数据库的包装器，它允许你根据用户输入生成 Cypher 语句，并使用它们从数据库中检索相关信息。
+
+```python
+from langchain_neo4j import GraphCypherQAChain, Neo4jGraph
+```
+
+查看 [使用示例](/langchain/oss/python/integrations/graphs/neo4j_cypher)
+
+## 从文本构建知识图谱
+
+文本数据通常包含丰富的关系和洞察，这些信息可用于各种分析、推荐引擎或知识管理应用程序。
+Diffbot 的 NLP API 允许从非结构化文本数据中提取实体、关系和语义意义。
+通过将 Diffbot 的 NLP API 与 Neo4j（一个图数据库）结合使用，你可以根据从文本中提取的信息创建强大的、动态的图结构。
+这些图结构是完全可查询的，并且可以集成到各种应用程序中。
+
+<LangchainExperimentalUnmaintained />
+
+```python
+from langchain_neo4j import Neo4jGraph
+from langchain_experimental.graph_transformers.diffbot import DiffbotGraphTransformer
+```
+
+## 检查点保存器
+
+Neo4j 实现 LangGraph 检查点保存器，用于持久化 GitHub 智能体记忆，并支持分支时间旅行。检查点保存器在每个超级步骤持久化图状态，实现会话记忆、人机协作工作流、时间旅行和容错。
+与 LangGraph 图和 LangChain 智能体兼容：
+
+```python
+from langchain.agents import create_agent
+from langchain_neo4j import Neo4jSaver
+
+with Neo4jSaver.from_conn_string(
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="password"
+) as checkpointer:
+    checkpointer.setup()  # Create indexes (run once)
+    # Create agent with checkpointer
+    agent = create_agent(
+        model="google_genai:gemini-3.6-flash",
+        tools=[get_weather],
+        system_prompt="You are a helpful assistant",
+        checkpointer=checkpointer
+    )
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/neo4j.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/neo4j.mdx) · 译文由 AI 生成，以英文原文为准。

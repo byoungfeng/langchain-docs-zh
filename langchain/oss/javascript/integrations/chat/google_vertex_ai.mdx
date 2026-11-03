@@ -1,0 +1,303 @@
+---
+title: "ChatVertexAI 集成"
+sidebarTitle: "ChatVertexAI（旧版）"
+description: "集成 ChatVertexAI 对话模型使用 LangChain JavaScript."
+integration:
+  name: ChatVertexAI
+  npm: '@langchain/google-vertexai'
+  stream: true
+  tool_calling: true
+  structured_output: true
+  multimodal: true
+---
+
+[Gemini Enterprise Agent Platform](https://cloud.google.com/products/gemini-enterprise-agent-platform) 是一个服务，它暴露了 Google Cloud 中所有可用的基础模型，例如 `gemini-2.5-pro`、`gemini-2.5-flash` 等。
+它还提供一些非 Google 模型，例如 [Anthropic 的 Claude](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/partner-models/claude)。
+
+这将帮助您开始使用 `ChatVertexAI` [对话模型](/langchain/oss/langchain/models)。有关所有 `ChatVertexAI` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-google-vertexai/index/ChatVertexAI)。
+
+<Note>
+    **此库将被弃用**
+
+    此库将被 [ChatGoogle](/langchain/oss/javascript/integrations/chat/google) 库取代。
+    新实现应使用 [ChatGoogle](/langchain/oss/javascript/integrations/chat/google) 库，而
+    现有实现应考虑迁移。
+</Note>
+
+## 概述
+
+### 集成细节
+
+| 类 | 包 | 可序列化 | 支持 Python | 下载 | 版本 |
+| :--- | :--- | :---: |  :---: | :---: | :---: |
+| [`ChatVertexAI`](https://reference.langchain.com/javascript/langchain-google-vertexai/index/ChatVertexAI) | [`@langchain/google-vertexai`](https://www.npmjs.com/package/@langchain/google-vertexai) | ✅ | ✅ | ![NPM - 下载](https://img.shields.io/npm/dm/@langchain/google-vertexai?style=flat-square&label=%20&) | ![NPM - 版本](https://img.shields.io/npm/v/@langchain/google-vertexai?style=flat-square&label=%20&) |
+
+### 模型功能
+
+请查看表头中的链接，了解如何使用特定功能。
+
+| [工具调用](/langchain/oss/langchain/tools) | [结构化输出](/langchain/oss/langchain/structured-output) | [图像输入](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token 级流式输出](/langchain/oss/langchain/streaming/) | [Token 使用](/langchain/oss/langchain/models#token-使用) | [Logprobs](/langchain/oss/langchain/models#对数概率) |
+| :---: | :---: | :---: |  :---: | :---: | :---: | :---: | :---: |
+| ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+请注意，虽然支持 logprobs，但 Gemini 对其的使用相当有限。
+
+## 设置
+
+LangChain.js 支持两种不同的认证方法，具体取决于您是在 Node.js 环境还是 Web 环境中运行。它还支持 Gemini Enterprise Agent Platform Express 模式使用的认证方法，您可以使用任一包。
+
+要访问 `ChatVertexAI` 模型，您需要在 Google Cloud Platform (GCP) 账户中设置 Gemini Enterprise Agent Platform，保存凭证文件，并安装 `@langchain/google-vertexai` 集成包。在 Node.js 中，该包使用 [`@langchain/google-gauth`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-google-gauth) 进行认证（您无需单独安装它）。
+
+### 凭证
+
+前往您的 [GCP 账户](https://console.cloud.google.com/) 并生成一个凭证文件。完成此操作后，设置 `GOOGLE_APPLICATION_CREDENTIALS` 环境变量：
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/your/credentials.json"
+```
+
+或者，在您的本地计算机上，您可以通过运行 `gcloud auth application-default login` 使用应用默认凭证。
+
+如果是在 Web 环境中运行，请安装 `@langchain/google-vertexai-web` 包（该包使用 [`@langchain/google-webauth`](https://github.com/langchain-ai/langchainjs/tree/main/libs/providers/langchain-google-webauth) 进行认证）。在 `GOOGLE_WEB_CREDENTIALS` 中设置服务账户 JSON：
+
+```bash
+export GOOGLE_WEB_CREDENTIALS='{"type":"service_account","project_id":"YOUR_PROJECT-12345",...}'
+```
+
+`GOOGLE_VERTEX_AI_WEB_CREDENTIALS` 也受支持，但已弃用。
+
+如果您使用的是 Gemini Enterprise Agent Platform Express 模式，可以安装 `@langchain/google-vertexai` 或 `@langchain/google-vertexai-web` 包。
+然后，前往 [Express 模式](https://console.cloud.google.com/vertex-ai/studio) API 密钥页面，并将您的 API 密钥设置在 `GOOGLE_API_KEY` 环境变量中：
+
+```bash
+export GOOGLE_API_KEY="api_key_value"
+```
+
+如果您希望对模型调用进行自动跟踪，也可以通过取消注释以下内容来设置您的 [LangSmith](https://docs.langchain.com/langsmith/observability) API 密钥：
+
+```bash
+# export LANGSMITH_TRACING="true"
+# export LANGSMITH_API_KEY="your-api-key"
+```
+
+### 安装
+
+LangChain Gemini Enterprise Agent Platform 对话集成位于 `@langchain/google-vertexai` 包中：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/google-vertexai @langchain/core
+```
+```bash yarn
+yarn add @langchain/google-vertexai @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/google-vertexai @langchain/core
+```
+</CodeGroup>
+
+或者，如果您在 Web 环境中使用，例如 [Vercel Edge 函数](https://vercel.com/blog/edge-functions-generally-available)：
+
+<CodeGroup>
+```bash npm
+npm install @langchain/google-vertexai-web @langchain/core
+```
+```bash yarn
+yarn add @langchain/google-vertexai-web @langchain/core
+```
+```bash pnpm
+pnpm add @langchain/google-vertexai-web @langchain/core
+```
+</CodeGroup>
+
+## 实例化
+
+现在我们可以实例化我们的模型对象并生成对话补全：
+
+```typescript
+import { ChatVertexAI } from "@langchain/google-vertexai"
+// Uncomment the following line if you're running in a web environment:
+// import { ChatVertexAI } from "@langchain/google-vertexai-web"
+
+const llm = new ChatVertexAI({
+    model: "gemini-2.5-flash",
+    temperature: 0,
+    maxRetries: 2,
+    // For web, authOptions.credentials
+    // authOptions: { ... }
+    // other params...
+})
+```
+
+## 调用
+
+```typescript
+const aiMsg = await llm.invoke([
+    [
+        "system",
+        "You are a helpful assistant that translates English to French. Translate the user sentence.",
+    ],
+    ["human", "I love programming."],
+])
+aiMsg
+```
+
+```text
+AIMessageChunk {
+  "content": "J'adore programmer. \n",
+  "additional_kwargs": {},
+  "response_metadata": {},
+  "tool_calls": [],
+  "tool_call_chunks": [],
+  "invalid_tool_calls": [],
+  "usage_metadata": {
+    "input_tokens": 20,
+    "output_tokens": 7,
+    "total_tokens": 27
+  }
+}
+```
+
+```typescript
+console.log(aiMsg.content)
+```
+
+```text
+J'adore programmer.
+```
+
+## 使用 Google 搜索检索进行工具调用
+
+可以调用带有 Google 搜索工具的模型，您可以使用它来 [基于事实](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/models/grounding) 内容生成，减少幻觉。
+
+目前 `gemini-2.0-flash-exp` 不支持基于事实。
+
+您可以选择使用 Google 搜索或自定义数据存储进行基于事实。以下是两种方法的示例：
+
+### Google 搜索检索
+
+使用 Google 搜索的基于事实示例：
+
+```typescript
+import { ChatVertexAI } from "@langchain/google-vertexai"
+
+const searchRetrievalTool = {
+  googleSearchRetrieval: {
+    dynamicRetrievalConfig: {
+      mode: "MODE_DYNAMIC", // Use Dynamic Retrieval
+      dynamicThreshold: 0.7, // Default for Dynamic Retrieval threshold
+    },
+  },
+};
+
+const searchRetrievalModel = new ChatVertexAI({
+  model: "gemini-2.5-pro",
+  temperature: 0,
+  maxRetries: 0,
+}).bindTools([searchRetrievalTool]);
+
+const searchRetrievalResult = await searchRetrievalModel.invoke("Who won the 2024 NBA Finals?");
+
+console.log(searchRetrievalResult.content);
+```
+
+```text
+The Boston Celtics won the 2024 NBA Finals, defeating the Dallas Mavericks 4-1 in the series to claim their 18th NBA championship. This victory marked their first title since 2008 and established them as the team with the most NBA championships, surpassing the Los Angeles Lakers' 17 titles.
+```
+
+### 使用数据存储的 Google 搜索检索
+
+首先，设置您的数据存储（这是一个示例数据存储的架构）：
+
+|    ID   |     日期     |    队伍 1   |   比分  |   队伍 2   |
+|:-------:|:------------:|:-----------:|:--------:|:----------:|
+|  3001   |  2023-09-07  |  阿根廷  |  1 - 0   |  厄瓜多尔   |
+|  3002   |  2023-09-12  |  委内瑞拉  |  1 - 0   |  巴拉圭  |
+|  3003   |  2023-09-12  |  智利      |  0 - 0   |  哥伦比亚  |
+|  3004   |  2023-09-12  |  秘鲁       |  0 - 1   |  巴西    |
+|  3005   |  2024-10-15  |  阿根廷  |  6 - 0   |  玻利维亚   |
+
+然后，在以下提供的示例中使用此数据存储：
+
+(Note that 您必须使用自己的 `projectId` 和 `datastoreId` 变量)
+
+```typescript
+import { ChatVertexAI } from "@langchain/google-vertexai";
+
+const projectId = "YOUR_PROJECT_ID";
+const datastoreId = "YOUR_DATASTORE_ID";
+
+const searchRetrievalToolWithDataset = {
+  retrieval: {
+    vertexAiSearch: {
+      datastore: `projects/${projectId}/locations/global/collections/default_collection/dataStores/${datastoreId}`,
+    },
+    disableAttribution: false,
+  },
+};
+
+const searchRetrievalModelWithDataset = new ChatVertexAI({
+  model: "gemini-2.5-pro",
+  temperature: 0,
+  maxRetries: 0,
+}).bindTools([searchRetrievalToolWithDataset]);
+
+const searchRetrievalModelResult = await searchRetrievalModelWithDataset.invoke(
+  "What is the score of Argentina vs Bolivia football game?"
+);
+
+console.log(searchRetrievalModelResult.content);
+```
+
+```text
+Argentina won against Bolivia with a score of 6-0 on October 15, 2024.
+```
+
+现在您应该得到基于您提供的数据存储的结果。
+
+## 上下文缓存
+
+Gemini Enterprise Agent Platform 提供上下文缓存功能，通过存储和重用跨多个 API 请求的较长消息内容来优化成本。当您有较长的对话历史记录或频繁出现在您交互中的消息片段时，这特别有用。
+
+要使用此功能，请按照 [官方指南](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/context-cache/context-cache-create) 创建一个上下文缓存。
+
+创建缓存后，您可以将它的 ID 作为运行时参数传递，如下所示：
+
+```typescript
+import { ChatVertexAI } from "@langchain/google-vertexai";
+
+const modelWithCachedContent = new ChatVertexAI({
+  model: "gemini-2.5-pro-002",
+  location: "us-east5",
+});
+
+await modelWithCachedContent.invoke("What is in the content?", {
+  cachedContent:
+    "projects/PROJECT_NUMBER/locations/LOCATION/cachedContents/CACHE_ID",
+});
+```
+
+您也可以将此字段直接绑定到模型实例上：
+
+```typescript
+const modelWithBoundCachedContent = new ChatVertexAI({
+  model: "gemini-2.5-pro-002",
+  location: "us-east5",
+}).bind({
+  cachedContent:
+    "projects/PROJECT_NUMBER/locations/LOCATION/cachedContents/CACHE_ID",
+});
+
+```
+
+请注意，并非所有模型目前都支持上下文缓存。
+
+---
+
+## API 参考
+
+有关所有 `ChatVertexAI` 功能和配置的详细文档，请访问 [API 参考](https://reference.langchain.com/javascript/langchain-google-vertexai/index/ChatVertexAI)。
+
+---
+
+> 官方原文：[src/oss/javascript/integrations/chat/google_vertex_ai.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/javascript/integrations/chat/google_vertex_ai.mdx) · 译文由 AI 生成，以英文原文为准。

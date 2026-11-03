@@ -1,0 +1,76 @@
+---
+title: "Discord 集成"
+description: "与 Discord 集成，使用 LangChain Python."
+---
+
+> [Discord](https://discord.com/) 是一个广泛被各类社区使用的即时通讯、语音和视频交流平台。
+
+## 安装和配置
+
+安装 `langchain-discord-shikenso` 包：
+
+<CodeGroup>
+```bash pip
+pip install langchain-discord-shikenso
+```
+
+```bash uv
+uv add langchain-discord-shikenso
+```
+</CodeGroup>
+
+必须通过环境变量提供一个机器人令牌，以便工具能够与 Discord API 进行身份验证：
+
+```bash
+export DISCORD_BOT_TOKEN="your-discord-bot-token"
+```
+
+如果 `DISCORD_BOT_TOKEN` 未设置，工具在实例化时将抛出 `ValueError`。
+
+## 工具
+
+以下是一个如何在Discord中读取和发送消息的示例片段。如需更多详情，请参阅[Discord工具文档](/langchain/oss/python/integrations/tools/discord)。
+
+```python
+from langchain_discord.tools.discord_read_messages import DiscordReadMessages
+from langchain_discord.tools.discord_send_messages import DiscordSendMessage
+
+# Create tool instances
+read_tool = DiscordReadMessages()
+send_tool = DiscordSendMessage()
+
+# Example: Read the last 3 messages from channel 1234567890
+read_result = read_tool({"channel_id": "1234567890", "limit": 3})
+print(read_result)
+
+# Example: Send a message to channel 1234567890
+send_result = send_tool({"channel_id": "1234567890", "message": "Hello from Markdown example!"})
+print(send_result)
+```
+
+---
+
+## 工具箱
+
+`DiscordToolkit`将多个与Discord相关的工具整合到一个统一界面中。如需使用示例，请参阅[Discord工具箱文档](/langchain/oss/python/integrations/tools/discord)。
+
+```python
+from langchain_discord.toolkits import DiscordToolkit
+
+toolkit = DiscordToolkit()
+tools = toolkit.get_tools()
+
+read_tool = tools[0]  # DiscordReadMessages
+send_tool = tools[1]  # DiscordSendMessage
+```
+
+---
+
+## 未来集成
+
+可为Discord添加额外的集成（例如文档加载器、聊天加载器）。
+如需更多信息，请查阅[Discord开发者文档](https://discord.com/developers/docs/intro)，并关注在[langchain_discord GitHub 仓库](https://github.com/Shikenso-Analytics/langchain-discord)中更新或高级使用示例。
+
+---
+
+> 官方原文：[src/oss/python/integrations/providers/discord-shikenso.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/providers/discord-shikenso.mdx) · 译文由 AI 生成，以英文原文为准。

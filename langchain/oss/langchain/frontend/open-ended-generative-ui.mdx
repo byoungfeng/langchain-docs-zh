@@ -1,0 +1,35 @@
+---
+title: "开放式生成式 UI"
+sidebarTitle: "开放式"
+description: "渲染您应用程序外创建的 UI，例如沙盒中的 MCP 应用，位于生成式 UI 范围的开放端"
+---
+
+## 概述
+
+开放式生成式 UI 位于智能体创建端的 [生成式 UI 谱](/langchain/oss/langchain/frontend/generative-ui-overview)。该界面在您的应用程序外部编写，例如由 MCP 服务器编写，而您的前端在沙盒内渲染它。您和智能体都不编写组件：第三方提供它们，而您的应用程序托管它们。
+
+这种方法提供了最广泛的表达范围：智能体拥有画布。一个功能可以自带已构建的界面，因此您可以展示您从未实现的交互式工具，而无需您侧面的前端代码。它适用于一次性可视化和定制化答案，其中令人惊讶且足够好的结果胜过可预测的结果。它也是最实验性的方法，最不确定，运行速度较慢，成本更高，而不可信的 UI 是最难使其保持一致、可访问和安全的，因此它必须与您的应用程序的其他部分隔离。
+
+## 何时使用这种方法
+
+当您想要展示位于您的应用程序外部且独立于其发展的功能和界面时，请选择开放式生成式 UI，例如由 MCP 服务器生态系统发布的工具。当您需要保证品牌、可访问性或布局时，请沿谱系返回 [声明式](/langchain/oss/langchain/frontend/declarative-generative-ui) 或 [受控](/langchain/oss/langchain/frontend/controlled-generative-ui) 生成式 UI，在这些情况下，您的应用程序拥有组件。
+
+## MCP 应用
+
+[模型上下文协议](https://modelcontextprotocol.io) 允许智能体连接到提供工具和资源的外部服务器。MCP 应用扩展了这一概念到界面：MCP 服务器提供交互式 UI，前端渲染它，通常在 iframe 中直接在对话中渲染。服务器拥有组件、数据和交互，而您的应用程序提供框架和与智能体的连接。
+
+CopilotKit 将此模式记录为 [MCP 应用](https://docs.copilotkit.ai/generative-ui/mcp-apps)。
+
+## 沙盒化和安全性
+
+由于界面来自第三方，将其视为不可信的。在隔离环境中渲染它，例如沙盒 iframe，并限制它可以访问的内容，以便一个行为不当或恶意的应用程序无法访问您的页面或用户数据。沙盒化是使谱系开放端在生产中可用的原因：它包含表达范围而不是限制它。
+
+## 参见
+
+- [生成式 UI 概述](/langchain/oss/langchain/frontend/generative-ui-overview)
+- [受控生成式 UI](/langchain/oss/langchain/frontend/controlled-generative-ui)
+- [声明式生成式 UI](/langchain/oss/langchain/frontend/declarative-generative-ui)
+
+---
+
+> 官方原文：[src/oss/langchain/frontend/open-ended-generative-ui.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/langchain/frontend/open-ended-generative-ui.mdx) · 译文由 AI 生成，以英文原文为准。

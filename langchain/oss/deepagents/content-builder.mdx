@@ -1,0 +1,542 @@
+---
+title: "构建内容构建器代理"
+sidebarTitle: "内容构建器"
+description: "本指南展示了如何使用深度智能体构建内容创作智能体。该智能体能加载品牌语调和技能，将研究任务委托给子智能体，根据加载的技能起草博客或社交媒体内容，并通过Gemini生成配套图片。"
+---
+
+import ContentBuilderToolsPy from '/langchain/snippets/code-samples/content-builder-tools-py.mdx';
+import ContentBuilderCreateAgentPy from '/langchain/snippets/code-samples/content-builder-create-agent-py.mdx';
+import ContentBuilderEntryPointPy from '/langchain/snippets/code-samples/content-builder-entry-point-py.mdx';
+import ContentBuilderToolsJs from '/langchain/snippets/code-samples/content-builder-tools-js.mdx';
+import ContentBuilderCreateAgentJs from '/langchain/snippets/code-samples/content-builder-create-agent-js.mdx';
+import ContentBuilderEntryPointJs from '/langchain/snippets/code-samples/content-builder-entry-point-js.mdx';
+import ContentBuilderBrandVoice from '/langchain/snippets/code-samples/content-builder-brand-voice.mdx';
+import ContentBuilderSkillBlogPost from '/langchain/snippets/code-samples/content-builder-skill-blog-post.mdx';
+import ContentBuilderSkillSocialMedia from '/langchain/snippets/code-samples/content-builder-skill-social-media.mdx';
+import ContentBuilderSubagentsYaml from '/langchain/snippets/code-samples/content-builder-subagents-yaml.mdx';
+import ContentBuilderMdaToolsPy from '/langchain/snippets/code-samples/content-builder-mda-tools-py.mdx';
+import ContentBuilderMdaToolsJs from '/langchain/snippets/code-samples/content-builder-mda-tools-js.mdx';
+import ContentBuilderMdaAgentPy from '/langchain/snippets/code-samples/content-builder-mda-agent-py.mdx';
+import ContentBuilderMdaAgentJs from '/langchain/snippets/code-samples/content-builder-mda-agent-js.mdx';
+import ManagedDeepAgentsPublicBetaNote from '/langchain/snippets/langsmith/managed-deep-agents-public-beta-note.mdx';
+import ManagedDeepAgentsPrerequisites from '/langchain/snippets/langsmith/managed-deep-agents-prerequisites.mdx';
+
+## 概述
+
+本指南展示了如何使用[深度智能体](/langchain/oss/deepagents)构建内容创作智能体。该智能体能加载品牌语调和技能，将研究任务委托给子智能体，根据加载的技能起草博客或社交媒体内容，并通过Gemini生成配套图片。
+
+您构建的智能体将实现以下功能：
+
+1. 从品牌指令和技能文件夹加载语调和工作流规则
+1. 将网络研究委托给具有`web_search`能力的专用子智能体
+1. 根据加载的技能起草博客或社交媒体内容
+1. 使用Gemini生成封面或社交媒体图片并保存至项目目录
+
+完整可运行的SDK项目示例请参考[content-builder-agent](https://github.com/langchain-ai/deepagents/tree/main/examples/content-builder-agent)。
+
+### 核心概念
+
+本教程涵盖以下内容：
+
+- 品牌指令（通过[Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-instructions)的上下文，或SDK的[记忆](/langchain/oss/deepagents/memory)文件）定义的持续生效的语调和研究规则
+- [技能](/langchain/oss/deepagents/skills)用于博客和社交媒体的运营手册
+- [子智能体](/langchain/oss/deepagents/subagents)用于写作前的研究
+- SDK路径下的[文件系统后端](/langchain/oss/deepagents/backends)实现文件读写
+- 自定义[工具](/langchain/oss/langchain/tools)用于搜索和图像生成
+
+## 先决条件
+
+API密钥：
+
+- Anthropic（Claude）或其他聊天模型供应商
+- Google（Gemini）用于使用`gemini-2.5-flash-image`的图像生成
+- [Tavily](https://www.tavily.com/)（免费版）用于网络搜索
+- [LangSmith](https://smith.langchain.com)用于追踪（SDK路径下可选，托管深度智能体场景必需）
+
+:::python
+Python 3.11或更高版本。
+:::
+
+:::js
+Node.js 18或更高版本。
+:::
+
+## 选择您的路径
+
+从[托管深度智能体](https://docs.langchain.com/langsmith/managed-deep-agents-overview)开始运行无需维护基础设施的生产级智能体。或者，在保持与深度智能体框架兼容的前提下，使用深度智能体SDK自行托管智能体，或运行自定义[LangSmith部署](https://docs.langchain.com/langsmith/deployment)。
+
+<Tabs>
+<Tab title="Managed Deep Agents">
+
+<ManagedDeepAgentsPublicBetaNote />
+
+托管深度智能体自动创建项目并托管运行时。品牌语调存放在`instructions.md`，技能文件位于`skills/`，在代码中声明工具和研究者子智能体。图像工具在`mda dev`期间将文件写入项目目录。
+
+### 配置
+
+<ManagedDeepAgentsPrerequisites />
+
+<Steps>
+<Step title="创建项目">
+
+:::python
+```bash
+uvx --from managed-deepagents mda init content-builder
+cd content-builder
+```
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npx managed-deepagents init content-builder
+cd content-builder
+```
+
+```bash pnpm
+pnpm dlx managed-deepagents init content-builder
+cd content-builder
+```
+
+```bash bun
+bunx managed-deepagents init content-builder
+cd content-builder
+```
+</CodeGroup>
+:::
+
+</Step>
+<Step title="添加 API 密钥">
+
+将聊天、图像、搜索和LangSmith密钥添加至`.env`：
+
+```text .env
+ANTHROPIC_API_KEY=<ANTHROPIC_API_KEY>
+GOOGLE_API_KEY=<GOOGLE_API_KEY>
+TAVILY_API_KEY=<TAVILY_API_KEY>
+LANGSMITH_API_KEY=<LANGSMITH_API_KEY>
+```
+
+`GOOGLE_API_KEY`密钥对于Gemini图像生成（即使使用Claude作为聊天模型）也是必需的。
+
+<Warning>
+不要将`.env`文件提交至版本控制。该文件包含敏感信息。
+
+</Warning>
+
+</Step>
+<Step title="安装依赖项">
+
+:::python
+```bash
+uv add tavily-python google-genai pillow
+```
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npm install tavily @google/generative-ai zod
+```
+
+```bash pnpm
+pnpm add tavily @google/generative-ai zod
+```
+
+```bash bun
+bun add tavily @google/generative-ai zod
+```
+</CodeGroup>
+:::
+
+</Step>
+</Steps>
+
+### 构建智能体
+
+<Steps>
+<Step title="添加工具">
+
+创建搜索和图像工具。Markdown研究笔记使用智能体文件系统（`write_file`）。封面和社交媒体图片在本地`mda dev`期间通过宿主机写入项目目录。
+
+:::python
+创建`tools/content.py`：
+
+<ContentBuilderMdaToolsPy />
+:::
+
+:::js
+创建`tools/content.ts`：
+
+<ContentBuilderMdaToolsJs />
+:::
+
+</Step>
+<Step title="添加品牌指令">
+
+将始终生效的品牌语调和研究要求存放在`instructions.md`。托管深度智能体将此文件作为主智能体系统的系统提示（这是SDK的`AGENTS.md` / `memory=`角色，而非持久化[记忆](https://docs.langchain.com/langsmith/managed-deep-agents-memory)）：
+
+<ContentBuilderBrandVoice />
+
+部署时，托管深度智能体会将这些指令同步至[上下文中心](https://docs.langchain.com/langsmith/managed-deep-agents-context-hub)。
+
+</Step>
+<Step title="添加技能">
+
+Create a `skills/` directory. Each skill is a folder with a `SKILL.md`. Managed Deep Agents 会自动发现技能；你不需要传递 `skills=` 参数。
+
+Create `skills/blog-post/SKILL.md`:
+
+<ContentBuilderSkillBlogPost />
+
+Create `skills/social-media/SKILL.md`:
+
+<ContentBuilderSkillSocialMedia />
+
+</Step>
+<Step title="创建智能体">
+
+用下面的完整文件替换脚手架生成的智能体入口。它会创建一个带有图像工具和内联研究者子智能体（使用 `web_search`）的智能体。技能和指令来自项目文件。
+
+:::python
+替换 `agent.py`：
+
+<ContentBuilderMdaAgentPy />
+:::
+
+:::js
+替换 `agent.ts`：
+
+<ContentBuilderMdaAgentJs />
+:::
+
+</Step>
+</Steps>
+
+### 运行智能体
+
+<Steps>
+<Step title="本地运行">
+
+:::python
+```bash
+uv sync
+uv run mda dev
+```
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npm install
+npx mda dev
+```
+
+```bash pnpm
+pnpm install
+pnpm exec mda dev
+```
+
+```bash bun
+bun install
+bunx mda dev
+```
+</CodeGroup>
+:::
+
+`mda dev` 会在 LangSmith Studio 中打开智能体。发送类似下面的提示词：
+
+```txt wrap
+Write a blog post about how AI agents are transforming software development
+```
+
+你应该会看到智能体加载技能、委托给 `researcher`、编写 Markdown 并调用图像工具。更多信息请参阅 [使用 LangSmith Studio 进行本地开发](https://docs.langchain.com/langsmith/managed-deep-agents-local-development)。
+
+</Step>
+<Step title="部署（可选）">
+
+:::python
+```bash
+uv run mda deploy
+```
+:::
+
+:::js
+<CodeGroup>
+```bash npm
+npx mda deploy
+```
+
+```bash pnpm
+pnpm exec mda deploy
+```
+
+```bash bun
+bunx mda deploy
+```
+</CodeGroup>
+:::
+
+See [Deploy](https://docs.langchain.com/langsmith/managed-deep-agents-deploy).
+
+</Step>
+</Steps>
+
+</Tab>
+<Tab title="Deep Agents SDK">
+
+当你希望自行托管智能体或运行自定义 [LangSmith 部署](https://docs.langchain.com/langsmith/deployment) 时，请使用开源 SDK。该示例将行为保存在记忆文件、技能和子智能体定义中，并额外使用 [FilesystemBackend](/langchain/oss/deepagents/backends)。
+
+### 设置
+
+:::python
+<Steps>
+<Step title="创建项目目录">
+
+```bash
+mkdir content-builder-agent
+cd content-builder-agent
+```
+
+</Step>
+<Step title="安装依赖项">
+
+<CodeGroup>
+```bash pip wrap
+pip install deepagents google-genai pillow pyyaml rich tavily-python langchain
+```
+
+```bash uv wrap
+uv init
+uv add deepagents google-genai pillow pyyaml rich tavily-python langchain
+uv sync
+```
+</CodeGroup>
+
+在你自己的项目中将 `deepagents` 固定到受支持的版本范围（例如 `>=0.3.5,<0.4.0`），以与上游示例保持一致。
+
+</Step>
+<Step title="设置 API 密钥">
+
+```bash
+export ANTHROPIC_API_KEY="your_anthropic_api_key"
+export GOOGLE_API_KEY="your_google_api_key"
+export TAVILY_API_KEY="your_tavily_api_key"           # Optional
+export LANGSMITH_API_KEY="your_langsmith_api_key"     # Optional
+```
+
+</Step>
+</Steps>
+:::
+
+:::js
+<Steps>
+<Step title="创建项目目录">
+
+```bash
+mkdir content-builder-agent
+cd content-builder-agent
+```
+
+</Step>
+<Step title="安装依赖项">
+
+<CodeGroup>
+```bash npm wrap
+npm install deepagents @langchain/core @langchain/anthropic @google/generative-ai tavily zod tsx
+```
+
+```bash yarn wrap
+yarn add deepagents @langchain/core @langchain/anthropic @google/generative-ai tavily zod tsx
+```
+</CodeGroup>
+
+添加 `tsx` 以运行 `content_writer.ts`。安装 `@langchain/anthropic`，以便 LangChain 加载 `createDeepAgent` 使用的默认 Claude 模型。
+
+</Step>
+<Step title="设置 API 密钥">
+
+```bash
+export ANTHROPIC_API_KEY="your_anthropic_api_key"
+export GOOGLE_API_KEY="your_google_api_key"
+export TAVILY_API_KEY="your_tavily_api_key"           # Optional
+export LANGSMITH_API_KEY="your_langsmith_api_key"     # Optional
+```
+
+</Step>
+</Steps>
+:::
+
+### 添加配置文件
+
+<Steps>
+<Step title="添加 AGENTS.md">
+
+在项目根目录创建 `AGENTS.md`。当你在创建智能体时通过 [记忆](/langchain/oss/deepagents/memory) 参数传入此文件，它会被加载到系统提示词中，使品牌语调和研究期望在每次运行中生效：
+
+<ContentBuilderBrandVoice />
+
+要匹配你自己的语调、内容支柱和格式规则，请更新 `AGENTS.md`。
+
+</Step>
+:::python
+<Step title="添加 subagents.yaml">
+
+创建 `subagents.yaml`。它描述了一个 `researcher` 子智能体，带有由 Tavily 支持的 `web_search` 工具：
+
+<ContentBuilderSubagentsYaml />
+
+创建深度智能体时会传入该文件。
+
+</Step>
+:::
+
+<Step title="添加技能">
+
+创建一个 `skills/` 目录。每个技能都是一个文件夹，其中包含带有 YAML frontmatter（`name`、`description`）和指令的 `SKILL.md` 文件。
+
+Create `skills/blog-post/SKILL.md`:
+
+<ContentBuilderSkillBlogPost />
+
+Create `skills/social-media/SKILL.md`:
+
+<ContentBuilderSkillSocialMedia />
+
+它们指示智能体先调用 `researcher` 子智能体，将 Markdown 写入 `blogs/`、`linkedin/` 或 `tweets/`，并调用 `generate_cover` 或 `generate_social_image` 生成图像。
+
+</Step>
+</Steps>
+
+### 构建脚本
+
+:::python
+在项目根目录创建 `content_writer.py`。以下各部分应按顺序放在同一个文件中。
+:::
+
+:::js
+在项目根目录创建 `content_writer.ts`。以下各部分应按顺序放在同一个文件中。
+:::
+
+<Steps>
+<Step title="添加工具">
+
+:::python
+研究者子智能体使用 Tavily 搜索。博客和社交媒体工作流使用 Gemini 图像生成。稍后创建智能体时，`load_subagents` 会读取 `subagents.yaml` 并将工具名称解析为这些函数。
+
+<ContentBuilderToolsPy />
+:::
+
+:::js
+研究者使用 Tavily 搜索。博客和社交媒体工作流使用 Google Generative AI SDK 进行图像生成。
+
+<ContentBuilderToolsJs />
+:::
+
+</Step>
+<Step title="创建智能体">
+
+:::python
+创建深度智能体时，通过@[create_deep_agent]传递内存路径、技能目录、图像工具、子智能体定义（从YAML中传入），并配置以example目录为根的[FilesystemBackend](/langchain/oss/deepagents/backends)，以确保路径如`./AGENTS.md`和`./skills/`能正确解析。
+
+<ContentBuilderCreateAgentPy />
+:::
+
+:::js
+创建深度智能体时，通过@[createDeepAgent]传递内存路径、技能目录、图像工具、内联子智能体定义，并配置以example目录为根的[FilesystemBackend](/langchain/oss/deepagents/backends)，以确保路径如`./AGENTS.md`和`./skills/`能正确解析。
+
+<ContentBuilderCreateAgentJs />
+:::
+
+</Step>
+<Step title="添加入口点">
+
+:::python
+通过用户消息调用智能体以验证其运行状态：
+
+<ContentBuilderEntryPointPy />
+:::
+
+:::js
+<ContentBuilderEntryPointJs />
+:::
+
+</Step>
+</Steps>
+
+### 运行智能体
+
+<Warning>
+文件系统后端可在`root_dir`下读写和删除文件。仅限专用目录运行，发布前请审阅生成内容。
+</Warning>
+
+:::python
+从项目目录调用智能体时，既可省略参数，也可通过参数传递提示词：
+
+<CodeGroup>
+```bash Default wrap
+python content_writer.py
+```
+
+```bash With prompt wrap
+python content_writer.py Write a blog post about prompt engineering
+```
+</CodeGroup>
+:::
+
+:::js
+从项目目录执行：
+
+```bash
+npx tsx content_writer.ts
+```
+
+通过额外参数传递提示词：
+
+```bash
+npx tsx content_writer.ts Write a blog post about prompt engineering
+```
+
+:::
+
+当`LANGSMITH_API_KEY`配置就绪后，可通过[LangSmith](https://docs.langchain.com/langsmith/observability)查看运行记录。
+
+### 输出
+
+:::js
+调用成功时，智能体会在项目根目录下写入生成物，例如：
+:::
+
+:::python
+调用成功时，生成物会写入系统临时目录（macOS/Linux通常为`/tmp/`），而非项目文件旁。
+:::
+
+```text
+blogs/
+└── prompt-engineering/
+    ├── post.md
+    └── hero.png
+research/
+└── prompt-engineering.md
+```
+
+路径遵循`SKILL.md`中的技能规范。
+
+### 完整代码
+
+查阅GitHub上的完整示例[content-builder-agent](https://github.com/langchain-ai/deepagents/tree/main/examples/content-builder-agent)，包含Rich框架的流式输出界面。
+
+</Tab>
+</Tabs>
+
+## 下一步操作
+
+- 编辑品牌规则：在`instructions.md`（托管深度智能体）或`AGENTS.md`（SDK）中修改
+- 为新内容类型添加技能至`skills/<name>/SKILL.md`
+- SDK路径下在`subagents.yaml`添加子智能体并在`load_subagents`注册工具；托管深度智能体则需编辑`agent.py`或`agent.ts`中的内联`researcher`
+- 阅读文档：[Subagents](/langchain/oss/deepagents/subagents)、[Skills](/langchain/oss/deepagents/skills)和[Customization](/langchain/oss/deepagents/customization)
+- 参考指南：[Managed Deep Agents](https://docs.langchain.com/langsmith/managed-deep-agents-overview)和[从深度智能体迁移](https://docs.langchain.com/langsmith/managed-deep-agents-migrate)
+
+---
+
+> 官方原文：[src/oss/deepagents/content-builder.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/deepagents/content-builder.mdx) · 译文由 AI 生成，以英文原文为准。

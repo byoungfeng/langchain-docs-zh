@@ -1,0 +1,146 @@
+---
+title: "NVIDIA 集成"
+description: "使用 LangChain Python 集成 NVIDIA LLM。"
+integration:
+  name: NVIDIA
+  pypi: langchain-nvidia-ai-endpoints
+---
+
+这将帮助您入门NVIDIA模型。要查看所有`ChatNVIDIA`功能及配置的详细文档，请访问[NVIDIA API reference](https://reference.langchain.com/python/langchain-nvidia-ai-endpoints/chat_models/ChatNVIDIA)。
+
+## 概述
+
+`langchain-nvidia-ai-endpoints`包集成了与NVIDIA NIM推理微服务集成的LangChain应用。这些模型由NVIDIA优化，以在NVIDIA加速基础设施上实现最佳性能，并以NIM（NVIDIA推理微服务）形式部署——这是一种易于使用的预构建容器，可通过单一命令在NVIDIA加速基础设施上部署 anywhere。
+
+NVIDIA [API目录](https://build.nvidia.com/)提供了NIM的托管部署环境用于测试。通过NVIDIA AI企业许可证，测试后的NIM可导出并部署于本地或云端，使企业拥有完整知识产权和AI应用控制权。
+
+NIM以按模型打包的容器镜像形式通过NVIDIA NGC目录分发。其核心优势在于提供简单、一致且熟悉的API，用于在AI模型上运行推理。
+
+本示例演示如何通过`NVIDIA`类使用LangChain与NVIDIA支持的模型交互。
+
+要了解如何通过此API访问llm模型，请查阅[NVIDIA](/langchain/oss/python/integrations/llms/nvidia_ai_endpoints)文档。
+
+### 集成细节
+
+| 类 | 包 | 本地 | 可序列化 | JS支持 | 下载 | 版本 |
+| :--- | :--- | :---: | :---: |  :---: | :---: | :---: |
+| [`NVIDIA`](https://reference.langchain.com/python/langchain-nvidia-ai-endpoints/chat_models/ChatNVIDIA) | [`langchain-nvidia-ai-endpoints`](https://reference.langchain.com/python/langchain-nvidia-ai-endpoints) | ✅ | beta | ❌ | ![PyPI - Downloads](https://img.shields.io/pypi/dm/langchain_nvidia_ai_endpoints?style=flat-square&label=%20) | ![PyPI - Version](https://img.shields.io/pypi/v/langchain_nvidia_ai_endpoints?style=flat-square&label=%20) |
+
+### 模型特性
+
+| [Image input](/langchain/oss/langchain/messages#多模态) | 音频输入 | 视频输入 | [Token-level streaming](/langchain/oss/langchain/streaming/) | 原生异步 | [Token usage](/langchain/oss/langchain/models#token-使用) | [Logprobs](/langchain/oss/langchain/models#对数概率) |
+| :---: |  :---: |  :---: |  :---: |  :---: |  :---: |  :---: |
+| ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+
+## 配置
+
+**入门步骤：**
+
+1. 在[NVIDIA](https://build.nvidia.com/)创建免费账户，该平台托管NVIDIA AI基金会模型。
+
+2. 点击选择目标模型。
+
+3. 在`Input`中选择`Python`标签，点击`Get API Key`，然后点击`Generate Key`。
+
+4. 复制保存生成的密钥为`NVIDIA_API_KEY`。此时您将获得API端点访问权限。
+
+### 凭据
+```python
+import getpass
+import os
+
+if not os.getenv("NVIDIA_API_KEY"):
+    # Note: the API key should start with "nvapi-"
+    os.environ["NVIDIA_API_KEY"] = getpass.getpass("Enter your NVIDIA API key: ")
+```
+
+### 安装
+
+LangChain的NVIDIA AI端点集成位于`langchain-nvidia-ai-endpoints`包中：
+
+```python
+pip install -qU langchain-nvidia-ai-endpoints
+```
+
+## 实例化
+
+完整功能请参考[LLM](/langchain/oss/langchain/models)。
+
+```python
+from langchain_nvidia_ai_endpoints import NVIDIA
+```
+
+```python
+llm = NVIDIA().bind(max_tokens=256)
+llm
+```
+
+## 调用
+
+```python
+prompt = "# Function that does quicksort written in Rust without comments:"
+```
+
+```python
+print(llm.invoke(prompt))
+```
+
+## 流式、批量和异步
+
+这些模型原生支持流式输出，同时作为LangChain的LLM提供批处理方法处理并发请求，以及异步的调用、流式和批处理方法。以下是示例：
+
+```python
+stream = llm.stream_events(prompt, version="v3")
+for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+```python
+llm.batch([prompt])
+```
+
+```python
+await llm.ainvoke(prompt)
+```
+
+```python
+stream = await llm.astream_events(prompt, version="v3")
+async for token in stream.text:
+    print(token, end="", flush=True)
+```
+
+```python
+await llm.abatch([prompt])
+```
+
+```python
+async for chunk in llm.astream_log(prompt):
+    print(chunk)
+```
+
+```python
+response = llm.invoke(
+    "X_train, y_train, X_test, y_test = train_test_split(X, y, test_size=0.1) #Train a logistic regression model, predict the labels on the test set and compute the accuracy score"
+)
+print(response)
+```
+
+
+## 支持的模型
+
+通过`available_models`查询仍将返回您凭据可访问的全部模型。
+
+```python
+NVIDIA.get_available_models()
+# llm.get_available_models()
+```
+
+---
+
+## API参考
+
+要查看所有`ChatNVIDIA `功能及配置的详细文档，请访问[NVIDIA API reference](https://reference.langchain.com/python/langchain-nvidia-ai-endpoints/chat_models/ChatNVIDIA)
+
+---
+
+> 官方原文：[src/oss/python/integrations/llms/nvidia_ai_endpoints.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/llms/nvidia_ai_endpoints.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,145 @@
+---
+title: "Google Drive 集成"
+description: "使用 LangChain Python 集成 Google Drive 检索器。"
+integration:
+  name: Google drive
+  pypi: langchain-google-community
+---
+
+
+本笔记本说明如何从 `Google Drive` 获取文档。
+
+## 前置条件
+
+1. 创建 Google Cloud 项目或使用现有项目
+1. 启用 [Google Drive API](https://console.cloud.google.com/flows/enableapi?apiid=drive.googleapis.com)
+1. [为桌面应用授权凭据](https://developers.google.com/drive/api/quickstart/python#authorize_credentials_for_a_desktop_application)
+1. `pip install -U google-api-python-client google-auth-httplib2 google-auth-oauthlib`
+
+## 获取 Google 文档
+
+默认情况下， `GoogleDriveRetriever` 期望 `credentials.json` 文件位于 `~/.credentials/credentials.json`，但可通过 `GOOGLE_ACCOUNT_FILE` 环境变量进行配置。
+`token.json` 的位置使用相同目录（或通过 `token_path` 参数指定）。注意 `token.json` 将在首次使用检索器时自动创建。
+
+`GoogleDriveRetriever` 可通过多次请求获取指定文件集。
+
+默认情况下，若使用 `folder_id`，该文件夹内所有文件都将被检索到 `Document`。
+
+您可通过以下 URL 获取文件夹和文档 ID：
+
+* 文件夹：[drive.google.com/drive/u/0/folders/1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5](https://drive.google.com/drive/u/0/folders/1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5) -> 文件夹 ID 是 `"1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5"`
+* 文档：[docs.google.com/document/d/1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw/edit](https://docs.google.com/document/d/1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw/edit) -> 文档 ID 是 `"1bfaMQ18_i56204VaQDVeAFpqEijJTgvurupdEDiaUQw"`
+
+特殊值 `root` 表示您的个人主页。
+
+```python
+from langchain_googledrive.retrievers import GoogleDriveRetriever
+
+folder_id = "root"
+# folder_id='1yucgL9WGgWZdM1TOuKkeghlPizuzMYb5'
+
+retriever = GoogleDriveRetriever(
+    num_results=2,
+)
+```
+
+默认情况下，所有以下 MIME 类型文件均可转换为 `Document`。
+
+* `text/text`
+* `text/plain`
+* `text/html`
+* `text/csv`
+* `text/markdown`
+* `image/png`
+* `image/jpeg`
+* `application/epub+zip`
+* `application/pdf`
+* `application/rtf`
+* `application/vnd.google-apps.document` (GDoc)
+* `application/vnd.google-apps.presentation` (GSlide)
+* `application/vnd.google-apps.spreadsheet` (GSheet)
+* `application/vnd.google.colaboratory` (Notebook colab)
+* `application/vnd.openxmlformats-officedocument.presentationml.presentation` (PPTX)
+* `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (DOCX)
+
+可通过 `GoogleDriveRetriever` 文档更新或自定义此设置。
+
+对应包需安装。
+
+```python
+pip install -qU  unstructured
+```
+
+```python
+retriever.invoke("machine learning")
+```
+
+您可自定义筛选条件选择文件。提供以下预设过滤器：
+
+| 模板                                 | 描述                                                           |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `gdrive-all-in-folder`                   | 从 `folder_id` 返回所有兼容文件                                        |
+| `gdrive-query`                           | 在所有驱动中搜索 `query`                                          |
+| `gdrive-by-name`                         | 搜索名称为 `query` 的文件                                         |
+| `gdrive-query-in-folder`                 | 在 `folder_id` 中搜索 `query` (含子文件夹 `_recursive=true`)                         |
+| `gdrive-mime-type`                       | 搜索特定 `mime_type`                                                |
+| `gdrive-mime-type-in-folder`             | 在 `folder_id` 中搜索特定 `mime_type`                                      |
+| `gdrive-query-with-mime-type`            | 搜索具有特定 `mime_type` 的 `query`                                    |
+| `gdrive-query-with-mime-type-and-folder` | 搜索具有特定 `mime_type` 和位于 `folder_id` 的 `query`                     |
+
+```python
+retriever = GoogleDriveRetriever(
+    template="gdrive-query",  # Search everywhere
+    num_results=2,  # But take only 2 documents
+)
+for doc in retriever.invoke("machine learning"):
+    print("---")
+    print(doc.page_content.strip()[:60] + "...")
+```
+
+否则，可通过专用 `PromptTemplate` 自定义提示词
+
+```python
+from langchain_core.prompts import PromptTemplate
+
+retriever = GoogleDriveRetriever(
+    template=PromptTemplate(
+        input_variables=["query"],
+        # See https://developers.google.com/drive/api/guides/search-files
+        template="(fullText contains '{query}') "
+        "and mimeType='application/vnd.google-apps.document' "
+        "and modifiedTime > '2000-01-01T00:00:00' "
+        "and trashed=false",
+    ),
+    num_results=2,
+    # See https://developers.google.com/drive/api/v3/reference/files/list
+    includeItemsFromAllDrives=False,
+    supportsAllDrives=False,
+)
+for doc in retriever.invoke("machine learning"):
+    print(f"{doc.metadata['name']}:")
+    print("---")
+    print(doc.page_content.strip()[:60] + "...")
+```
+
+## 使用 Google Drive 'description' 元数据
+
+每个 Google Drive 文件都有 `description` 字段（参考 *文件详情*）。
+使用 `snippets` 模式可返回选定文件的描述。
+
+```python
+retriever = GoogleDriveRetriever(
+    template="gdrive-mime-type-in-folder",
+    folder_id=folder_id,
+    mime_type="application/vnd.google-apps.document",  # Only Google Docs
+    num_results=2,
+    mode="snippets",
+    includeItemsFromAllDrives=False,
+    supportsAllDrives=False,
+)
+retriever.invoke("machine learning")
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/retrievers/google_drive.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/retrievers/google_drive.mdx) · 译文由 AI 生成，以英文原文为准。

@@ -1,0 +1,45 @@
+---
+title: "Hugging Face 集成中的 Instructor embeddings"
+description: "集成 Hugging Face 上的 Instructor-style 嵌入模型，使用 LangChain Python。"
+integration:
+  name: Instructor embeddings on Hugging Face
+  pypi: langchain-huggingface
+---
+
+import LangchainCommunityUnmaintained from '/langchain/snippets/oss/langchain-community-unmaintained.mdx';
+
+>The `hkunlp/instructor-*` 家族引入了指令调优的句子嵌入。它们已被现代指令感知模型广泛取代，但原始模型仍在Hugging Face上提供，可通过 `HuggingFaceInstructEmbeddings` 类别使用。
+
+对于新项目，建议使用 `HuggingFaceEmbeddings`（参考[`langchain-huggingface`](/langchain/oss/python/integrations/embeddings/sentence_transformers)）配合当前指令感知模型 `intfloat/e5-large-v2`、`Qwen/Qwen3-Embedding-0.6B` 或 `BAAI/bge-m3`。通过 `encode_kwargs` 和 `query_encode_kwargs` 传递查询和文档提示：
+
+```python
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="intfloat/e5-large-v2",
+    encode_kwargs={"prompt": "passage: "},
+    query_encode_kwargs={"prompt": "query: "},
+)
+```
+
+## 遗留指令师用法
+
+```shell
+pip install -qU langchain-community InstructorEmbedding sentence-transformers
+```
+
+<LangchainCommunityUnmaintained />
+
+```python
+from langchain_community.embeddings import HuggingFaceInstructEmbeddings
+
+embeddings = HuggingFaceInstructEmbeddings(
+    query_instruction="Represent the query for retrieval: "
+)
+
+query_result = embeddings.embed_query("This is a test document.")
+```
+
+---
+
+> 官方原文：[src/oss/python/integrations/embeddings/instruct_embeddings.mdx](https://github.com/langchain-ai/docs/blob/main/src/oss/python/integrations/embeddings/instruct_embeddings.mdx) · 译文由 AI 生成，以英文原文为准。
