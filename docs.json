@@ -11,7 +11,10 @@
     "timestamp": true
   },
   "seo": {
-    "indexing": "navigable"
+    "indexing": "navigable",
+    "metatags": {
+      "canonical": "https://langchain-docs-zh.coderoadmap.cn"
+    }
   },
   "redirects": [
     {
